@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { fmtGB, fmtPct } from '../../utils/format.js'
 
 const { t } = useI18n()
-const props = defineProps({ result: Object })
+const props = defineProps({ result: Object, quantMatrix: Array, currentQuantId: String })
 
 const barColor = computed(() => {
   if (!props.result) return 'bg-emerald-500'
@@ -79,6 +79,34 @@ const pieData = computed(() => {
         <span class="text-gray-500">{{ t('result.available') }}</span>
         <span class="text-gray-800 font-medium">{{ fmtGB(result.totalVram) }}</span>
       </div>
+    </div>
+    <!-- 理论估算注释 -->
+    <p v-if="result" class="text-xs text-gray-400 leading-snug">{{ t('result.vram_theory_note') }}</p>
+
+    <!-- 量化对比矩阵 -->
+    <div v-if="quantMatrix?.length" class="border-t border-gray-100 pt-3 space-y-1">
+      <div class="grid grid-cols-4 text-xs text-gray-400 font-medium px-1 pb-1">
+        <span>{{ t('result.quant_matrix_quant') }}</span>
+        <span class="text-right">{{ t('result.quant_matrix_vram') }}</span>
+        <span class="text-center">{{ t('result.quant_matrix_status') }}</span>
+        <span class="text-right">{{ t('result.quant_matrix_speed') }}</span>
+      </div>
+      <div
+        v-for="row in quantMatrix" :key="row.quant.id"
+        class="grid grid-cols-4 text-xs px-1 py-0.5 rounded items-center"
+        :class="row.quant.id === currentQuantId ? 'bg-blue-50' : ''"
+      >
+        <span class="font-medium text-gray-700">{{ row.quant.label }}</span>
+        <span class="text-right text-gray-600">{{ fmtGB(row.vramGB) }}</span>
+        <span class="text-center">
+          <span v-if="row.vramOk" class="text-emerald-600">✓ {{ fmtPct(row.vramPct) }}</span>
+          <span v-else class="text-red-500">✗ OOM</span>
+        </span>
+        <span class="text-right text-gray-500">
+          {{ row.vramOk ? row.decodeToks.toFixed(1) + ' tok/s' : '—' }}
+        </span>
+      </div>
+      <p class="text-xs text-gray-400 leading-snug pt-1">{{ t('result.vram_theory_note') }}</p>
     </div>
   </div>
 </template>

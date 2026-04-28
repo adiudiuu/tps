@@ -1,7 +1,8 @@
 // src/utils/exportMd.js
 // 将当前计算结果导出为 Markdown 报告
 import { fmtToks, fmtToksRange, fmtGB, fmtMs, fmtPct, fmtParams, fmtCtx } from './format.js'
-import { getWarnings } from './calc.js'
+import { calcAll, getWarnings } from './calc.js'
+import { QUANT_MAP } from '../data/constants.js'
 
 /**
  * 生成 Markdown 报告字符串
@@ -118,6 +119,34 @@ export function generateMarkdown({
   lines.push(`| ${isZh ? '系统开销' : 'Overhead'} | ${fmtGB(result.overheadGB)} | ${fmtPct(result.overheadGB / result.totalVram * 100)} |`)
   lines.push(`| **${isZh ? '总需求' : 'Total Needed'}** | **${fmtGB(result.totalNeeded)}** | **${fmtPct(result.vramPct)}** |`)
   lines.push(`| ${isZh ? '可用显存' : 'Available'} | ${fmtGB(result.totalVram)} | — |`)
+  lines.push('')
+
+  // 量化对比矩阵
+  lines.push(isZh ? '### 量化对比矩阵' : '### Quantization Comparison')
+  lines.push('')
+  lines.push(isZh
+    ? '> 理论估算，不代表该量化精度有对应的发布版本。'
+    : '> Theoretical estimates. Does not imply a quantized release exists for this model.')
+  lines.push('')
+  lines.push(`| ${isZh ? '量化' : 'Quant'} | ${isZh ? '显存需求' : 'VRAM'} | ${isZh ? '状态' : 'Status'} | ${isZh ? '预估速度' : 'Est. Speed'} |`)
+  lines.push('|---|---|---|---|')
+  for (const q of QUANT_MAP) {
+    try {
+      const r = calcAll({
+        gpu, gpuCount, interconnect, model, quant: q, ctx, batch,
+        promptLen, outputLen, framework, flashAttention, kvCacheQuant,
+        prefixCacheHit, cpuOffload, pcieBw,
+      })
+      const isCurrent = q.id === quant.id
+      const label = isCurrent ? `**${q.label}**` : q.label
+      const vram = isCurrent ? `**${fmtGB(r.totalNeeded)}**` : fmtGB(r.totalNeeded)
+      const status = r.vramOk
+        ? `✅ ${fmtPct(r.vramPct)}`
+        : `❌ OOM`
+      const speed = r.vramOk ? `${r.decodeToks.toFixed(1)} tok/s` : '—'
+      lines.push(`| ${label} | ${vram} | ${status} | ${speed} |`)
+    } catch { /* skip */ }
+  }
   lines.push('')
 
   // ── 5. 速度与延迟 ──────────────────────────────────────

@@ -10,7 +10,7 @@ import VramPieChart from './VramPieChart.vue'
 import WarningList from './WarningList.vue'
 
 const { t } = useI18n()
-defineProps({ result: Object, model: Object })
+defineProps({ result: Object, model: Object, quantMatrix: Array })
 const framework = defineModel('framework', { required: true })
 </script>
 
@@ -47,7 +47,7 @@ const framework = defineModel('framework', { required: true })
       </div>
     </div>
     <WarningList :result="result" />
-    <VramCard :result="result" />
+    <VramCard :result="result" :quant-matrix="quantMatrix" :current-quant-id="result?.quantId" />
     <SpeedCard :result="result" v-model:framework="framework" />
     <LatencyCard :result="result" />
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">

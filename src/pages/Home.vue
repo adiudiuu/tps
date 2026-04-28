@@ -44,17 +44,33 @@ watchUrlState({ gpu, gpuCount, interconnect, model, quant, ctx, batch,
 const result = computed(() => {
   if (!gpu.value || !model.value || !quant.value || !framework.value) return null
   try {
-    return calcAll({
+    return { ...calcAll({
       gpu: gpu.value, gpuCount: gpuCount.value, interconnect: interconnect.value,
       model: model.value, quant: quant.value, ctx: ctx.value, batch: batch.value,
       promptLen: promptLen.value, outputLen: outputLen.value, framework: framework.value,
       flashAttention: flashAttention.value, kvCacheQuant: kvCacheQuant.value,
       prefixCacheHit: prefixCacheHit.value, cpuOffload: cpuOffload.value, pcieBw: pcieBw.value,
-    })
+    }), quantId: quant.value.id }
   } catch (e) {
     if (import.meta.env.DEV) console.error('[calcAll error]', e)
     return null
   }
+})
+
+const quantMatrix = computed(() => {
+  if (!gpu.value || !model.value || !framework.value) return []
+  return QUANT_MAP.map(q => {
+    try {
+      const r = calcAll({
+        gpu: gpu.value, gpuCount: gpuCount.value, interconnect: interconnect.value,
+        model: model.value, quant: q, ctx: ctx.value, batch: batch.value,
+        promptLen: promptLen.value, outputLen: outputLen.value, framework: framework.value,
+        flashAttention: flashAttention.value, kvCacheQuant: kvCacheQuant.value,
+        prefixCacheHit: prefixCacheHit.value, cpuOffload: cpuOffload.value, pcieBw: pcieBw.value,
+      })
+      return { quant: q, vramGB: r.totalNeeded, vramOk: r.vramOk, vramPct: r.vramPct, decodeToks: r.decodeToks }
+    } catch { return null }
+  }).filter(Boolean)
 })
 </script>
 
@@ -80,7 +96,7 @@ const result = computed(() => {
         />
       </template>
       <template #result>
-        <ResultPanel :result="result" :model="model" v-model:framework="framework" />
+        <ResultPanel :result="result" :model="model" :quant-matrix="quantMatrix" v-model:framework="framework" />
       </template>
     </TwoColumn>
   </div>

@@ -136,6 +136,11 @@ export default {
     vram_rating_tight_desc: '接近上限',
     vram_rating_oom: '不足',
     vram_rating_oom_desc: '无法运行',
+    vram_theory_note: '以上为理论估算，不代表该量化精度有对应的发布版本。',
+    quant_matrix_quant: '量化',
+    quant_matrix_vram: '显存需求',
+    quant_matrix_status: '状态',
+    quant_matrix_speed: '预估速度',
   },
   warning: {
     vram_oom: '显存不足 {diff} GB，建议增加显卡数量或降低量化精度',

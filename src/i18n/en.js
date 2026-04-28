@@ -136,6 +136,11 @@ export default {
     vram_rating_tight_desc: 'Near the limit',
     vram_rating_oom: 'Insufficient',
     vram_rating_oom_desc: 'Cannot run',
+    vram_theory_note: 'These are theoretical estimates and do not imply that a quantized release exists for this model.',
+    quant_matrix_quant: 'Quant',
+    quant_matrix_vram: 'VRAM',
+    quant_matrix_status: 'Status',
+    quant_matrix_speed: 'Est. Speed',
   },
   warning: {
     vram_oom: 'VRAM insufficient by {diff} GB — add more GPUs or lower quantization',
