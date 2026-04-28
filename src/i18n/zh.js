@@ -13,7 +13,10 @@ export default {
     search_placeholder: '搜索显卡型号...',
     select_placeholder: '选择显卡',
     no_result: '无匹配显卡',
-    auto_no_match: '未能自动匹配本机显卡，请手动选择',
+    detect_btn: '检测本机',
+    detecting: '检测中...',
+    detect_matched: '已自动匹配本机显卡',
+    auto_no_match: '未能匹配本机显卡，请手动选择',
   },
   model: {
     title: '模型选择',

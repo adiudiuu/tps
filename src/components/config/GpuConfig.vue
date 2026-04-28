@@ -65,26 +65,26 @@ function handleClickOutside(e) {
 
 onMounted(() => {
   document.addEventListener('mousedown', handleClickOutside)
-  // 自动检测本机 GPU（静默，不打扰用户）
-  autoDetect()
 })
 
 onBeforeUnmount(() => {
   document.removeEventListener('mousedown', handleClickOutside)
 })
 
-// ── 自动检测 ────────────────────────────────────────
-const autoDetectMsg = ref('')  // '' | 'matched' | 'no_match' | 'error'
+// ── 手动检测 ────────────────────────────────────────
+const detectState = ref('')  // '' | 'loading' | 'matched' | 'no_match'
 
-async function autoDetect() {
+async function manualDetect() {
+  detectState.value = 'loading'
   const { gpu: matched, rawName } = await detectLocalGpu()
   if (matched) {
     gpu.value = matched
-    autoDetectMsg.value = 'matched'
+    detectState.value = 'matched'
   } else if (rawName) {
-    autoDetectMsg.value = 'no_match'
+    detectState.value = 'no_match'
+  } else {
+    detectState.value = 'no_match'
   }
-  // error 静默忽略（WebGPU 不支持等情况不提示）
 }
 
 // ── 选 GPU 时自动匹配互联方式 ───────────────────────
@@ -105,11 +105,34 @@ watch(gpu, (g) => {
 
     <!-- GPU 型号 -->
     <div>
-      <label class="block text-xs text-gray-500 mb-1">{{ t('gpu.model') }}</label>
+      <div class="flex items-center justify-between mb-1">
+        <label class="text-xs text-gray-500">{{ t('gpu.model') }}</label>
+        <button
+          type="button"
+          @click="manualDetect"
+          :disabled="detectState === 'loading'"
+          class="flex items-center gap-1 text-xs px-2 py-0.5 rounded-md border transition-colors"
+          :class="detectState === 'loading'
+            ? 'border-gray-200 text-gray-400 cursor-not-allowed'
+            : 'border-emerald-300 text-emerald-700 hover:bg-emerald-50'"
+        >
+          <svg v-if="detectState === 'loading'" class="w-3 h-3 animate-spin" viewBox="0 0 24 24" fill="none">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/>
+          </svg>
+          <svg v-else class="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-11.25a.75.75 0 00-1.5 0v2.5h-2.5a.75.75 0 000 1.5h2.5v2.5a.75.75 0 001.5 0v-2.5h2.5a.75.75 0 000-1.5h-2.5v-2.5z" clip-rule="evenodd"/>
+          </svg>
+          {{ detectState === 'loading' ? t('gpu.detecting') : t('gpu.detect_btn') }}
+        </button>
+      </div>
 
-      <!-- 自动检测提示（仅未匹配时显示） -->
-      <div v-if="autoDetectMsg === 'no_match'" class="mb-1.5 text-xs px-2 py-1 rounded-md bg-amber-50 text-amber-700">
+      <!-- 检测提示 -->
+      <div v-if="detectState === 'no_match'" class="mb-1.5 text-xs px-2 py-1 rounded-md bg-amber-50 text-amber-700">
         ⚠️ {{ t('gpu.auto_no_match') }}
+      </div>
+      <div v-if="detectState === 'matched'" class="mb-1.5 text-xs px-2 py-1 rounded-md bg-emerald-50 text-emerald-700">
+        ✓ {{ t('gpu.detect_matched') }}
       </div>
 
       <!-- 可搜索 Combobox -->

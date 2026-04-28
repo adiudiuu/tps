@@ -13,7 +13,10 @@ export default {
     search_placeholder: 'Search GPU model...',
     select_placeholder: 'Select GPU',
     no_result: 'No matching GPU',
-    auto_no_match: 'Could not auto-detect your GPU, please select manually',
+    detect_btn: 'Detect GPU',
+    detecting: 'Detecting...',
+    detect_matched: 'GPU auto-detected',
+    auto_no_match: 'Could not detect your GPU, please select manually',
   },
   model: {
     title: 'Model Selection',
