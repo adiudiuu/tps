@@ -1,0 +1,18 @@
+// AMD RX 6000 系列（RDNA 2，2020-2022）
+export default [
+  // 桌面
+  { id: 'rx6900xt',  name: 'RX 6900 XT',  vendor: 'amd', tier: 'consumer', released: '2020-12', vram: 16, bw: 512, bf16: 46, int8: null, int4: null, nvlink_bw: null, tdp: 300 },
+  { id: 'rx6800xt',  name: 'RX 6800 XT',  vendor: 'amd', tier: 'consumer', released: '2020-11', vram: 16, bw: 512, bf16: 41, int8: null, int4: null, nvlink_bw: null, tdp: 300 },
+  { id: 'rx6800',    name: 'RX 6800',     vendor: 'amd', tier: 'consumer', released: '2020-11', vram: 16, bw: 512, bf16: 32, int8: null, int4: null, nvlink_bw: null, tdp: 250 },
+  { id: 'rx6750xt',  name: 'RX 6750 XT',  vendor: 'amd', tier: 'consumer', released: '2022-05', vram: 12, bw: 432, bf16: 26, int8: null, int4: null, nvlink_bw: null, tdp: 250 },
+  { id: 'rx6700xt',  name: 'RX 6700 XT',  vendor: 'amd', tier: 'consumer', released: '2021-03', vram: 12, bw: 384, bf16: 26, int8: null, int4: null, nvlink_bw: null, tdp: 230 },
+  { id: 'rx6650xt',  name: 'RX 6650 XT',  vendor: 'amd', tier: 'consumer', released: '2022-05', vram: 8,  bw: 280, bf16: 18, int8: null, int4: null, nvlink_bw: null, tdp: 180 },
+  { id: 'rx6600xt',  name: 'RX 6600 XT',  vendor: 'amd', tier: 'consumer', released: '2021-08', vram: 8,  bw: 256, bf16: 21, int8: null, int4: null, nvlink_bw: null, tdp: 160 },
+  { id: 'rx6600',    name: 'RX 6600',     vendor: 'amd', tier: 'consumer', released: '2021-10', vram: 8,  bw: 224, bf16: 18, int8: null, int4: null, nvlink_bw: null, tdp: 132 },
+  { id: 'rx6500xt',  name: 'RX 6500 XT',  vendor: 'amd', tier: 'consumer', released: '2022-01', vram: 4,  bw: 144, bf16: 8,  int8: null, int4: null, nvlink_bw: null, tdp: 107 },
+  // 笔记本
+  { id: 'rx6800m',   name: 'RX 6800M',    vendor: 'amd', tier: 'consumer', released: '2021-06', vram: 12, bw: 384, bf16: 22, int8: null, int4: null, nvlink_bw: null, tdp: 145 },
+  { id: 'rx6700m',   name: 'RX 6700M',    vendor: 'amd', tier: 'consumer', released: '2021-06', vram: 10, bw: 320, bf16: 16, int8: null, int4: null, nvlink_bw: null, tdp: 100 },
+  { id: 'rx6600m',   name: 'RX 6600M',    vendor: 'amd', tier: 'consumer', released: '2021-06', vram: 8,  bw: 224, bf16: 12, int8: null, int4: null, nvlink_bw: null, tdp: 100 },
+  { id: 'rx6500m',   name: 'RX 6500M',    vendor: 'amd', tier: 'consumer', released: '2022-01', vram: 4,  bw: 96,  bf16: 5,  int8: null, int4: null, nvlink_bw: null, tdp: 50  },
+]

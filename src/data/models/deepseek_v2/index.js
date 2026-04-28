@@ -1,0 +1,19 @@
+export default {
+  id: 'deepseek_v2',
+  released: '2024-05',
+  name: 'DeepSeek V2',
+  type: 'moe',
+  params: 236,
+  active_params: 21,
+  mla_ratio: 0.18,
+  layers: 60,
+  kv_heads: 128,
+  head_dim: 128,
+  hidden_size: 5120,
+  max_ctx: 131072,
+  links: {
+    ollama: 'ollama pull deepseek-v2',
+    hf: 'https://huggingface.co/deepseek-ai/DeepSeek-V2',
+    ms: 'https://modelscope.cn/models/deepseek-ai/DeepSeek-V2',
+  },
+}

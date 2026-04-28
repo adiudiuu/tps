@@ -1,0 +1,14 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-gray-50 text-gray-900 antialiased;
+    font-family: system-ui, 'Segoe UI', sans-serif;
+    overflow-x: hidden;
+  }
+  * {
+    @apply box-border;
+  }
+}
