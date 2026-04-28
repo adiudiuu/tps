@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import TopBar from '../components/layout/TopBar.vue'
@@ -92,6 +92,16 @@ function getSavedQuery() {
   return Object.fromEntries(new URLSearchParams(saved))
 }
 
+const savedQuery = getSavedQuery()
+const selectedModelId = ref(savedQuery.model ?? null)
+const selectedGpuId = ref(savedQuery.gpu ?? null)
+
+onMounted(async () => {
+  await nextTick()
+  const el = document.querySelector('[data-sel]')
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+})
+
 function selectModel(m) {
   router.push({ path: '/', query: { ...getSavedQuery(), model: m.id } })
 }
@@ -171,7 +181,11 @@ function selectGpu(g) {
                 v-for="m in group.list"
                 :key="m.id"
                 @click="selectModel(m)"
-                class="group flex items-center justify-between bg-white border border-gray-200 rounded-lg px-3 py-2.5 text-left hover:border-emerald-400 hover:shadow-sm transition-all"
+                :data-sel="m.id === selectedModelId ? '' : undefined"
+                :class="['group flex items-center justify-between rounded-lg px-3 py-2.5 text-left hover:border-emerald-400 hover:shadow-sm transition-all',
+                  m.id === selectedModelId
+                    ? 'bg-emerald-50 border border-emerald-400 ring-1 ring-emerald-300'
+                    : 'bg-white border border-gray-200']">
               >
                 <div class="flex items-center gap-2 min-w-0">
                   <span
@@ -219,7 +233,11 @@ function selectGpu(g) {
                 v-for="g in group.list"
                 :key="g.id"
                 @click="selectGpu(g)"
-                class="group flex items-center justify-between bg-white border border-gray-200 rounded-lg px-3 py-2.5 text-left hover:border-emerald-400 hover:shadow-sm transition-all"
+                :data-sel="g.id === selectedGpuId ? '' : undefined"
+                :class="['group flex items-center justify-between rounded-lg px-3 py-2.5 text-left hover:border-emerald-400 hover:shadow-sm transition-all',
+                  g.id === selectedGpuId
+                    ? 'bg-emerald-50 border border-emerald-400 ring-1 ring-emerald-300'
+                    : 'bg-white border border-gray-200']">
               >
                 <div class="flex items-center gap-2 min-w-0">
                   <span
