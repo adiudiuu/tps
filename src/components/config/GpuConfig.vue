@@ -19,6 +19,7 @@ const searchQuery = ref('')
 const isOpen = ref(false)
 const comboboxRef = ref(null)
 const inputRef = ref(null)
+const dropdownRef = ref(null)
 
 const filteredGpus = computed(() => {
   const q = searchQuery.value.trim().toLowerCase()
@@ -41,8 +42,12 @@ const filteredGroups = computed(() => {
 function openDropdown() {
   searchQuery.value = ''
   isOpen.value = true
-  // 下一帧聚焦输入框
-  setTimeout(() => inputRef.value?.focus(), 0)
+  setTimeout(() => {
+    inputRef.value?.focus()
+    // 滚到当前选中项
+    const el = dropdownRef.value?.querySelector(`[data-gpu-id="${gpu.value?.id}"]`)
+    el?.scrollIntoView({ block: 'nearest' })
+  }, 0)
 }
 
 function selectGpu(g) {
@@ -134,7 +139,7 @@ watch(gpu, (g) => {
           </div>
 
           <!-- 选项列表 -->
-          <div class="max-h-64 overflow-y-auto">
+          <div ref="dropdownRef" class="max-h-64 overflow-y-auto">
             <template v-if="filteredGroups.length">
               <div v-for="([vendor, list]) in filteredGroups" :key="vendor">
                 <div class="px-3 py-1 text-xs font-semibold text-gray-400 bg-gray-50 sticky top-0">
@@ -143,6 +148,7 @@ watch(gpu, (g) => {
                 <button
                   v-for="g in list"
                   :key="g.id"
+                  :data-gpu-id="g.id"
                   type="button"
                   @click="selectGpu(g)"
                   class="w-full text-left px-3 py-1.5 text-sm hover:bg-emerald-50 hover:text-emerald-800 transition-colors"

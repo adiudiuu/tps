@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, nextTick } from 'vue'
+import { ref, computed, nextTick, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ALL_MODELS } from '../../data/models/index.js'
 import { fmtParams, fmtCtx } from '../../utils/format.js'
@@ -43,8 +43,16 @@ const filteredModels = computed(() => {
   return list
 })
 
+function scrollToSelected(id) {
+  nextTick(() => {
+    const el = listRef.value?.querySelector(`[data-model-id="${id}"]`)
+    el?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+  })
+}
+
 function selectModel(m) {
   model.value = m
+  scrollToSelected(m.id)
 }
 
 function applyCustom() {
@@ -76,6 +84,10 @@ function fmtRelease(val) {
 }
 
 const TABS = ['all', 'dense', 'moe', 'custom']
+
+onMounted(() => {
+  if (model.value) scrollToSelected(model.value.id)
+})
 </script>
 
 <template>
@@ -144,11 +156,12 @@ const TABS = ['all', 'dense', 'moe', 'custom']
 
     <!-- 模型列表 -->
     <template v-else>
-      <div class="space-y-1 max-h-80 overflow-y-auto pr-1 scrollbar-thin">
+      <div ref="listRef" class="space-y-1 max-h-80 overflow-y-auto pr-1 scrollbar-thin">
         <div v-if="filteredModels.length === 0" class="text-center text-xs text-gray-400 py-4">{{ t('model.no_result') }}</div>
         <div
           v-for="m in filteredModels"
           :key="m.id"
+          :data-model-id="m.id"
           @click="selectModel(m)"
           :class="[
             'relative rounded-lg p-2.5 cursor-pointer border transition-colors',
