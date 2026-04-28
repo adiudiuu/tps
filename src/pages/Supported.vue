@@ -84,16 +84,19 @@ const gpuGroups = computed(() => {
   return groups
 })
 
-function goCalculate(query) {
-  router.push({ path: '/', query })
+const SESSION_KEY = 'tps_calc_query'
+
+function getSavedQuery() {
+  const saved = sessionStorage.getItem(SESSION_KEY) ?? ''
+  return Object.fromEntries(new URLSearchParams(saved))
 }
 
 function selectModel(m) {
-  goCalculate({ model: m.id })
+  router.push({ path: '/', query: { ...getSavedQuery(), model: m.id } })
 }
 
 function selectGpu(g) {
-  goCalculate({ gpu: g.id })
+  router.push({ path: '/', query: { ...getSavedQuery(), gpu: g.id } })
 }
 </script>
 

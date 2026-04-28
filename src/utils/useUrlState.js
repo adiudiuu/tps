@@ -1,11 +1,11 @@
 // src/utils/useUrlState.js
-// 把关键配置序列化到 URL querystring，支持分享和浏览器历史回退
-
 import { watch } from 'vue'
 import { GPU_LIST } from '../data/gpus/index.js'
 import { ALL_MODELS } from '../data/models/index.js'
 import { QUANT_MAP, INTERCONNECT_MAP, FRAMEWORK_MAP } from '../data/constants.js'
 import { KV_CACHE_MAP, PCIE_BW_OPTIONS } from '../data/runtime.js'
+
+const SESSION_KEY = 'tps_calc_query'
 
 function getParams() {
   return new URLSearchParams(window.location.search)
@@ -18,11 +18,21 @@ function setParams(updates) {
     else url.searchParams.set(k, v)
   }
   window.history.replaceState({}, '', url.toString())
+  // 同步保存到 sessionStorage，供切换路由后恢复
+  sessionStorage.setItem(SESSION_KEY, url.search)
 }
 
-/** 从 URL 读取初始状态，返回各 ref 的初始值 */
+/** 从 URL 读取初始状态，URL 无参数时回退到 sessionStorage */
 export function readUrlState() {
-  const p = getParams()
+  let search = window.location.search
+  if (!search || search === '?') {
+    search = sessionStorage.getItem(SESSION_KEY) ?? ''
+    // 把 sessionStorage 的 query 恢复到 URL
+    if (search) {
+      window.history.replaceState({}, '', window.location.pathname + search)
+    }
+  }
+  const p = new URLSearchParams(search)
   return {
     gpuId:          p.get('gpu'),
     gpuCount:       p.has('n')    ? Number(p.get('n'))    : null,
@@ -63,7 +73,7 @@ export function resolveUrlState(init) {
   }
 }
 
-/** 监听所有 ref，变化时同步写入 URL */
+/** 监听所有 ref，变化时同步写入 URL 和 sessionStorage */
 export function watchUrlState({
   gpu, gpuCount, interconnect, model, quant, ctx, batch,
   promptLen, outputLen, framework, flashAttention,

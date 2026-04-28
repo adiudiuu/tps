@@ -1,11 +1,19 @@
 ﻿<script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { generateMarkdown, downloadMarkdown, buildFilename } from '../../utils/exportMd.js'
 
 const { t, locale } = useI18n()
 const route = useRoute()
+
+const SESSION_KEY = 'tps_calc_query'
+const homeLink = computed(() => {
+  if (route.path === '/') return '/'
+  const saved = sessionStorage.getItem(SESSION_KEY) ?? ''
+  const query = Object.fromEntries(new URLSearchParams(saved))
+  return { path: '/', query }
+})
 const props = defineProps({
   result: Object, model: Object,
   gpu: Object, gpuCount: Number, interconnect: Object,
@@ -54,6 +62,7 @@ function exportMarkdown() {
   <header class="sticky top-0 z-50 bg-white/90 backdrop-blur border-b border-gray-200 px-3 sm:px-4 h-12 sm:h-14 flex items-center justify-between gap-4">
     <div class="flex items-center gap-4 min-w-0">
       <div class="flex items-center gap-2 flex-shrink-0">
+        <RouterLink :to="homeLink" class="flex items-center gap-2">
         <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-slate-900 flex items-center justify-center shadow-sm">
           <svg viewBox="0 0 64 64" class="w-4 h-4 sm:w-5 sm:h-5" fill="none" aria-hidden="true">
             <path d="M18 42L27 33L34 37L46 23" stroke="url(#topbar-accent)" stroke-linecap="round" stroke-linejoin="round" stroke-width="5" />
@@ -72,12 +81,13 @@ function exportMarkdown() {
           <span class="text-sm sm:text-base font-semibold text-gray-900 tracking-tight leading-tight">{{ t('nav.title') }}</span>
           <span class="text-[10px] text-gray-400 leading-tight whitespace-nowrap">{{ t('nav.updated') }} 2026/04/28 15:00</span>
         </div>
+        </RouterLink>
       </div>
       
       <!-- 导航菜单 -->
       <nav class="hidden sm:flex items-center gap-1 border-l border-gray-200 pl-4">
         <RouterLink
-          to="/"
+          :to="homeLink"
           class="px-3 py-1.5 text-sm font-medium rounded-md transition-colors"
           :class="route.path === '/'
             ? 'text-emerald-700 bg-emerald-100 font-semibold'

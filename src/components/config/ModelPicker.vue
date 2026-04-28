@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ALL_MODELS } from '../../data/models/index.js'
 import { fmtParams, fmtCtx } from '../../utils/format.js'
@@ -13,6 +13,7 @@ const model = defineModel('model', { required: true })
 const searchQuery = ref('')
 const activeTab = ref('all')
 const detailModel = ref(null)
+const listRef = ref(null)
 
 // 自定义模型状态
 const customModel = ref({
