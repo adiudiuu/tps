@@ -54,7 +54,7 @@ const GPU_GROUPS = [
   { zh: 'NVIDIA RTX 30',  en: 'NVIDIA RTX 30',     match: g => g.vendor === 'nvidia' && /^rtx3/.test(g.id) },
   { zh: 'NVIDIA RTX 20',  en: 'NVIDIA RTX 20',     match: g => g.vendor === 'nvidia' && /^rtx2/.test(g.id) },
   { zh: 'NVIDIA GTX',     en: 'NVIDIA GTX',        match: g => g.vendor === 'nvidia' && /^gtx/.test(g.id) },
-  { zh: 'NVIDIA 专业卡',  en: 'NVIDIA Pro / DGX',  match: g => g.vendor === 'nvidia' && /^(rtx_|dgx)/.test(g.id) },
+  { zh: 'NVIDIA 专业卡',  en: 'NVIDIA Pro / DGX',  match: g => g.vendor === 'nvidia' && (/^rtx_/.test(g.id) || g.id === 'dgx_spark') },
   { zh: 'AMD 数据中心',   en: 'AMD Datacenter',    match: g => g.vendor === 'amd' && g.tier === 'datacenter' },
   { zh: 'AMD RX 9000',    en: 'AMD RX 9000',       match: g => g.vendor === 'amd' && /^rx9/.test(g.id) },
   { zh: 'AMD RX 7000',    en: 'AMD RX 7000',       match: g => g.vendor === 'amd' && /^rx7/.test(g.id) },

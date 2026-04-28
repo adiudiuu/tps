@@ -109,7 +109,7 @@ onMounted(() => {
       <button
         v-for="tab in TABS"
         :key="tab"
-        @click="activeTab = tab; searchQuery = ''"
+        @click="activeTab = tab"
         :class="[
           'flex-1 py-1.5 rounded-lg text-xs font-medium border transition-colors',
           activeTab === tab

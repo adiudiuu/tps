@@ -221,7 +221,7 @@ function getFlashAttentionBoostRange({ enabled, promptLen }) {
   if (promptLen >= 32768) return { min: 3, mid: 4, max: 5 }  // 序列越长，HBM IO 节省越显著，加速倍数单调递增
   if (promptLen >= 8192)  return { min: 2, mid: 2.5, max: 3 }
   if (promptLen >= 2048)  return { min: 1.5, mid: 1.75, max: 2 }
-  return { min: 1.2, mid: 1.35, max: 1.5 }
+  return { min: 1, mid: 1, max: 1.1 }  // < 2048 tokens，FlashAttention 收益极小
 }
 
 /**
