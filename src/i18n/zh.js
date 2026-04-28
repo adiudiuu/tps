@@ -63,6 +63,7 @@ export default {
     output: '输出长度',
     output_tip: '模型生成的 token 数量，用于总延迟估算。不影响 decode tok/s 的计算。',
     framework: '推理框架',
+    framework_recommended: '推荐',
     flash_attention: 'Flash Attention',
     flash_attention_tip: '重计算注意力权重以节省显存，同时大幅加速长序列 Prefill。生产环境推荐开启。',
     kv_cache_quant: 'KV Cache 量化',
@@ -156,6 +157,8 @@ export default {
     trtllm: 'TensorRT-LLM',
     vllm: 'vLLM',
     tgi: 'TGI',
+    mlx: 'MLX (Apple)',
+    llamacpp_metal: 'llama.cpp (Metal)',
     llamacpp: 'llama.cpp',
   },
 }

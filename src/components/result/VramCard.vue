@@ -5,6 +5,7 @@ import { fmtGB, fmtPct } from '../../utils/format.js'
 
 const { t } = useI18n()
 const props = defineProps({ result: Object, quantMatrix: Array, currentQuantId: String })
+const emit = defineEmits(['selectQuant'])
 
 const barColor = computed(() => {
   if (!props.result) return 'bg-emerald-500'
@@ -93,16 +94,17 @@ const pieData = computed(() => {
       </div>
       <div
         v-for="row in quantMatrix" :key="row.quant.id"
-        class="grid grid-cols-4 text-xs px-1 py-0.5 rounded items-center"
-        :class="row.quant.id === currentQuantId ? 'bg-blue-50' : ''"
+        @click="emit('selectQuant', row.quant)"
+        class="grid grid-cols-4 text-xs px-2 py-1.5 rounded items-center cursor-pointer transition-colors"
+        :class="row.quant.id === currentQuantId ? 'bg-emerald-600 text-white' : 'hover:bg-gray-100'"
       >
-        <span class="font-medium text-gray-700">{{ row.quant.label }}</span>
-        <span class="text-right text-gray-600">{{ fmtGB(row.vramGB) }}</span>
+        <span class="font-medium" :class="row.quant.id === currentQuantId ? 'text-white' : 'text-gray-700'">{{ row.quant.label }}</span>
+        <span class="text-right" :class="row.quant.id === currentQuantId ? 'text-white' : 'text-gray-600'">{{ fmtGB(row.vramGB) }}</span>
         <span class="text-center">
-          <span v-if="row.vramOk" class="text-emerald-600">✓ {{ fmtPct(row.vramPct) }}</span>
-          <span v-else class="text-red-500">✗ OOM</span>
+          <span v-if="row.vramOk" :class="row.quant.id === currentQuantId ? 'text-emerald-200' : 'text-emerald-600'">✓ {{ fmtPct(row.vramPct) }}</span>
+          <span v-else :class="row.quant.id === currentQuantId ? 'text-red-200' : 'text-red-500'">✗ OOM</span>
         </span>
-        <span class="text-right text-gray-500">
+        <span class="text-right" :class="row.quant.id === currentQuantId ? 'text-white' : 'text-gray-500'">
           {{ row.vramOk ? row.decodeToks.toFixed(1) + ' tok/s' : '—' }}
         </span>
       </div>

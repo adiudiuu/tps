@@ -28,7 +28,7 @@ const filteredGpus = computed(() => {
 })
 
 // 按 vendor 分组（仅过滤后的结果）
-const vendorLabel = { nvidia: 'NVIDIA', amd: 'AMD', intel: 'Intel', domestic: '国产' }
+const vendorLabel = { nvidia: 'NVIDIA', amd: 'AMD', intel: 'Intel', apple: 'Apple Silicon', domestic: '国产' }
 
 const filteredGroups = computed(() => {
   const map = {}
@@ -89,6 +89,10 @@ async function autoDetect() {
 
 // ── 选 GPU 时自动匹配互联方式 ───────────────────────
 watch(gpu, (g) => {
+  if (g?.vendor === 'apple') {
+    gpuCount.value = 1
+    return
+  }
   if (!g?.nvlink_bw) return
   const matched = INTERCONNECT_MAP.find(ic => ic.bw === g.nvlink_bw)
   if (matched) interconnect.value = matched
@@ -116,7 +120,10 @@ watch(gpu, (g) => {
           @click="openDropdown"
           class="w-full flex items-center justify-between bg-gray-50 border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-500 hover:border-gray-400 transition-colors"
         >
-          <span>{{ gpu?.name ?? t('gpu.select_placeholder') }}{{ gpu && isNew(gpu.released) ? ' 🆕' : '' }}</span>
+          <span class="flex items-center gap-1.5">
+            {{ gpu?.name ?? t('gpu.select_placeholder') }}
+            <span v-if="gpu && isNew(gpu.released)" class="inline-block w-1.5 h-1.5 rounded-full bg-red-500 shrink-0"></span>
+          </span>
           <svg class="w-4 h-4 text-gray-400 shrink-0 ml-2 transition-transform" :class="{ 'rotate-180': isOpen }" viewBox="0 0 20 20" fill="currentColor">
             <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd"/>
           </svg>
@@ -154,7 +161,10 @@ watch(gpu, (g) => {
                   class="w-full text-left px-3 py-1.5 text-sm hover:bg-emerald-50 hover:text-emerald-800 transition-colors"
                   :class="{ 'bg-emerald-50 text-emerald-700 font-medium': g.id === gpu?.id }"
                 >
-                  {{ g.name }}{{ isNew(g.released) ? ' 🆕' : '' }}
+                  <span class="flex items-center gap-1.5">
+                    {{ g.name }}
+                    <span v-if="isNew(g.released)" class="inline-block w-1.5 h-1.5 rounded-full bg-red-500 shrink-0"></span>
+                  </span>
                 </button>
               </div>
             </template>
@@ -186,8 +196,8 @@ watch(gpu, (g) => {
       </div>
     </div>
 
-    <!-- GPU 数量 -->
-    <div>
+    <!-- GPU 数量（Apple Silicon 不支持多卡）-->
+    <div v-if="gpu?.vendor !== 'apple'">
       <label class="block text-xs text-gray-500 mb-1">{{ t('gpu.count') }}</label>
       <div class="flex gap-2">
         <button
@@ -197,15 +207,15 @@ watch(gpu, (g) => {
           :class="[
             'flex-1 py-1.5 rounded-lg text-sm font-medium border transition-colors',
             gpuCount === n
-              ? 'bg-emerald-600 border-emerald-600 text-white'
-              : 'bg-gray-100 border-gray-200 text-gray-600 hover:bg-gray-200'
+              ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm'
+              : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:border-gray-300'
           ]"
         >{{ n }}</button>
       </div>
     </div>
 
-    <!-- 互联方式（多卡时显示）-->
-    <div v-if="gpuCount > 1">
+    <!-- 互联方式（多卡时显示，Apple Silicon 不支持）-->
+    <div v-if="gpuCount > 1 && gpu?.vendor !== 'apple'">
       <label class="block text-xs text-gray-500 mb-1">{{ t('gpu.interconnect') }}</label>
       <select
         :value="interconnect.id"

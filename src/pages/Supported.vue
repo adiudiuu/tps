@@ -48,6 +48,7 @@ const modelGroups = computed(() => {
 
 // ── GPU 分组 ──────────────────────────────────────
 const GPU_GROUPS = [
+  { zh: 'Apple Silicon',  en: 'Apple Silicon',     match: g => g.vendor === 'apple' },
   { zh: 'NVIDIA 数据中心', en: 'NVIDIA Datacenter', match: g => g.vendor === 'nvidia' && g.tier === 'datacenter' },
   { zh: 'NVIDIA RTX 50',  en: 'NVIDIA RTX 50',     match: g => g.vendor === 'nvidia' && /^rtx5/.test(g.id) },
   { zh: 'NVIDIA RTX 40',  en: 'NVIDIA RTX 40',     match: g => g.vendor === 'nvidia' && /^rtx4/.test(g.id) },
@@ -222,11 +223,13 @@ function selectGpu(g) {
               >
                 <div class="flex items-center gap-2 min-w-0">
                   <span
-                    :class="g.tier === 'datacenter'
-                      ? 'bg-blue-100 text-blue-700'
-                      : 'bg-gray-100 text-gray-600'"
+                    :class="g.vendor === 'apple'
+                      ? 'bg-purple-100 text-purple-700'
+                      : g.tier === 'datacenter'
+                        ? 'bg-blue-100 text-blue-700'
+                        : 'bg-gray-100 text-gray-600'"
                     class="text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0"
-                  >{{ g.tier === 'datacenter' ? 'DC' : 'CS' }}</span>
+                  >{{ g.vendor === 'apple' ? 'AS' : g.tier === 'datacenter' ? 'DC' : 'CS' }}</span>
                   <span class="text-sm text-gray-800 truncate group-hover:text-emerald-700 transition-colors">{{ g.name }}</span>
                   <span v-if="isNew(g.released)" class="w-1.5 h-1.5 rounded-full bg-red-500 flex-shrink-0"></span>
                 </div>

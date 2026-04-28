@@ -46,6 +46,20 @@ export async function detectLocalGpu() {
  * 规则从精确到宽泛排列，先匹配到的优先
  */
 const MATCH_RULES = [
+  // Apple Silicon（WebGPU 返回 "Apple M4 Max" 等字符串，无法区分内存大小，默认匹配最低配）
+  { keywords: ['apple m5 max'],          id: 'apple_m5_max_36g' },
+  { keywords: ['apple m5 pro'],          id: 'apple_m5_pro_24g' },
+  { keywords: ['apple m5'],              id: 'apple_m5_16g' },
+  { keywords: ['apple m4 max'],          id: 'apple_m4_max_36g' },
+  { keywords: ['apple m4 pro'],          id: 'apple_m4_pro_24g' },
+  { keywords: ['apple m4'],              id: 'apple_m4_16g' },
+  { keywords: ['apple m3 ultra'],        id: 'apple_m3_ultra_256g' },
+  { keywords: ['apple m3 max'],          id: 'apple_m3_max_64g' },
+  { keywords: ['apple m3 pro'],          id: 'apple_m3_pro_18g' },
+  { keywords: ['apple m3'],              id: 'apple_m3_16g' },
+  { keywords: ['apple m2 ultra'],        id: 'apple_m2_ultra_192g' },
+  { keywords: ['apple m2 max'],          id: 'apple_m2_max_32g' },
+  { keywords: ['apple m2 pro'],          id: 'apple_m2_pro_16g' },
   // NVIDIA Blackwell 消费级
   { keywords: ['5090'],                      id: 'rtx5090' },
   { keywords: ['5080'],                      id: 'rtx5080' },

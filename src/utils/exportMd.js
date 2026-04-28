@@ -56,7 +56,7 @@ export function generateMarkdown({
   lines.push(`| ${isZh ? '项目' : 'Item'} | ${isZh ? '值' : 'Value'} |`)
   lines.push('|---|---|')
   lines.push(`| GPU | ${gpuStr} |`)
-  lines.push(`| ${isZh ? '总显存' : 'Total VRAM'} | ${fmtGB(result.totalVram)} |`)
+  lines.push(`| ${isZh ? '总显存' : 'Total VRAM'} | ${gpu.unifiedMemory ? `${gpu.vram * gpuCount} GB ${isZh ? '物理内存' : 'physical'} / ${fmtGB(result.totalVram)} ${isZh ? '可用' : 'usable'}` : fmtGB(result.totalVram)} |`)
   lines.push(`| ${isZh ? '总带宽' : 'Total BW'} | ${gpu.bw * gpuCount} GB/s |`)
   lines.push(`| ${isZh ? '总算力 (BF16)' : 'Total TFLOPS (BF16)'} | ${gpu.bf16 * gpuCount} TFLOPS |`)
   lines.push(`| ${isZh ? '量化精度' : 'Quantization'} | ${quant.label} |`)
@@ -202,7 +202,7 @@ export function generateMarkdown({
   lines.push(`| TTFT (${isZh ? '首 Token 延迟' : 'Time to First Token'}) | ${fmtMs(result.ttft)} |`)
   lines.push(`| TPOT (${isZh ? '生成延迟' : 'Time per Output Token'}) | ${fmtMs(result.tpot)} |`)
   lines.push(`| ${isZh ? '总延迟' : 'Total Latency'} | ${fmtMs(result.totalLatency)} |`)
-  lines.push(`| ${isZh ? '总功耗' : 'Total Power'} | ${result.totalPower.toFixed(1)} kW |`)
+  lines.push(`| ${isZh ? '总功耗' : 'Total Power'} | ${result.totalPower.toFixed(1)} kW${gpu.unifiedMemory ? (isZh ? '（SoC TDP）' : ' (SoC TDP)') : ''} |`)
   lines.push('')
 
   // ── 6. 警告与建议 ──────────────────────────────────────

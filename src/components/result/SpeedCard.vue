@@ -6,7 +6,7 @@ import { FRAMEWORK_MAP } from '../../data/constants.js'
 import TipIcon from '../ui/TipIcon.vue'
 
 const { t } = useI18n()
-const props = defineProps({ result: Object })
+const props = defineProps({ result: Object, gpuVendor: String })
 const framework = defineModel('framework', { required: true })
 
 const speedRating = computed(() => {
@@ -16,6 +16,16 @@ const speedRating = computed(() => {
   if (toks >= 30) return { dot: 'bg-yellow-400', label: t('result.speed_rating_smooth'),  desc: t('result.speed_rating_smooth_desc') }
   if (toks >= 15) return { dot: 'bg-orange-400', label: t('result.speed_rating_usable'),  desc: t('result.speed_rating_usable_desc') }
   return               { dot: 'bg-red-500',    label: t('result.speed_rating_slow'),    desc: t('result.speed_rating_slow_desc') }
+})
+
+// 根据当前 GPU vendor 过滤可用框架
+const availableFrameworks = computed(() => {
+  const vendor = props.gpuVendor
+  return FRAMEWORK_MAP.map(f => {
+    const available = !f.vendors || f.vendors.includes(vendor)
+    const recommended = f.recommended === vendor
+    return { ...f, available, recommended }
+  })
 })
 
 function fmtFrameworkRange(min, max) {
@@ -40,17 +50,21 @@ function fmtFrameworkRange(min, max) {
       <p class="text-xs text-gray-500 mb-2">{{ t('run.framework') }}</p>
       <div class="grid grid-cols-3 sm:grid-cols-5 gap-1 overflow-x-auto">
         <button
-          v-for="f in FRAMEWORK_MAP"
+          v-for="f in availableFrameworks"
           :key="f.id"
-          @click="framework = f"
+          @click="f.available && (framework = f)"
+          :disabled="!f.available"
           :class="[
-            'flex flex-col items-center gap-0.5 px-1 py-1.5 rounded-lg text-xs border transition-colors',
-            framework.id === f.id
-              ? 'bg-emerald-50 border-emerald-400 text-emerald-800'
-              : 'bg-gray-50 border-gray-200 text-gray-500 hover:bg-gray-100 hover:border-gray-300'
+            'flex flex-col items-center gap-0.5 px-1 py-1.5 rounded-lg text-xs border transition-colors relative',
+            !f.available
+              ? 'bg-gray-50 border-gray-200 text-gray-400 cursor-not-allowed'
+              : framework.id === f.id
+                ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm'
+                : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:border-gray-300'
           ]"
         >
           <span class="font-medium leading-tight text-center">{{ t(f.labelKey) }}</span>
+          <span v-if="f.recommended" class="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-emerald-500" :title="t('run.framework_recommended')"></span>
           <span class="text-[10px] leading-tight opacity-50">d {{ fmtFrameworkRange(f.decodeMin ?? f.decode, f.decodeMax ?? f.decode) }}</span>
           <span class="text-[10px] leading-tight opacity-50">p {{ fmtFrameworkRange(f.prefillMin ?? f.prefill, f.prefillMax ?? f.prefill) }}</span>
         </button>

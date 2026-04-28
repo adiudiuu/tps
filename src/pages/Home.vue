@@ -37,6 +37,13 @@ watch(model, (m) => {
   ctx.value = Math.min(m.max_ctx, 16384)
 })
 
+watch(gpu, (g) => {
+  if (g?.vendor === 'apple') {
+    const metal = FRAMEWORK_MAP.find(f => f.id === 'llamacpp_metal')
+    if (metal) framework.value = metal
+  }
+})
+
 watchUrlState({ gpu, gpuCount, interconnect, model, quant, ctx, batch,
   promptLen, outputLen, framework, flashAttention, kvCacheQuant,
   prefixCacheHit, cpuOffload, pcieBw })
@@ -96,7 +103,7 @@ const quantMatrix = computed(() => {
         />
       </template>
       <template #result>
-        <ResultPanel :result="result" :model="model" :quant-matrix="quantMatrix" v-model:framework="framework" />
+        <ResultPanel :result="result" :model="model" :quant-matrix="quantMatrix" :gpu-vendor="gpu?.vendor" v-model:framework="framework" v-model:quant="quant" />
       </template>
     </TwoColumn>
   </div>

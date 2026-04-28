@@ -1,6 +1,9 @@
 // src/data/models/index.js
 // Models sorted by release date, newest first
 
+import nemotron_cascade_2_30b from './nemotron_cascade_2_30b/index.js'
+import nemotron_cascade_8b from './nemotron_cascade_8b/index.js'
+import nemotron_cascade_14b from './nemotron_cascade_14b/index.js'
 import gpt_oss_120b from './gpt_oss_120b/index.js'
 import gpt_oss_20b from './gpt_oss_20b/index.js'
 import glm5_1 from './glm5_1/index.js'
@@ -20,6 +23,10 @@ import llama4_maverick from './llama4_maverick/index.js'
 import llama4_scout from './llama4_scout/index.js'
 import minimax_m1 from './minimax_m1/index.js'
 import minimax_text_01 from './minimax_text_01/index.js'
+import mistral_large_3 from './mistral_large_3/index.js'
+import ministral_3_14b from './ministral_3_14b/index.js'
+import ministral_3_8b from './ministral_3_8b/index.js'
+import ministral_3_3b from './ministral_3_3b/index.js'
 import qwen35_27b from './qwen35_27b/index.js'
 import qwen35_9b from './qwen35_9b/index.js'
 import qwen35_4b from './qwen35_4b/index.js'
@@ -74,6 +81,8 @@ import falcon_180b from './falcon_180b/index.js'
 
 export const DENSE_MODELS = [
   // 2026
+  nemotron_cascade_14b,
+  nemotron_cascade_8b,
   qwen35_27b,
   qwen35_9b,
   qwen35_4b,
@@ -82,6 +91,9 @@ export const DENSE_MODELS = [
   gemma4_31b,
   gemma4_e4b,
   gemma4_e2b,
+  ministral_3_14b,
+  ministral_3_8b,
+  ministral_3_3b,
   // 2025
   glm4_32b,
   glm4_9b,
@@ -120,6 +132,7 @@ export const DENSE_MODELS = [
 
 export const MOE_MODELS = [
   // 2026
+  nemotron_cascade_2_30b,
   glm5_1,
   glm5,
   minimax_m2_7,
@@ -134,6 +147,7 @@ export const MOE_MODELS = [
   qwen3_6_35b_a3b,
   gemma4_26b_moe,
   // 2025
+  mistral_large_3,
   gpt_oss_120b,
   gpt_oss_20b,
   glm4_6,

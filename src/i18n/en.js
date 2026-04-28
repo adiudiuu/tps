@@ -63,6 +63,7 @@ export default {
     output: 'Output Length',
     output_tip: 'Number of tokens the model generates. Used for total latency estimation. Does not affect decode tok/s.',
     framework: 'Inference Framework',
+    framework_recommended: 'Recommended',
     flash_attention: 'Flash Attention',
     flash_attention_tip: 'Recomputes attention weights to save memory while greatly speeding up long-context Prefill. Recommended in production.',
     kv_cache_quant: 'KV Cache Quantization',
@@ -156,6 +157,8 @@ export default {
     trtllm: 'TensorRT-LLM',
     vllm: 'vLLM',
     tgi: 'TGI',
+    mlx: 'MLX (Apple)',
+    llamacpp_metal: 'llama.cpp (Metal)',
     llamacpp: 'llama.cpp',
   },
 }

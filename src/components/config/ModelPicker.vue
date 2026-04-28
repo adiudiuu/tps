@@ -173,7 +173,6 @@ onMounted(() => {
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-1.5">
               <span v-if="m.type === 'moe'" class="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-medium">MoE</span>
-              <span v-if="isNew(m.released)" class="text-[10px] font-bold bg-red-500 text-white px-1.5 py-0.5 rounded-full leading-tight">NEW</span>
               <button
                 @click.stop="openDetails(m)"
                 class="text-sm font-medium text-gray-900 hover:text-emerald-700 transition-colors"
@@ -181,6 +180,7 @@ onMounted(() => {
               >
                 {{ m.name }}
               </button>
+              <span v-if="isNew(m.released)" class="inline-block w-1.5 h-1.5 rounded-full bg-red-500 shrink-0"></span>
             </div>
             <div class="flex items-center gap-2 text-xs text-gray-500">
               <span>{{ fmtParams(m.params) }}</span>

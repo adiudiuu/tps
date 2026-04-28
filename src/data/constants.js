@@ -27,9 +27,14 @@ export const INTERCONNECT_MAP = [
 ]
 
 export const FRAMEWORK_MAP = [
-  { id: 'theory',   labelKey: 'framework.theory',   decode: 1.00, prefill: 1.00, decodeMin: 1.00, decodeMax: 1.00, prefillMin: 1.00, prefillMax: 1.00 },
-  { id: 'trtllm',   labelKey: 'framework.trtllm',   decode: 0.65, prefill: 0.75, decodeMin: 0.75, decodeMax: 0.85, prefillMin: 0.80, prefillMax: 0.90 },
-  { id: 'vllm',     labelKey: 'framework.vllm',     decode: 0.60, prefill: 0.68, decodeMin: 0.55, decodeMax: 0.75, prefillMin: 0.60, prefillMax: 0.80 },
-  { id: 'tgi',      labelKey: 'framework.tgi',      decode: 0.40, prefill: 0.55, decodeMin: 0.40, decodeMax: 0.55, prefillMin: 0.50, prefillMax: 0.65 },
-  { id: 'llamacpp', labelKey: 'framework.llamacpp', decode: 0.28, prefill: 0.35, decodeMin: 0.25, decodeMax: 0.35, prefillMin: 0.30, prefillMax: 0.40 },
+  // vendors: null = 全平台通用
+  { id: 'theory',        labelKey: 'framework.theory',        decode: 1.00, prefill: 1.00, decodeMin: 1.00, decodeMax: 1.00, prefillMin: 1.00, prefillMax: 1.00, vendors: null },
+  { id: 'trtllm',        labelKey: 'framework.trtllm',        decode: 0.65, prefill: 0.75, decodeMin: 0.75, decodeMax: 0.85, prefillMin: 0.80, prefillMax: 0.90, vendors: ['nvidia'] },
+  { id: 'vllm',          labelKey: 'framework.vllm',          decode: 0.60, prefill: 0.68, decodeMin: 0.55, decodeMax: 0.75, prefillMin: 0.60, prefillMax: 0.80, vendors: ['nvidia', 'amd'] },
+  { id: 'tgi',           labelKey: 'framework.tgi',           decode: 0.40, prefill: 0.55, decodeMin: 0.40, decodeMax: 0.55, prefillMin: 0.50, prefillMax: 0.65, vendors: ['nvidia', 'amd'] },
+  // Apple 专属框架
+  { id: 'mlx',           labelKey: 'framework.mlx',           decode: 0.75, prefill: 0.65, decodeMin: 0.65, decodeMax: 0.82, prefillMin: 0.55, prefillMax: 0.75, vendors: ['apple'], recommended: 'apple' },
+  { id: 'llamacpp_metal',labelKey: 'framework.llamacpp_metal',decode: 0.62, prefill: 0.50, decodeMin: 0.52, decodeMax: 0.70, prefillMin: 0.42, prefillMax: 0.58, vendors: ['apple'] },
+  // 通用 CPU/跨平台
+  { id: 'llamacpp',      labelKey: 'framework.llamacpp',      decode: 0.28, prefill: 0.35, decodeMin: 0.25, decodeMax: 0.35, prefillMin: 0.30, prefillMax: 0.40, vendors: null },
 ]

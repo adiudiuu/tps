@@ -53,8 +53,8 @@ const ctxOptions = computed(() => {
           :class="[
             'px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors',
             quant.id === q.id
-              ? 'bg-emerald-600 border-emerald-600 text-white'
-              : 'bg-gray-100 border-gray-200 text-gray-500 hover:bg-gray-200 hover:text-gray-700'
+              ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm'
+              : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:border-gray-300'
           ]"
         >
           {{ q.label }}
@@ -91,8 +91,8 @@ const ctxOptions = computed(() => {
           :class="[
             'px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors',
             batch === n
-              ? 'bg-emerald-600 border-emerald-600 text-white'
-              : 'bg-gray-100 border-gray-200 text-gray-500 hover:bg-gray-200 hover:text-gray-700'
+              ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm'
+              : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:border-gray-300'
           ]"
         >{{ n }}</button>
       </div>
@@ -138,8 +138,8 @@ const ctxOptions = computed(() => {
             :class="[
               'px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors',
               flashAttention
-                ? 'bg-emerald-600 border-emerald-600 text-white'
-                : 'bg-gray-100 border-gray-200 text-gray-500 hover:bg-gray-200 hover:text-gray-700'
+                ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm'
+                : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:border-gray-300'
             ]"
           >{{ t('run.enabled') }}</button>
           <button
@@ -147,8 +147,8 @@ const ctxOptions = computed(() => {
             :class="[
               'px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors',
               !flashAttention
-                ? 'bg-emerald-600 border-emerald-600 text-white'
-                : 'bg-gray-100 border-gray-200 text-gray-500 hover:bg-gray-200 hover:text-gray-700'
+                ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm'
+                : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:border-gray-300'
             ]"
           >{{ t('run.disabled') }}</button>
         </div>
@@ -164,8 +164,8 @@ const ctxOptions = computed(() => {
             :class="[
               'px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors',
               kvCacheQuant.id === option.id
-                ? 'bg-emerald-600 border-emerald-600 text-white'
-                : 'bg-gray-100 border-gray-200 text-gray-500 hover:bg-gray-200 hover:text-gray-700'
+                ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm'
+                : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:border-gray-300'
             ]"
           >
             {{ option.label }}
@@ -186,8 +186,8 @@ const ctxOptions = computed(() => {
             :class="[
               'px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors',
               prefixCacheHit === n
-                ? 'bg-emerald-600 border-emerald-600 text-white'
-                : 'bg-gray-100 border-gray-200 text-gray-500 hover:bg-gray-200 hover:text-gray-700'
+                ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm'
+                : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:border-gray-300'
             ]"
           >{{ n }}%</button>
         </div>
@@ -204,8 +204,8 @@ const ctxOptions = computed(() => {
             :class="[
               'px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors',
               cpuOffload
-                ? 'bg-amber-500 border-amber-500 text-white'
-                : 'bg-gray-100 border-gray-200 text-gray-500 hover:bg-gray-200 hover:text-gray-700'
+                ? 'bg-amber-500 border-amber-500 text-white shadow-sm'
+                : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:border-gray-300'
             ]"
           >{{ t('run.enabled') }}</button>
           <button
@@ -213,8 +213,8 @@ const ctxOptions = computed(() => {
             :class="[
               'px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors',
               !cpuOffload
-                ? 'bg-emerald-600 border-emerald-600 text-white'
-                : 'bg-gray-100 border-gray-200 text-gray-500 hover:bg-gray-200 hover:text-gray-700'
+                ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm'
+                : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:border-gray-300'
             ]"
           >{{ t('run.disabled') }}</button>
         </div>
@@ -228,8 +228,8 @@ const ctxOptions = computed(() => {
               :class="[
                 'px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors',
                 pcieBw.id === option.id
-                  ? 'bg-amber-500 border-amber-500 text-white'
-                  : 'bg-gray-100 border-gray-200 text-gray-500 hover:bg-gray-200 hover:text-gray-700'
+                  ? 'bg-amber-500 border-amber-500 text-white shadow-sm'
+                  : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:border-gray-300'
               ]"
             >
               {{ option.label }} <span class="opacity-70">({{ option.bw }} GB/s)</span>

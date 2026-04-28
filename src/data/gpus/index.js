@@ -1,4 +1,5 @@
 // src/data/gpus/index.js
+import apple            from './apple/index.js'
 import nvidia_datacenter from './nvidia/datacenter.js'
 import nvidia_rtx50      from './nvidia/rtx50.js'
 import nvidia_rtx40      from './nvidia/rtx40.js'
@@ -22,6 +23,7 @@ import intel_integrated  from './intel/integrated.js'
 import domestic          from './domestic/index.js'
 
 export const GPU_LIST = [
+  ...apple,
   ...nvidia_datacenter,
   ...nvidia_rtx50,
   ...nvidia_dgx,
