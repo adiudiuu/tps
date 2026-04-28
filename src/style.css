@@ -7,6 +7,7 @@
     @apply bg-gray-50 text-gray-900 antialiased;
     font-family: system-ui, 'Segoe UI', sans-serif;
     overflow-x: hidden;
+    padding-bottom: env(safe-area-inset-bottom);
   }
   * {
     @apply box-border;
