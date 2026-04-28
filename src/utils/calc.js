@@ -131,8 +131,10 @@ export function calcAll({
     : model.params
   const prefillAttentionFactor = getPrefillAttentionFactor({ totalHeads, kvHeads: model.kv_heads, attentionType })
 
-  // tok/s：tflops × 1e12 FLOPs/s ÷ (2 × activeParams × 1e9 × promptLen FLOPs/tok)
-  const computeBaseLimit = (tflops * 1e12) / (2 * activeParams * 1e9 * effectivePromptLen)
+  // tok/s：prefill FLOPs/tok = 2 × activeParams × 1e9，promptLen 在分子分母消去
+  // 推导：prefill_speed = promptLen / (2 × activeParams × 1e9 × promptLen / tflops × 1e12)
+  //                     = tflops × 1e12 / (2 × activeParams × 1e9)
+  const computeBaseLimit = (tflops * 1e12) / (2 * activeParams * 1e9)
   const computeLimit = computeBaseLimit * prefillAttentionFactor * flashFactor
   const prefillToks  = computeLimit * framework.prefill
   const prefillToksMin = computeBaseLimit * prefillFactorMin * prefillAttentionFactor * flashRange.min
