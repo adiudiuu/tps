@@ -18,6 +18,13 @@ const barWidth = computed(() => {
   return Math.min(100, props.result.vramPct).toFixed(1) + '%'
 })
 
+const vramRating = computed(() => {
+  if (!props.result) return null
+  if (!props.result.vramOk)          return { dot: 'bg-red-500',    label: t('result.vram_rating_oom'),         desc: t('result.vram_rating_oom_desc') }
+  if (props.result.vramPct > 95)     return { dot: 'bg-yellow-400', label: t('result.vram_rating_tight'),       desc: t('result.vram_rating_tight_desc') }
+  return                                    { dot: 'bg-green-500',  label: t('result.vram_rating_comfortable'), desc: t('result.vram_rating_comfortable_desc') }
+})
+
 const pieData = computed(() => {
   if (!props.result) return []
   const { weightGB, kvGB, overheadGB } = props.result
@@ -36,6 +43,13 @@ const pieData = computed(() => {
       <span v-if="result" :class="['text-xs font-medium px-2 py-0.5 rounded-full', result.vramOk ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700']">
         {{ result.vramOk ? t('result.vram_ok') : t('result.vram_oom') }}
       </span>
+    </div>
+
+    <!-- 显存体验评级 -->
+    <div v-if="vramRating" class="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg border border-gray-100">
+      <div :class="['w-2.5 h-2.5 rounded-full flex-shrink-0', vramRating.dot]" />
+      <span class="text-sm font-semibold text-gray-800">{{ vramRating.label }}</span>
+      <span class="text-xs text-gray-400">{{ vramRating.desc }}</span>
     </div>
 
     <!-- 进度条 -->

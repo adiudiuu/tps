@@ -7,25 +7,38 @@ import { GPU_LIST } from '../data/gpus/index.js'
  * @returns {Promise<{gpu: object|null, rawName: string|null, error: string|null}>}
  */
 export async function detectLocalGpu() {
-  if (!navigator.gpu) {
-    return { gpu: null, rawName: null, error: 'no_webgpu' }
+  // 优先 WebGPU
+  if (navigator.gpu) {
+    try {
+      const adapter = await navigator.gpu.requestAdapter()
+      if (adapter) {
+        const info = adapter.info ?? await adapter.requestAdapterInfo().catch(() => null)
+        const rawName = info?.device || info?.description || info?.vendor || ''
+        if (rawName) {
+          const gpu = matchGpu(rawName)
+          return { gpu, rawName, error: gpu ? null : 'no_match' }
+        }
+      }
+    } catch {}
   }
-  let adapter
+
+  // 降级 WebGL（兼容 Firefox / Safari）
   try {
-    adapter = await navigator.gpu.requestAdapter()
-  } catch (e) {
-    return { gpu: null, rawName: null, error: 'adapter_failed' }
-  }
-  if (!adapter) {
-    return { gpu: null, rawName: null, error: 'no_adapter' }
-  }
-  const info = adapter.info ?? await adapter.requestAdapterInfo().catch(() => null)
-  const rawName = info?.device || info?.description || info?.vendor || ''
-  if (!rawName) {
-    return { gpu: null, rawName: null, error: 'no_name' }
-  }
-  const gpu = matchGpu(rawName)
-  return { gpu, rawName, error: gpu ? null : 'no_match' }
+    const canvas = document.createElement('canvas')
+    const gl = canvas.getContext('webgl2') || canvas.getContext('webgl')
+    if (gl) {
+      const ext = gl.getExtension('WEBGL_debug_renderer_info')
+      if (ext) {
+        const rawName = gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) || ''
+        if (rawName) {
+          const gpu = matchGpu(rawName)
+          return { gpu, rawName, error: gpu ? null : 'no_match' }
+        }
+      }
+    }
+  } catch {}
+
+  return { gpu: null, rawName: null, error: 'no_webgpu' }
 }
 
 /**

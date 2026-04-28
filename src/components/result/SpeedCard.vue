@@ -1,12 +1,22 @@
 <script setup>
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { fmtToks, fmtToksRange, fmtPct, fmtGB } from '../../utils/format.js'
 import { FRAMEWORK_MAP } from '../../data/constants.js'
 import TipIcon from '../ui/TipIcon.vue'
 
 const { t } = useI18n()
-defineProps({ result: Object })
+const props = defineProps({ result: Object })
 const framework = defineModel('framework', { required: true })
+
+const speedRating = computed(() => {
+  const toks = props.result?.singleToksMax
+  if (toks == null) return null
+  if (toks >= 60) return { dot: 'bg-green-500',  label: t('result.speed_rating_blazing'), desc: t('result.speed_rating_blazing_desc') }
+  if (toks >= 30) return { dot: 'bg-yellow-400', label: t('result.speed_rating_smooth'),  desc: t('result.speed_rating_smooth_desc') }
+  if (toks >= 15) return { dot: 'bg-orange-400', label: t('result.speed_rating_usable'),  desc: t('result.speed_rating_usable_desc') }
+  return               { dot: 'bg-red-500',    label: t('result.speed_rating_slow'),    desc: t('result.speed_rating_slow_desc') }
+})
 
 function fmtFrameworkRange(min, max) {
   const lo = (min * 100).toFixed(0)
@@ -17,6 +27,13 @@ function fmtFrameworkRange(min, max) {
 
 <template>
   <div class="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
+
+    <!-- 速度体验评级 -->
+    <div v-if="speedRating" class="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg border border-gray-100">
+      <div :class="['w-2.5 h-2.5 rounded-full flex-shrink-0', speedRating.dot]" />
+      <span class="text-sm font-semibold text-gray-800">{{ speedRating.label }}</span>
+      <span class="text-xs text-gray-400">{{ speedRating.desc }}</span>
+    </div>
 
     <!-- 推理框架选择 -->
     <div>

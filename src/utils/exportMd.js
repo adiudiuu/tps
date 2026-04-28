@@ -104,6 +104,13 @@ export function generateMarkdown({
     : (isZh ? `❌ 显存不足 ${(result.totalNeeded - result.totalVram).toFixed(1)} GB` : `❌ VRAM insufficient by ${(result.totalNeeded - result.totalVram).toFixed(1)} GB`)
   lines.push(`**${isZh ? '状态' : 'Status'}**: ${vramStatus}`)
   lines.push('')
+  // 显存评级
+  let vramRatingStr
+  if (!result.vramOk)              vramRatingStr = isZh ? '🔴 不足 — 无法运行'       : '🔴 Insufficient — Cannot run'
+  else if (result.vramPct > 95)    vramRatingStr = isZh ? '🟡 紧张 — 接近上限'       : '🟡 Tight — Near the limit'
+  else                             vramRatingStr = isZh ? '🟢 宽裕 — 显存充足'       : '🟢 Comfortable — Plenty of headroom'
+  lines.push(`**${isZh ? '体验评级' : 'Rating'}**: ${vramRatingStr}`)
+  lines.push('')
   lines.push(`| ${isZh ? '项目' : 'Item'} | ${isZh ? '显存' : 'Memory'} | ${isZh ? '占比' : 'Ratio'} |`)
   lines.push('|---|---|---|')
   lines.push(`| ${isZh ? '模型权重' : 'Model Weights'} | ${fmtGB(result.weightGB)} | ${fmtPct(result.weightGB / result.totalVram * 100)} |`)
@@ -115,6 +122,15 @@ export function generateMarkdown({
 
   // ── 5. 速度与延迟 ──────────────────────────────────────
   lines.push(isZh ? '## 速度与延迟' : '## Speed & Latency')
+  lines.push('')
+  // 速度评级（基于单请求速度）
+  const toks = result.singleToksMax
+  let speedRatingStr
+  if (toks >= 60)      speedRatingStr = isZh ? '🟢 极快 — 适合实时对话'         : '🟢 Blazing — Real-time chat ready'
+  else if (toks >= 30) speedRatingStr = isZh ? '🟡 流畅 — 适合普通使用'         : '🟡 Smooth — Great for everyday use'
+  else if (toks >= 15) speedRatingStr = isZh ? '🟠 可用 — 轻度使用'             : '🟠 Usable — Light usage'
+  else                 speedRatingStr = isZh ? '🔴 较慢 — 建议换量化或升级硬件' : '🔴 Slow — Consider quantization or better hardware'
+  lines.push(`**${isZh ? '体验评级' : 'Rating'}**: ${speedRatingStr}`)
   lines.push('')
 
   // Decode
