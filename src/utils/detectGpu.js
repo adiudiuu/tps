@@ -169,26 +169,63 @@ async function estimateGpuCores(adapter, vendorHint) {
 }
 
 // ── WebGPU maxBufferSize → 推断 VRAM ────────────────────────────────
+// Chrome 在所有 Apple Silicon 上将 adapter.limits.maxBufferSize 统一限制到 4GB，
+// 因此 ≤ 4.5GB 的值不可信（无法区分 16GB/32GB），直接返回 null。
+// Safari 会暴露真实值（≈总内存 × 75%）。
 function estimateVramFromAdapter(adapter) {
   try {
     const bytes = adapter?.limits?.maxBufferSize
     if (!bytes) return null
     const gb = bytes / 1024 ** 3
-    if (gb < 0.5) return null
-    const candidates = [2,3,4,6,8,10,11,12,16,20,24,32,48,64,80,128,192]
+    // Chrome 默认上限为 4GB，视为不可信
+    if (gb <= 4.5) return null
+    // Safari 等暴露真实限制：maxBufferSize ≈ totalRAM × 0.75
+    const totalGB = gb / 0.75
+    const candidates = [8,16,18,24,32,36,48,64,96,128,192,256,512]
     let best = candidates[0]
     for (const c of candidates) {
-      if (Math.abs(c - gb * 2) < Math.abs(best - gb * 2)) best = c
+      if (Math.abs(c - totalGB) < Math.abs(best - totalGB)) best = c
     }
-    return best >= 2 ? best : null
+    return best >= 8 ? best : null
   } catch {
     return null
   }
 }
 
+// ── 通过 requestDevice 探测 Apple Silicon 实际内存 ───────────────────
+// Chrome 虽然将默认 device.maxBufferSize 限制在 4GB，
+// 但 requestDevice({ requiredLimits: { maxBufferSize: N } }) 会透传给
+// Metal 后端验证，从而可以区分 16GB / 32GB / 64GB 等配置。
+async function probeAppleRamGB(adapter) {
+  const GB = 1024 ** 3
+  // 阈值取各档内存 × 0.75 的保守值（Metal 可分配上限约为总内存 75%）
+  const PROBES = [
+    { limitGB: 46, ramGB: 64 },
+    { limitGB: 22, ramGB: 32 },
+    { limitGB: 10, ramGB: 16 },
+    { limitGB:  5, ramGB:  8 },
+  ]
+  for (const { limitGB, ramGB } of PROBES) {
+    try {
+      const dev = await adapter.requestDevice({
+        requiredLimits: { maxBufferSize: limitGB * GB }
+      })
+      dev.destroy()
+      return ramGB
+    } catch {
+      // 该档内存不满足，继续探测下一档
+    }
+  }
+  return null
+}
+
 // ── Apple Silicon 多维评分匹配 ────────────────────────────────────────
 // 通过测量带宽 + 估算内存 + 估算 GPU Cores 选出最可能的型号
-function matchAppleSilicon({ measuredBW, estimatedRAM, gpuCores, chipFamily }) {
+async function matchAppleSilicon({ adapter, measuredBW, estimatedRAM, chipFamily }) {
+  // 优先用 requestDevice 探测内存（可区分 16GB/32GB 等同频率型号）
+  if (estimatedRAM === null && adapter) {
+    estimatedRAM = await probeAppleRamGB(adapter)
+  }
   const appleGpus = GPU_LIST.filter(g => g.vendor === 'apple')
   // 如果 chipFamily 明确（如 "m4 max"），先按 family 筛选
   const candidates = chipFamily
@@ -307,13 +344,12 @@ export async function detectLocalGpu() {
     if (adapter) {
       measuredBW = await measureBandwidth(adapter)
       estimatedRAM = estimateVramFromAdapter(adapter)
-      // 如果 maxBufferSize 不可用，尝试 WebGL 带宽 fallback
       if (measuredBW === null) measuredBW = measureGlslBandwidth()
     } else {
       measuredBW = measureGlslBandwidth()
     }
 
-    const gpu = matchAppleSilicon({ measuredBW, estimatedRAM, chipFamily })
+    const gpu = await matchAppleSilicon({ adapter, measuredBW, estimatedRAM, chipFamily })
     return { gpu, rawName, error: gpu ? null : 'no_match' }
   }
 
