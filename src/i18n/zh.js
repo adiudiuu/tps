@@ -1,6 +1,6 @@
 // src/i18n/zh.js
 export default {
-  nav: { title: 'GPU 推理速度计算器', subtitle: 'tps.bunai.com', updated: '数据更新于', share: '分享', copied: '已复制', export: '导出报告' },
+  nav: { title: 'GPU 推理速度计算器', subtitle: 'tps.bunai.com', updated: '更新于', share: '分享', copied: '已复制', export: '导出报告' },
   gpu: {
     title: '显卡配置',
     model: '型号',
