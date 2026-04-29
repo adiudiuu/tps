@@ -27,16 +27,16 @@ const showOnlyRunnable = ref(true)
 
 const modelResults = computed(() => {
   if (!gpu.value || !framework.value) return []
-  
+
   const results = []
   for (const model of ALL_MODELS) {
     // 过滤模型类型
     if (filterType.value !== 'all' && model.type !== filterType.value) continue
-    
+
     // 找到最优量化精度（能运行的最高精度）
     let bestQuant = null
     let bestResult = null
-    
+
     for (const quant of QUANT_MAP) {
       try {
         const result = calcAll({
@@ -59,7 +59,7 @@ const modelResults = computed(() => {
           acceptanceRate: 0.7,
           draftLen: 4,
         })
-        
+
         if (result.vramOk) {
           // 优先选择更高精度的量化
           if (!bestResult || quant.bytes > bestQuant.bytes) {
@@ -71,7 +71,7 @@ const modelResults = computed(() => {
         // 跳过计算失败的模型
       }
     }
-    
+
     if (bestResult || !showOnlyRunnable.value) {
       results.push({
         model,
@@ -81,7 +81,7 @@ const modelResults = computed(() => {
       })
     }
   }
-  
+
   // 排序
   results.sort((a, b) => {
     if (sortBy.value === 'speed') {
@@ -97,7 +97,7 @@ const modelResults = computed(() => {
     }
     return 0
   })
-  
+
   return results
 })
 
@@ -119,19 +119,19 @@ function useThisModel(modelData) {
 <template>
   <div class="min-h-screen bg-gray-50 overflow-x-hidden pt-12 sm:pt-14 pb-20 sm:pb-8">
     <TopBar />
-    
+
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
       <!-- 标题 -->
       <div class="bg-white rounded-xl border border-gray-200 p-6">
         <h1 class="text-2xl font-bold text-gray-900 mb-2">{{ t('ranking.title') }}</h1>
         <p class="text-sm text-gray-600">{{ t('ranking.subtitle') }}</p>
       </div>
-      
+
       <!-- GPU 配置 -->
       <div class="bg-white rounded-xl border border-gray-200 p-4">
         <GpuConfig v-model:gpu="gpu" v-model:gpuCount="gpuCount" v-model:interconnect="interconnect" />
       </div>
-      
+
       <!-- 筛选和排序 -->
       <div class="bg-white rounded-xl border border-gray-200 p-4">
         <div class="flex flex-wrap gap-4 items-center">
@@ -143,7 +143,7 @@ function useThisModel(modelData) {
               <option value="moe">{{ t('ranking.filter_moe') }}</option>
             </select>
           </div>
-          
+
           <div class="flex items-center gap-2">
             <label class="text-sm font-medium text-gray-700">{{ t('ranking.sort_by') }}:</label>
             <select v-model="sortBy" class="text-sm border border-gray-300 rounded-lg px-3 py-1.5">
@@ -152,23 +152,23 @@ function useThisModel(modelData) {
               <option value="params">{{ t('ranking.sort_params') }}</option>
             </select>
           </div>
-          
+
           <div class="flex items-center gap-2">
             <input
               type="checkbox"
               id="showOnlyRunnable"
               v-model="showOnlyRunnable"
-              class="w-4 h-4 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500"
+              class="w-4 h-4 accent-emerald-500 border-gray-300 rounded focus:ring-emerald-500"
             />
             <label for="showOnlyRunnable" class="text-sm text-gray-700">{{ t('ranking.show_only_runnable') }}</label>
           </div>
-          
+
           <div class="ml-auto text-sm text-gray-600">
             {{ t('ranking.total_models', { count: modelResults.length }) }}
           </div>
         </div>
       </div>
-      
+
       <!-- 模型列表 -->
       <!-- 桌面端：表格视图 -->
       <div class="hidden sm:block bg-white rounded-xl border border-gray-200 overflow-hidden">
@@ -246,7 +246,7 @@ function useThisModel(modelData) {
           </table>
         </div>
       </div>
-      
+
       <!-- 移动端：卡片视图 -->
       <div class="sm:hidden space-y-3">
         <div
@@ -282,7 +282,7 @@ function useThisModel(modelData) {
               ✗ {{ t('ranking.status_oom') }}
             </span>
           </div>
-          
+
           <!-- 信息网格 -->
           <div class="grid grid-cols-2 gap-3 mb-3">
             <div class="bg-gray-50 rounded-lg p-2.5">
@@ -300,13 +300,13 @@ function useThisModel(modelData) {
               </div>
             </div>
           </div>
-          
+
           <!-- 速度显示 -->
           <div v-if="item.result" class="bg-gradient-to-r from-emerald-50 to-blue-50 rounded-lg p-2.5 mb-3">
             <div class="text-xs text-gray-600 mb-0.5">{{ t('ranking.table_speed') }}</div>
             <div class="text-lg font-bold text-emerald-700">{{ fmtToks(item.result.decodeToks) }}</div>
           </div>
-          
+
           <!-- 操作按钮 -->
           <button
             v-if="item.canRun"

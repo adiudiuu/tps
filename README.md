@@ -23,7 +23,7 @@
 - ⏱️ **延迟指标** - TTFT、TPOT、总延迟估算
 - 🔍 **瓶颈分析** - Roofline 模型，识别带宽/算力瓶颈
 - 🔗 **多卡支持** - Tensor Parallel 通信效率建模
-- 🌍 **广泛覆盖** - 100+ GPU（NVIDIA/AMD/Intel/Apple/国产），78+ 主流模型
+- 🌍 **广泛覆盖** - 170+ GPU（NVIDIA/AMD/Intel/Apple/国产），78+ 主流模型
 
 ## 📊 支持范围
 
@@ -188,7 +188,8 @@ tps-calculator/
 │   ├── components/       # Vue 组件
 │   │   ├── config/      # 配置面板（GPU/模型/框架选择）
 │   │   ├── result/      # 结果展示（速度/延迟/显存卡片）
-│   │   └── layout/      # 布局组件
+│   │   ├── layout/      # 布局组件
+│   │   └── ui/          # 通用 UI 组件
 │   ├── data/            # 数据定义
 │   │   ├── gpus/        # GPU 规格数据（按厂商分类）
 │   │   ├── models/      # 模型参数数据（按系列分类）
@@ -198,10 +199,12 @@ tps-calculator/
 │   │   ├── calc.js      # 核心计算逻辑
 │   │   ├── model.js     # 模型结构分析
 │   │   ├── format.js    # 数据格式化
-│   │   └── exportMd.js  # Markdown 报告导出
+│   │   ├── exportMd.js  # Markdown 报告导出
+│   │   ├── detectGpu.js # 本地 GPU 自动检测
+│   │   └── useUrlState.js # URL 状态同步
 │   ├── i18n/            # 国际化（中文/英文）
-│   └── pages/           # 页面组件
-├── scripts/             # 数据验证脚本
+│   ├── pages/           # 页面组件
+│   └── router/          # 路由配置
 ├── Docs.md             # 算法详细文档
 └── README.md           # 本文件
 ```
@@ -220,18 +223,6 @@ tps-calculator/
 - 📊 **框架系数** - 提供真实 benchmark 数据校准框架效率
 - 🐛 **Bug 修复** - 报告或修复计算错误
 - 📝 **文档改进** - 完善说明和示例
-
-### 数据验证
-
-项目包含数据验证脚本，确保数据完整性：
-
-```bash
-# 验证模型数据结构
-npm run models:validate
-
-# 验证模型来源链接
-npm run models:verify-sources
-```
 
 ## ⚠️ 免责声明
 

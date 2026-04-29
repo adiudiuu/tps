@@ -23,7 +23,7 @@ Given GPU, model, quantization, and runtime parameters, quickly estimate:
 - ⏱️ **Latency Metrics** - TTFT, TPOT, total latency estimation
 - 🔍 **Bottleneck Analysis** - Roofline model to identify bandwidth/compute bottlenecks
 - 🔗 **Multi-GPU Support** - Tensor Parallel communication efficiency modeling
-- 🌍 **Wide Coverage** - 100+ GPUs (NVIDIA/AMD/Intel/Apple/Domestic), 78+ mainstream models
+- 🌍 **Wide Coverage** - 170+ GPUs (NVIDIA/AMD/Intel/Apple/Domestic), 78+ mainstream models
 
 ## 📊 Coverage
 
@@ -84,7 +84,8 @@ tps-calculator/
 │   ├── components/       # Vue components
 │   │   ├── config/      # Configuration panels (GPU/Model/Framework selection)
 │   │   ├── result/      # Result displays (Speed/Latency/VRAM cards)
-│   │   └── layout/      # Layout components
+│   │   ├── layout/      # Layout components
+│   │   └── ui/          # Generic UI components
 │   ├── data/            # Data definitions
 │   │   ├── gpus/        # GPU specifications (organized by vendor)
 │   │   ├── models/      # Model parameters (organized by series)
@@ -94,10 +95,12 @@ tps-calculator/
 │   │   ├── calc.js      # Core calculation logic
 │   │   ├── model.js     # Model structure analysis
 │   │   ├── format.js    # Data formatting
-│   │   └── exportMd.js  # Markdown report export
+│   │   ├── exportMd.js  # Markdown report export
+│   │   ├── detectGpu.js # Local GPU auto-detection
+│   │   └── useUrlState.js # URL state sync
 │   ├── i18n/            # Internationalization (Chinese/English)
-│   └── pages/           # Page components
-├── scripts/             # Data validation scripts
+│   ├── pages/           # Page components
+│   └── router/          # Router configuration
 ├── Docs.md             # Detailed algorithm documentation
 └── README.md           # This file
 ```
@@ -207,18 +210,6 @@ Contributions are welcome! Especially in these areas:
 - 📊 **Framework Coefficients** - Provide real benchmark data to calibrate framework efficiency
 - 🐛 **Bug Fixes** - Report or fix calculation errors
 - 📝 **Documentation** - Improve explanations and examples
-
-### Data Validation
-
-The project includes data validation scripts to ensure data integrity:
-
-```bash
-# Validate model data structure
-npm run models:validate
-
-# Verify model source links
-npm run models:verify-sources
-```
 
 ## ⚠️ Disclaimer
 

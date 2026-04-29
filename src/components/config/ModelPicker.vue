@@ -170,69 +170,64 @@ onMounted(() => {
               : 'bg-gray-50 border-gray-200 hover:bg-gray-100 hover:border-gray-300'
           ]"
         >
-          <div class="flex items-start justify-between gap-3">
-            <div class="flex-1 min-w-0">
-              <div class="flex items-center gap-1.5 mb-1">
-                <span v-if="m.type === 'moe'" class="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-medium shrink-0">MoE</span>
-                <span v-else class="text-xs bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded font-medium shrink-0">Dense</span>
-                <button
-                  @click.stop="openDetails(m)"
-                  class="text-sm font-medium text-gray-900 hover:text-emerald-700 transition-colors truncate"
-                  :title="t('model.detail.open')"
-                >
-                  {{ m.name }}
-                </button>
-                <span v-if="isNew(m.released)" class="inline-block w-1.5 h-1.5 rounded-full bg-red-500 shrink-0"></span>
-              </div>
-              
-              <!-- 关键参数 -->
-              <div class="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[11px] text-gray-600 mb-1.5">
-                <div class="flex items-center gap-1">
-                  <span class="text-gray-400">参数:</span>
-                  <span class="font-medium">{{ fmtParams(m.params) }}</span>
-                </div>
-                <div class="flex items-center gap-1">
-                  <span class="text-gray-400">上下文:</span>
-                  <span class="font-medium">{{ fmtCtx(m.max_ctx) }}</span>
-                </div>
-                <div class="flex items-center gap-1">
-                  <span class="text-gray-400">注意力:</span>
-                  <span class="font-medium">{{ getAttentionSummary(m) }}</span>
-                </div>
-                <div v-if="m.type === 'moe'" class="flex items-center gap-1">
-                  <span class="text-gray-400">激活:</span>
-                  <span class="font-medium">{{ fmtParams(m.active_params) }}</span>
-                </div>
-                <div v-else class="flex items-center gap-1">
-                  <span class="text-gray-400">层数:</span>
-                  <span class="font-medium">{{ m.layers }}</span>
-                </div>
-              </div>
-
-              <!-- 下载链接 -->
-              <div class="flex gap-1.5" @click.stop>
-                <button
-                  v-if="m.links?.ollama"
-                  @click="copyOllama(m.links.ollama)"
-                  class="text-[10px] px-1.5 py-0.5 rounded bg-white hover:bg-gray-100 text-gray-600 hover:text-gray-900 transition-colors border border-gray-200"
-                  title="点击复制命令"
-                >Ollama</button>
-                <a
-                  v-if="m.links?.hf"
-                  :href="m.links.hf"
-                  target="_blank"
-                  rel="noopener"
-                  class="text-[10px] px-1.5 py-0.5 rounded bg-white hover:bg-orange-50 text-gray-600 hover:text-orange-600 transition-colors border border-gray-200"
-                >HF</a>
-                <a
-                  v-if="m.links?.ms"
-                  :href="m.links.ms"
-                  target="_blank"
-                  rel="noopener"
-                  class="text-[10px] px-1.5 py-0.5 rounded bg-white hover:bg-emerald-50 text-gray-600 hover:text-emerald-700 transition-colors border border-gray-200"
-                >MS</a>
-              </div>
+          <!-- 标题行 -->
+          <div class="flex items-start justify-between gap-2 mb-2.5">
+            <div class="flex items-center gap-2 flex-1 min-w-0">
+              <span v-if="m.type === 'moe'" class="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded-md font-semibold shrink-0">MoE</span>
+              <span v-else class="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-md font-semibold shrink-0">Dense</span>
+              <button
+                @click.stop="openDetails(m)"
+                class="text-sm font-semibold text-gray-900 hover:text-blue-700 transition-colors truncate"
+                :title="t('model.detail.open')"
+              >
+                {{ m.name }}
+              </button>
             </div>
+            <span v-if="isNew(m.released)" class="inline-block w-2 h-2 rounded-full bg-red-500 shrink-0 mt-1"></span>
+          </div>
+          
+          <!-- 关键参数 -->
+          <div class="grid grid-cols-2 gap-2 mb-2.5">
+            <div class="bg-gray-50 rounded-lg px-2.5 py-1.5">
+              <div class="text-[10px] text-gray-500 mb-0.5">参数</div>
+              <div class="text-sm font-bold text-gray-900">{{ fmtParams(m.params) }}</div>
+            </div>
+            <div class="bg-gray-50 rounded-lg px-2.5 py-1.5">
+              <div class="text-[10px] text-gray-500 mb-0.5">上下文</div>
+              <div class="text-sm font-bold text-gray-900">{{ fmtCtx(m.max_ctx) }}</div>
+            </div>
+            <div class="bg-gray-50 rounded-lg px-2.5 py-1.5">
+              <div class="text-[10px] text-gray-500 mb-0.5">注意力</div>
+              <div class="text-xs font-semibold text-gray-900">{{ getAttentionSummary(m) }}</div>
+            </div>
+            <div class="bg-gray-50 rounded-lg px-2.5 py-1.5">
+              <div class="text-[10px] text-gray-500 mb-0.5">{{ m.type === 'moe' ? '激活' : '层数' }}</div>
+              <div class="text-sm font-bold text-gray-900">{{ m.type === 'moe' ? fmtParams(m.active_params) : m.layers }}</div>
+            </div>
+          </div>
+
+          <!-- 下载链接 -->
+          <div class="flex gap-1.5" @click.stop>
+            <button
+              v-if="m.links?.ollama"
+              @click="copyOllama(m.links.ollama)"
+              class="text-[10px] px-2 py-1 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-700 hover:text-gray-900 transition-colors font-medium"
+              title="点击复制命令"
+            >Ollama</button>
+            <a
+              v-if="m.links?.hf"
+              :href="m.links.hf"
+              target="_blank"
+              rel="noopener"
+              class="text-[10px] px-2 py-1 rounded-md bg-orange-100 hover:bg-orange-200 text-orange-700 hover:text-orange-800 transition-colors font-medium"
+            >HF</a>
+            <a
+              v-if="m.links?.ms"
+              :href="m.links.ms"
+              target="_blank"
+              rel="noopener"
+              class="text-[10px] px-2 py-1 rounded-md bg-emerald-100 hover:bg-emerald-200 text-emerald-700 hover:text-emerald-800 transition-colors font-medium"
+            >MS</a>
           </div>
         </div>
       </div>
