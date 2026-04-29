@@ -26,42 +26,38 @@ const quant = defineModel('quant', { required: true })
 <template>
   <div class="space-y-4">
     <div v-if="model" class="bg-white rounded-xl border border-gray-200 p-4">
-      <div class="flex items-start justify-between gap-3">
-        <div class="flex-1 min-w-0">
-          <div class="flex items-center gap-2 mb-2">
-            <h3 class="text-sm font-semibold text-gray-700">{{ t('result.current_model') }}</h3>
-            <span
-              :class="model.type === 'moe' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'"
-              class="text-xs font-medium px-2 py-0.5 rounded-full"
-            >
-              {{ model.type === 'moe' ? 'MoE' : 'Dense' }}
-            </span>
-          </div>
-          <div class="text-base font-semibold text-gray-900">{{ model.name }}</div>
+      <!-- 顶部：模型名 + GPU -->
+      <div class="flex items-start justify-between gap-3 mb-3">
+        <div class="flex items-center gap-2 min-w-0">
+          <span
+            :class="model.type === 'moe' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'"
+            class="text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
+          >{{ model.type === 'moe' ? 'MoE' : 'Dense' }}</span>
+          <div class="text-base font-bold text-gray-900 truncate">{{ model.name }}</div>
         </div>
-        <!-- GPU 信息 -->
         <div v-if="gpu" class="flex-shrink-0 text-right">
-          <div class="text-xs text-gray-500 mb-1">{{ t('result.current_gpu') }}</div>
-          <div class="text-sm font-semibold text-gray-900">{{ gpu.name }}</div>
-          <div v-if="gpuCount > 1" class="text-xs text-gray-600 mt-0.5">× {{ gpuCount }}</div>
+          <div class="text-[10px] text-gray-400 mb-0.5">{{ t('result.current_gpu') }}</div>
+          <div class="text-sm font-semibold text-gray-800">{{ gpu.name }}</div>
+          <div v-if="gpuCount > 1" class="text-xs text-gray-500 mt-0.5">× {{ gpuCount }}</div>
         </div>
       </div>
-      <div class="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-        <div class="bg-gray-50 rounded-lg px-2.5 py-2 text-gray-500">
-          {{ t('model.custom.params') }}
-          <span class="ml-1 font-medium text-gray-800">{{ fmtParams(model.params) }}</span>
+      <!-- 底部：模型参数横排 -->
+      <div class="grid grid-cols-3 divide-x divide-gray-100 border border-gray-100 rounded-xl overflow-hidden">
+        <div class="px-3 py-2 min-w-0">
+          <div class="text-[10px] text-gray-400 whitespace-nowrap">{{ t('model.custom.params') }}</div>
+          <div class="text-sm font-bold text-gray-800 mt-0.5">{{ fmtParams(model.params) }}</div>
         </div>
-        <div class="bg-gray-50 rounded-lg px-2.5 py-2 text-gray-500">
-          {{ t('model.custom.max_ctx') }}
-          <span class="ml-1 font-medium text-gray-800">{{ fmtCtx(model.max_ctx) }}</span>
+        <div class="px-3 py-2 min-w-0">
+          <div class="text-[10px] text-gray-400 whitespace-nowrap">{{ t('model.custom.max_ctx') }}</div>
+          <div class="text-sm font-bold text-gray-800 mt-0.5">{{ fmtCtx(model.max_ctx) }}</div>
         </div>
-        <div class="bg-gray-50 rounded-lg px-2.5 py-2 text-gray-500">
-          {{ t('model.attention') }}
-          <span class="ml-1 font-medium text-gray-800">{{ getAttentionSummary(model) }}</span>
+        <div class="px-3 py-2 min-w-0" v-if="model.type !== 'moe'">
+          <div class="text-[10px] text-gray-400 whitespace-nowrap">{{ t('model.attention') }}</div>
+          <div class="text-sm font-bold text-gray-800 mt-0.5">{{ getAttentionSummary(model) }}</div>
         </div>
-        <div v-if="model.type === 'moe'" class="bg-gray-50 rounded-lg px-2.5 py-2 text-gray-500">
-          {{ t('model.custom.active_params') }}
-          <span class="ml-1 font-medium text-gray-800">{{ fmtParams(model.active_params ?? model.params) }}</span>
+        <div class="px-3 py-2 min-w-0" v-if="model.type === 'moe'">
+          <div class="text-[10px] text-gray-400 whitespace-nowrap">{{ t('model.custom.active_params') }}</div>
+          <div class="text-sm font-bold text-gray-800 mt-0.5">{{ fmtParams(model.active_params ?? model.params) }}</div>
         </div>
       </div>
     </div>

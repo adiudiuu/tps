@@ -12,10 +12,11 @@ const framework = defineModel('framework', { required: true })
 const speedRating = computed(() => {
   const toks = props.result?.singleToksMax
   if (toks == null) return null
-  if (toks >= 60) return { dot: 'bg-green-500',  label: t('result.speed_rating_blazing'), desc: t('result.speed_rating_blazing_desc') }
-  if (toks >= 30) return { dot: 'bg-yellow-400', label: t('result.speed_rating_smooth'),  desc: t('result.speed_rating_smooth_desc') }
-  if (toks >= 15) return { dot: 'bg-orange-400', label: t('result.speed_rating_usable'),  desc: t('result.speed_rating_usable_desc') }
-  return               { dot: 'bg-red-500',    label: t('result.speed_rating_slow'),    desc: t('result.speed_rating_slow_desc') }
+  if (toks >= 100) return { grade: 'S', c1: '#a855f7', c2: '#6d28d9', glow: '#a855f740', ring: '#c084fc', label: t('result.speed_rating_blazing'), desc: t('result.speed_rating_s_desc') }
+  if (toks >= 60)  return { grade: 'A', c1: '#10b981', c2: '#059669', glow: '#10b98140', ring: '#34d399', label: t('result.speed_rating_blazing'), desc: t('result.speed_rating_blazing_desc') }
+  if (toks >= 30)  return { grade: 'B', c1: '#3b82f6', c2: '#1d4ed8', glow: '#3b82f640', ring: '#60a5fa', label: t('result.speed_rating_smooth'),  desc: t('result.speed_rating_smooth_desc') }
+  if (toks >= 15)  return { grade: 'C', c1: '#f97316', c2: '#c2410c', glow: '#f9731640', ring: '#fb923c', label: t('result.speed_rating_usable'),  desc: t('result.speed_rating_usable_desc') }
+  return                  { grade: 'F', c1: '#ef4444', c2: '#991b1b', glow: '#ef444440', ring: '#f87171', label: t('result.speed_rating_slow'),    desc: t('result.speed_rating_slow_desc') }
 })
 
 // 根据当前 GPU vendor 过滤可用框架
@@ -38,11 +39,29 @@ function fmtFrameworkRange(min, max) {
 <template>
   <div class="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
 
-    <!-- 速度体验评级 -->
-    <div v-if="speedRating" class="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg border border-gray-100">
-      <div :class="['w-2.5 h-2.5 rounded-full flex-shrink-0', speedRating.dot]" />
-      <span class="text-sm font-semibold text-gray-800">{{ speedRating.label }}</span>
-      <span class="text-xs text-gray-400">{{ speedRating.desc }}</span>
+    <!-- 速度体验评级徽章 -->
+    <div
+      v-if="speedRating && result"
+      class="rounded-xl overflow-hidden flex items-stretch"
+      :style="{ background: `linear-gradient(135deg, ${speedRating.c1}18 0%, ${speedRating.c2}08 100%)`, border: `1px solid ${speedRating.c1}30` }"
+    >
+      <div class="w-1 flex-shrink-0" :style="{ background: `linear-gradient(to bottom, ${speedRating.c1}, ${speedRating.c2})` }" />
+      <div class="flex items-center justify-center px-3 py-3 flex-shrink-0">
+        <div
+          class="w-11 h-11 rounded-full flex items-center justify-center text-white font-black text-xl shadow-sm select-none"
+          :style="{ background: `linear-gradient(135deg, ${speedRating.c1}, ${speedRating.c2})` }"
+        >{{ speedRating.grade }}</div>
+      </div>
+      <div class="flex-1 flex flex-col justify-center py-3 min-w-0">
+        <div class="text-sm font-bold text-gray-800 leading-tight">{{ speedRating.label }}</div>
+        <div class="text-xs text-gray-400 leading-snug mt-0.5">{{ speedRating.desc }}</div>
+      </div>
+      <div class="flex flex-col items-end justify-center px-4 py-3 flex-shrink-0">
+        <div class="text-2xl font-black leading-none tabular-nums" :style="{ color: speedRating.c1 }">
+          {{ result.singleToksMax.toFixed(0) }}
+        </div>
+        <div class="text-xs font-semibold mt-0.5" :style="{ color: speedRating.c1 + 'aa' }">tok/s</div>
+      </div>
     </div>
 
     <!-- 推理框架选择 -->
@@ -106,6 +125,35 @@ function fmtFrameworkRange(min, max) {
             <div class="text-[10px] text-gray-500 mb-0.5">{{ t('result.kv_read') }}</div>
             <div class="text-sm font-bold text-gray-900">{{ fmtGB(result.kvReadGB) }}</div>
           </div>
+          <div class="bg-gray-50 rounded-lg px-3 py-2">
+            <div class="text-[10px] text-gray-500 mb-0.5 flex items-center gap-1">
+              {{ t('result.tpot') }}
+              <TipIcon :text="t('result.tpot_tip')" />
+            </div>
+            <div class="text-sm font-bold text-gray-900">{{ result.tpot.toFixed(1) }} ms/tok</div>
+          </div>
+          <div class="bg-gray-50 rounded-lg px-3 py-2">
+            <div class="text-[10px] text-gray-500 mb-1 flex items-center gap-1">
+              {{ t('result.bw_util') }}
+              <TipIcon :text="t('result.bw_util_tip')" />
+            </div>
+            <div class="flex items-center gap-2">
+              <div class="flex-1 bg-gray-200 rounded-full h-1.5 overflow-hidden">
+                <div
+                  class="h-full rounded-full transition-all"
+                  :style="{ width: Math.min(100, result.decodeToks / result.bwLimit * 100).toFixed(1) + '%', background: '#10b981' }"
+                />
+              </div>
+              <span class="text-sm font-bold text-gray-900 tabular-nums w-10 text-right">{{ (result.decodeToks / result.bwLimit * 100).toFixed(0) }}%</span>
+            </div>
+          </div>
+          <div class="bg-gray-50 rounded-lg px-3 py-2">
+            <div class="text-[10px] text-gray-500 mb-0.5 flex items-center gap-1">
+              {{ t('result.avg_decode_seq') }}
+              <TipIcon :text="t('result.avg_decode_seq_tip')" />
+            </div>
+            <div class="text-sm font-bold text-gray-900">{{ result.avgDecodeSeqLen.toLocaleString() }} tok</div>
+          </div>
           <div v-if="result.tpEfficiency < 1" class="bg-yellow-50 rounded-lg px-3 py-2 border border-yellow-200">
             <div class="text-[10px] text-yellow-700 mb-0.5">{{ t('result.tp_eff') }}</div>
             <div class="text-sm font-bold text-yellow-700">{{ fmtPct(result.tpEfficiency * 100) }}</div>
@@ -160,5 +208,6 @@ function fmtFrameworkRange(min, max) {
         </div>
       </div>
     </div>
+
   </div>
 </template>

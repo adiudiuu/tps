@@ -156,48 +156,67 @@ const pinnedQuantMatrix = computed(() => {
       <template #result>
         <div v-if="pinnedResult" class="space-y-4">
           <!-- 双列对比模式 -->
-          <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 flex items-center justify-between">
-            <div class="flex items-center gap-2">
-              <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div class="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 flex items-center justify-between gap-4">
+            <div class="flex items-start gap-2.5 min-w-0">
+              <svg class="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
               </svg>
-              <span class="text-sm font-medium text-blue-900">{{ t('result.compare_mode_active') }}</span>
+              <div>
+                <span class="text-sm font-semibold text-blue-900">{{ t('result.compare_mode_active') }}</span>
+                <p class="text-xs text-blue-600/80 mt-0.5 leading-relaxed">{{ t('result.compare_mode_hint') }}</p>
+              </div>
             </div>
             <button
               @click="unpinResult"
-              class="text-xs px-3 py-1 bg-white hover:bg-blue-100 text-blue-700 rounded-lg border border-blue-300 transition-colors"
+              class="text-xs px-3 py-1.5 bg-white hover:bg-blue-100 text-blue-700 rounded-lg border border-blue-300 transition-colors flex-shrink-0"
             >
               {{ t('result.unpin') }}
             </button>
           </div>
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <!-- 固定列 (ref) -->
-            <div class="bg-blue-50/30 rounded-xl p-3 border-2 border-blue-200">
-              <ResultPanel
-                compact
-                :result="pinnedResult"
-                :model="pinnedConfig.model"
-                :quant-matrix="pinnedQuantMatrix"
-                :gpu-vendor="pinnedConfig.gpu.vendor"
-                :gpu="pinnedConfig.gpu"
-                :gpu-count="pinnedConfig.gpuCount"
-                v-model:framework="pinnedConfig.framework"
-                v-model:quant="pinnedConfig.quant"
-              />
+            <div class="rounded-xl border-2 border-blue-300 overflow-hidden">
+              <div class="bg-blue-500 px-3 py-1.5 text-xs font-semibold text-white flex items-center gap-1.5">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                </svg>
+                {{ t('result.pinned_config') }}
+              </div>
+              <div class="bg-blue-50/60 p-3">
+                <ResultPanel
+                  compact
+                  :result="pinnedResult"
+                  :model="pinnedConfig.model"
+                  :quant-matrix="pinnedQuantMatrix"
+                  :gpu-vendor="pinnedConfig.gpu.vendor"
+                  :gpu="pinnedConfig.gpu"
+                  :gpu-count="pinnedConfig.gpuCount"
+                  v-model:framework="pinnedConfig.framework"
+                  v-model:quant="pinnedConfig.quant"
+                />
+              </div>
             </div>
             <!-- 当前列 (current) -->
-            <div class="bg-emerald-50/30 rounded-xl p-3 border-2 border-emerald-200">
-              <ResultPanel
-                compact
-                :result="result"
-                :model="model"
-                :quant-matrix="quantMatrix"
-                :gpu-vendor="gpu?.vendor"
-                :gpu="gpu"
-                :gpu-count="gpuCount"
-                v-model:framework="framework"
-                v-model:quant="quant"
-              />
+            <div class="rounded-xl border-2 border-emerald-400 overflow-hidden">
+              <div class="bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-white flex items-center gap-1.5">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                {{ t('result.current_config') }}
+              </div>
+              <div class="bg-emerald-50/60 p-3">
+                <ResultPanel
+                  compact
+                  :result="result"
+                  :model="model"
+                  :quant-matrix="quantMatrix"
+                  :gpu-vendor="gpu?.vendor"
+                  :gpu="gpu"
+                  :gpu-count="gpuCount"
+                  v-model:framework="framework"
+                  v-model:quant="quant"
+                />
+              </div>
             </div>
           </div>
         </div>
