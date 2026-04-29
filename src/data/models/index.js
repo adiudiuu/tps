@@ -8,6 +8,8 @@ import gpt_oss_120b from './gpt_oss_120b/index.js'
 import gpt_oss_20b from './gpt_oss_20b/index.js'
 import glm5_1 from './glm5_1/index.js'
 import glm5 from './glm5/index.js'
+import glm4_7 from './glm4_7/index.js'
+import glm4_7_flash from './glm4_7_flash/index.js'
 import glm4_6 from './glm4_6/index.js'
 import glm4_5 from './glm4_5/index.js'
 import glm4_5_air from './glm4_5_air/index.js'
@@ -153,6 +155,12 @@ import smollm2_1_7b from './smollm2_1_7b/index.js'
 import phi3_mini_3_8b from './phi3_mini_3_8b/index.js'
 import qwen3_coder_480b from './qwen3_coder_480b/index.js'
 import qwen3_coder_next_80b from './qwen3_coder_next_80b/index.js'
+import jamba_1_5_large from './jamba_1_5_large/index.js'
+import jamba_1_5_mini from './jamba_1_5_mini/index.js'
+import jamba_52b from './jamba_52b/index.js'
+import openmoe_8b from './openmoe_8b/index.js'
+import openmoe_34b from './openmoe_34b/index.js'
+import liquidai_lfm2_8b from './liquidai_lfm2_8b/index.js'
 import deepseek_coder_33b from './deepseek_coder_33b/index.js'
 import deepseek_coder_v1_33b from './deepseek_coder_v1_33b/index.js'
 import deepseek_coder_7b from './deepseek_coder_7b/index.js'
@@ -633,6 +641,8 @@ export const MOE_MODELS = [
   nemotron_cascade_2_30b,
   glm5_1,
   glm5,
+  glm4_7,
+  glm4_7_flash,
   minimax_m2_7,
   minimax_m2_5,
   kimi_k2_6,
@@ -647,6 +657,7 @@ export const MOE_MODELS = [
   // 2025
   qwen3_coder_480b,
   qwen3_coder_next_80b,
+  liquidai_lfm2_8b,
   mistral_large_3,
   gpt_oss_120b,
   gpt_oss_20b,
@@ -673,6 +684,8 @@ export const MOE_MODELS = [
   minimax_abab6,
   kimi_k1_5,
   kimi_k1,
+  jamba_1_5_large,
+  jamba_1_5_mini,
   llama3_1_nemotron_70b,
   llama3_2_vision_90b,
   llama3_2_vision_11b,
@@ -696,10 +709,13 @@ export const MOE_MODELS = [
   deepseek_v2,
   wizardlm2_8x22b,
   mixtral_8x22b,
+  jamba_52b,
+  openmoe_34b,
   nous_hermes2_mixtral,
   dolphin_mixtral,
   yuan2_51b,
   // 2023
+  openmoe_8b,
   mixtral_8x7b,
 ]
 
