@@ -183,6 +183,74 @@ import yi_34b from './yi_34b/index.js'
 import falcon_40b from './falcon_40b/index.js'
 import falcon_7b from './falcon_7b/index.js'
 import falcon_180b from './falcon_180b/index.js'
+import orca2_7b from './orca2_7b/index.js'
+import orca2_13b from './orca2_13b/index.js'
+import vicuna_7b from './vicuna_7b/index.js'
+import vicuna_13b from './vicuna_13b/index.js'
+import vicuna_33b from './vicuna_33b/index.js'
+import mythomax_13b from './mythomax_13b/index.js'
+import xwin_70b from './xwin_70b/index.js'
+import openchat_3_5 from './openchat_3_5/index.js'
+import nous_hermes2_mixtral from './nous_hermes2_mixtral/index.js'
+import dolphin_mixtral from './dolphin_mixtral/index.js'
+import goliath_120b from './goliath_120b/index.js'
+import samantha_7b from './samantha_7b/index.js'
+import neural_chat_7b from './neural_chat_7b/index.js'
+import nous_capybara_34b from './nous_capybara_34b/index.js'
+import airoboros_70b from './airoboros_70b/index.js'
+import zephyr_7b from './zephyr_7b/index.js'
+import starling_7b from './starling_7b/index.js'
+import solar_10_7b_instruct from './solar_10_7b_instruct/index.js'
+import chronos_hermes_13b from './chronos_hermes_13b/index.js'
+import openhermes_2_5 from './openhermes_2_5/index.js'
+import aquila2_7b from './aquila2_7b/index.js'
+import baichuan_7b from './baichuan_7b/index.js'
+import aquila_7b from './aquila_7b/index.js'
+import yuan2_2b from './yuan2_2b/index.js'
+import chinese_llama2_7b from './chinese_llama2_7b/index.js'
+import tigerbot_13b from './tigerbot_13b/index.js'
+import chatglm2_6b from './chatglm2_6b/index.js'
+import chinese_llama2_13b from './chinese_llama2_13b/index.js'
+import qwen_72b from './qwen_72b/index.js'
+import wizardlm_70b from './wizardlm_70b/index.js'
+import wizardmath_7b from './wizardmath_7b/index.js'
+import wizardlm_13b from './wizardlm_13b/index.js'
+import qwen_7b from './qwen_7b/index.js'
+import yayi_13b from './yayi_13b/index.js'
+import wizardlm_7b from './wizardlm_7b/index.js'
+import wizardmath_13b from './wizardmath_13b/index.js'
+import chatglm_6b from './chatglm_6b/index.js'
+import glm4_9b_chat from './glm4_9b_chat/index.js'
+import baichuan2_7b from './baichuan2_7b/index.js'
+import internlm_7b from './internlm_7b/index.js'
+import skywork_13b from './skywork_13b/index.js'
+import internlm_20b from './internlm_20b/index.js'
+import xuanyuan_70b from './xuanyuan_70b/index.js'
+import bluelmv2_7b from './bluelmv2_7b/index.js'
+import yayi_7b from './yayi_7b/index.js'
+import yuan2_51b from './yuan2_51b/index.js'
+import tigerbot_7b from './tigerbot_7b/index.js'
+import qwen_14b from './qwen_14b/index.js'
+import moss_16b from './moss_16b/index.js'
+import ziya_13b from './ziya_13b/index.js'
+import guanaco_13b from './guanaco_13b/index.js'
+import alpaca_7b from './alpaca_7b/index.js'
+import guanaco_7b from './guanaco_7b/index.js'
+import nous_hermes_7b from './nous_hermes_7b/index.js'
+import llama2_chinese_7b from './llama2_chinese_7b/index.js'
+import chinese_alpaca_7b from './chinese_alpaca_7b/index.js'
+import nous_hermes_13b from './nous_hermes_13b/index.js'
+import firefly_13b from './firefly_13b/index.js'
+import guanaco_33b from './guanaco_33b/index.js'
+import yi_9b from './yi_9b/index.js'
+import belle_13b from './belle_13b/index.js'
+import chinese_alpaca_13b from './chinese_alpaca_13b/index.js'
+import belle_7b from './belle_7b/index.js'
+import firefly_7b from './firefly_7b/index.js'
+import wizardmath_70b from './wizardmath_70b/index.js'
+import llama_pro_8b from './llama_pro_8b/index.js'
+import llama2_chinese_13b from './llama2_chinese_13b/index.js'
+import linly_7b from './linly_7b/index.js'
 
 export const DENSE_MODELS = [
   // 2026
@@ -221,6 +289,9 @@ export const DENSE_MODELS = [
   deepseek_r1_distill_llama_8b,
   deepseek_r1_distill_qwen_7b,
   // 2024
+  llama_pro_8b,
+  glm4_9b_chat,
+  yi_9b,
   phi4_14b,
   mistral_large_2,
   command_r_plus_104b,
@@ -299,17 +370,78 @@ export const DENSE_MODELS = [
   gemma_1_7b,
   llama3_8b,
   // 2023
+  goliath_120b,
+  xwin_70b,
+  airoboros_70b,
+  xuanyuan_70b,
+  wizardlm_70b,
+  wizardmath_70b,
+  qwen_72b,
   wizardcoder_33b,
   deepseek_coder_33b,
   phind_codellama_34b,
+  nous_capybara_34b,
+  guanaco_33b,
+  vicuna_33b,
+  internlm_20b,
+  moss_16b,
   wizardcoder_15b,
+  baichuan2_13b,
+  chinese_llama2_13b,
+  chinese_alpaca_13b,
+  orca2_13b,
+  vicuna_13b,
+  mythomax_13b,
+  chronos_hermes_13b,
+  tigerbot_13b,
+  skywork_13b,
+  ziya_13b,
+  guanaco_13b,
+  wizardlm_13b,
+  wizardmath_13b,
+  yayi_13b,
+  belle_13b,
+  firefly_13b,
+  nous_hermes_13b,
+  qwen_14b,
+  solar_10_7b_instruct,
+  solar_10_7b,
+  openchat_3_5,
+  openhermes_2_5,
+  zephyr_7b,
+  starling_7b,
+  neural_chat_7b,
+  orca2_7b,
+  vicuna_7b,
+  samantha_7b,
+  aquila2_7b,
+  baichuan2_7b,
+  baichuan_7b,
+  chinese_llama2_7b,
+  llama2_chinese_7b,
+  chinese_alpaca_7b,
+  qwen_7b,
+  internlm_7b,
+  tigerbot_7b,
+  yayi_7b,
+  bluelmv2_7b,
+  wizardlm_7b,
+  wizardmath_7b,
+  alpaca_7b,
+  guanaco_7b,
+  aquila_7b,
+  belle_7b,
+  firefly_7b,
+  linly_7b,
+  nous_hermes_7b,
+  chatglm2_6b,
+  chatglm_6b,
   deepseek_coder_6_7b,
   codegen2_5_7b,
   replit_code_3b,
   deepseek_coder_1_3b,
-  solar_10_7b,
+  yuan2_2b,
   falcon_40b,
-  baichuan2_13b,
   chatglm3_6b,
   deepseek_llm_67b,
   santacoder_1b,
@@ -375,11 +507,39 @@ export const MOE_MODELS = [
   olmoe_1b_7b,
   deepseek_v2,
   mixtral_8x22b,
+  nous_hermes2_mixtral,
+  dolphin_mixtral,
+  yuan2_51b,
   // 2023
   mixtral_8x7b,
 ]
 
-export const ALL_MODELS = [...DENSE_MODELS, ...MOE_MODELS].sort((a, b) => {
+export const COMMUNITY_MODELS = [
+  // 2024
+  nous_hermes2_mixtral,
+  dolphin_mixtral,
+  // 2023
+  goliath_120b,
+  xwin_70b,
+  airoboros_70b,
+  nous_capybara_34b,
+  vicuna_33b,
+  orca2_13b,
+  vicuna_13b,
+  mythomax_13b,
+  chronos_hermes_13b,
+  solar_10_7b_instruct,
+  openchat_3_5,
+  openhermes_2_5,
+  zephyr_7b,
+  starling_7b,
+  neural_chat_7b,
+  orca2_7b,
+  vicuna_7b,
+  samantha_7b,
+]
+
+export const ALL_MODELS = [...DENSE_MODELS, ...MOE_MODELS, ...COMMUNITY_MODELS].sort((a, b) => {
   // Sort by released date descending (newest first)
   const [ay, am] = (a.released || '2000-01').split('-').map(Number)
   const [by, bm] = (b.released || '2000-01').split('-').map(Number)
