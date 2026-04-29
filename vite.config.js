@@ -13,8 +13,8 @@ export default defineConfig({
         name: 'GPU推理速度计算器 · TPS Calculator',
         short_name: 'TPS Calculator',
         description: '在线估算大语言模型（LLM）在各类 GPU 上的推理速度（TPS）、显存占用与延迟',
-        theme_color: '#3b82f6',
-        background_color: '#ffffff',
+        theme_color: '#ffffff',
+        background_color: '#f9fafb',
         display: 'standalone',
         orientation: 'portrait',
         scope: '/',
@@ -46,20 +46,6 @@ export default defineConfig({
           }
         ],
         categories: ['productivity', 'utilities', 'developer tools'],
-        screenshots: [
-          {
-            src: '/screenshot-wide.png',
-            sizes: '1280x720',
-            type: 'image/png',
-            form_factor: 'wide'
-          },
-          {
-            src: '/screenshot-narrow.png',
-            sizes: '750x1334',
-            type: 'image/png',
-            form_factor: 'narrow'
-          }
-        ]
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],

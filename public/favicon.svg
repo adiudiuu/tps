@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
   <defs>
-    <linearGradient id="bg" x1="10" y1="8" x2="54" y2="56" gradientUnits="userSpaceOnUse">
+    <linearGradient id="bg" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
       <stop stop-color="#0f172a"/>
       <stop offset="1" stop-color="#111827"/>
     </linearGradient>
@@ -10,7 +10,7 @@
     </linearGradient>
   </defs>
 
-  <rect x="6" y="6" width="52" height="52" rx="14" fill="url(#bg)"/>
+  <rect x="0" y="0" width="64" height="64" rx="14" fill="url(#bg)"/>
 
   <path
     d="M18 42L27 33L34 37L46 23"
