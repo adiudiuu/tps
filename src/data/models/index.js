@@ -15,10 +15,16 @@ import glm4_32b from './glm4_32b/index.js'
 import glm4_9b from './glm4_9b/index.js'
 import minimax_m2_5 from './minimax_m2_5/index.js'
 import minimax_m2_7 from './minimax_m2_7/index.js'
+import minimax_abab6 from './minimax_abab6/index.js'
+import minimax_abab6_5 from './minimax_abab6_5/index.js'
+import minimax_video_01 from './minimax_video_01/index.js'
+import minimax_music_01 from './minimax_music_01/index.js'
 import kimi_k2_6 from './kimi_k2_6/index.js'
 import kimi_k2_5 from './kimi_k2_5/index.js'
 import kimi_k2_thinking from './kimi_k2_thinking/index.js'
 import kimi_k2 from './kimi_k2/index.js'
+import kimi_k1_5 from './kimi_k1_5/index.js'
+import kimi_k1 from './kimi_k1/index.js'
 import llama4_maverick from './llama4_maverick/index.js'
 import llama4_scout from './llama4_scout/index.js'
 import minimax_m1 from './minimax_m1/index.js'
@@ -192,8 +198,19 @@ import qwen1_5_moe_a2_7b from './qwen1_5_moe_a2_7b/index.js'
 import phi3_5_moe from './phi3_5_moe/index.js'
 import llama3_8b from './llama3_8b/index.js'
 import llama2_70b from './llama2_70b/index.js'
+import llama2_34b from './llama2_34b/index.js'
 import llama2_7b from './llama2_7b/index.js'
 import llama2_13b from './llama2_13b/index.js'
+import llama_7b from './llama_7b/index.js'
+import llama_13b from './llama_13b/index.js'
+import llama_30b from './llama_30b/index.js'
+import llama_65b from './llama_65b/index.js'
+import llama_guard_7b from './llama_guard_7b/index.js'
+import llama_guard_3_8b from './llama_guard_3_8b/index.js'
+import llama_guard_3_11b_vision from './llama_guard_3_11b_vision/index.js'
+import llama3_1_nemotron_70b from './llama3_1_nemotron_70b/index.js'
+import llama3_2_vision_11b from './llama3_2_vision_11b/index.js'
+import llama3_2_vision_90b from './llama3_2_vision_90b/index.js'
 import tinyllama_1b from './tinyllama_1b/index.js'
 import mpt_7b from './mpt_7b/index.js'
 import solar_10_7b from './solar_10_7b/index.js'
@@ -509,12 +526,18 @@ export const DENSE_MODELS = [
   mpt_7b,
   falcon_7b,
   llama2_70b,
+  llama2_34b,
   llama2_7b,
   llama2_13b,
   yi_6b,
   gemma_1_2b,
   yi_34b,
   falcon_180b,
+  llama_65b,
+  llama_30b,
+  llama_13b,
+  llama_7b,
+  llama_guard_7b,
 ]
 
 export const MOE_MODELS = [
@@ -542,6 +565,7 @@ export const MOE_MODELS = [
   glm4_5,
   glm4_5_air,
   minimax_m1,
+  minimax_music_01,
   llama4_maverick,
   llama4_scout,
   qwen3_235b,
@@ -554,6 +578,17 @@ export const MOE_MODELS = [
   deepseek_janus_7b,
   deepseek_janus_1_3b,
   minimax_text_01,
+  // 2024
+  minimax_video_01,
+  minimax_abab6_5,
+  minimax_abab6,
+  kimi_k1_5,
+  kimi_k1,
+  llama3_1_nemotron_70b,
+  llama3_2_vision_90b,
+  llama3_2_vision_11b,
+  llama_guard_3_11b_vision,
+  llama_guard_3_8b,
   // 2024
   dbrx,
   grok_1,
