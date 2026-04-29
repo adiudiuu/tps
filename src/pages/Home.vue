@@ -31,6 +31,9 @@ const kvCacheQuant   = ref(_url.kvCacheQuant ?? KV_CACHE_MAP[0])
 const prefixCacheHit = ref(_url.prefixCacheHit ?? 0)
 const cpuOffload     = ref(_url.cpuOffload   ?? false)
 const pcieBw         = ref(_url.pcieBw       ?? PCIE_BW_OPTIONS[1])
+const speculativeDecoding = ref(_url.speculativeDecoding ?? false)
+const acceptanceRate = ref(_url.acceptanceRate ?? 0.7)
+const draftLen       = ref(_url.draftLen       ?? 4)
 
 watch(model, (m) => {
   if (!m?.max_ctx) return
@@ -46,7 +49,7 @@ watch(gpu, (g) => {
 
 watchUrlState({ gpu, gpuCount, interconnect, model, quant, ctx, batch,
   promptLen, outputLen, framework, flashAttention, kvCacheQuant,
-  prefixCacheHit, cpuOffload, pcieBw })
+  prefixCacheHit, cpuOffload, pcieBw, speculativeDecoding, acceptanceRate, draftLen })
 
 const result = computed(() => {
   if (!gpu.value || !model.value || !quant.value || !framework.value) return null
@@ -57,6 +60,7 @@ const result = computed(() => {
       promptLen: promptLen.value, outputLen: outputLen.value, framework: framework.value,
       flashAttention: flashAttention.value, kvCacheQuant: kvCacheQuant.value,
       prefixCacheHit: prefixCacheHit.value, cpuOffload: cpuOffload.value, pcieBw: pcieBw.value,
+      speculativeDecoding: speculativeDecoding.value, acceptanceRate: acceptanceRate.value, draftLen: draftLen.value,
     }), quantId: quant.value.id }
   } catch (e) {
     if (import.meta.env.DEV) console.error('[calcAll error]', e)
@@ -74,6 +78,7 @@ const quantMatrix = computed(() => {
         promptLen: promptLen.value, outputLen: outputLen.value, framework: framework.value,
         flashAttention: flashAttention.value, kvCacheQuant: kvCacheQuant.value,
         prefixCacheHit: prefixCacheHit.value, cpuOffload: cpuOffload.value, pcieBw: pcieBw.value,
+        speculativeDecoding: speculativeDecoding.value, acceptanceRate: acceptanceRate.value, draftLen: draftLen.value,
       })
       return { quant: q, vramGB: r.totalNeeded, vramOk: r.vramOk, vramPct: r.vramPct, decodeToks: r.decodeToks }
     } catch { return null }
@@ -99,7 +104,9 @@ const quantMatrix = computed(() => {
           v-model:promptLen="promptLen" v-model:outputLen="outputLen"
           v-model:flashAttention="flashAttention" v-model:kvCacheQuant="kvCacheQuant"
           v-model:prefixCacheHit="prefixCacheHit" v-model:cpuOffload="cpuOffload"
-          v-model:pcieBw="pcieBw" :model="model"
+          v-model:pcieBw="pcieBw" :model="model" :framework="framework"
+          v-model:speculativeDecoding="speculativeDecoding"
+          v-model:acceptanceRate="acceptanceRate" v-model:draftLen="draftLen"
         />
       </template>
       <template #result>

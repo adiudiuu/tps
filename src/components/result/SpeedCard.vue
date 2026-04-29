@@ -89,11 +89,17 @@ function fmtFrameworkRange(min, max) {
             <span class="text-gray-800">{{ fmtToks(result.bwLimit) }}</span>
           </div>
           <div class="flex justify-between text-xs">
-            <span class="text-gray-500">{{ t('result.actual') }}</span>
+            <span class="text-gray-500 flex items-center gap-1">
+              {{ t('result.actual') }}
+              <TipIcon :text="t('result.actual_tip')" />
+            </span>
             <span class="text-emerald-600 font-semibold text-sm">{{ fmtToksRange(result.decodeToksMin, result.decodeToksMax) }}</span>
           </div>
           <div class="flex justify-between text-xs">
-            <span class="text-gray-500">{{ t('result.single') }}</span>
+            <span class="text-gray-500 flex items-center gap-1">
+              {{ t('result.single') }}
+              <TipIcon :text="t('result.single_tip')" />
+            </span>
             <span class="text-emerald-700 font-medium">{{ fmtToksRange(result.singleToksMin, result.singleToksMax) }}</span>
           </div>
           <div class="flex justify-between text-xs">
@@ -103,6 +109,13 @@ function fmtFrameworkRange(min, max) {
           <div v-if="result.tpEfficiency < 1" class="flex justify-between text-xs">
             <span class="text-gray-500">{{ t('result.tp_eff') }}</span>
             <span class="text-yellow-600">{{ fmtPct(result.tpEfficiency * 100) }}</span>
+          </div>
+          <div v-if="result.speculativeDecoding" class="flex justify-between text-xs pt-1 border-t border-gray-200">
+            <span class="text-gray-500 flex items-center gap-1">
+              {{ t('result.speculative_speedup') }}
+              <TipIcon :text="t('result.speculative_speedup_tip')" />
+            </span>
+            <span class="text-emerald-600 font-medium">x{{ result.speculativeSpeedup.toFixed(1) }}</span>
           </div>
         </div>
       </div>

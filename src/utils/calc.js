@@ -25,6 +25,7 @@ export function calcAll({
   gpu, gpuCount, interconnect, model, quant, ctx, batch, promptLen, outputLen, framework,
   flashAttention = true, kvCacheQuant = null, prefixCacheHit = 0,
   cpuOffload = false, pcieBw = null,
+  speculativeDecoding = false, acceptanceRate = 0.7, draftLen = 4,
 }) {
   const totalVram = gpu.vram * gpuCount * (gpu.usableRatio ?? 1.0)
   const totalBw   = gpu.bw   * gpuCount * (gpu.bwUtilization ?? 0.80)
@@ -35,6 +36,22 @@ export function calcAll({
   const prefixHitRatio = Math.min(0.99, Math.max(0, Number(prefixCacheHit || 0) / 100))
   const effectivePromptLen = Math.max(1, Math.round(promptLen * (1 - prefixHitRatio)))
   const avgDecodeSeqLen = Math.max(1, Math.min(ctx, promptLen + Math.round(outputLen / 2)))
+
+  // 框架效率按模型规模动态调整（如果配置了 modelSizeScaling）
+  let adjustedFramework = framework
+  if (framework.modelSizeScaling && Array.isArray(framework.modelSizeScaling)) {
+    const params = model.params
+    // 找到匹配的规模区间
+    const scaling = framework.modelSizeScaling.find(s => params < s.maxParams)
+    if (scaling) {
+      adjustedFramework = {
+        ...framework,
+        decode: scaling.decode ?? framework.decode,
+        decodeMin: scaling.decodeMin ?? framework.decodeMin ?? framework.decode,
+        decodeMax: scaling.decodeMax ?? framework.decodeMax ?? framework.decode,
+      }
+    }
+  }
 
   // ─────────────────────────────────────────────
   // 显存计算
@@ -87,10 +104,10 @@ export function calcAll({
     ? model.active_params * quant.bytes
     : weightGB
 
-  const decodeFactorMin = framework.decodeMin ?? framework.decode
-  const decodeFactorMax = framework.decodeMax ?? framework.decode
-  const prefillFactorMin = framework.prefillMin ?? framework.prefill
-  const prefillFactorMax = framework.prefillMax ?? framework.prefill
+  const decodeFactorMin = adjustedFramework.decodeMin ?? adjustedFramework.decode
+  const decodeFactorMax = adjustedFramework.decodeMax ?? adjustedFramework.decode
+  const prefillFactorMin = adjustedFramework.prefillMin ?? adjustedFramework.prefill
+  const prefillFactorMax = adjustedFramework.prefillMax ?? adjustedFramework.prefill
   const flashRange = getFlashAttentionBoostRange({ enabled: flashAttention, promptLen: effectivePromptLen })
   const flashFactor = flashRange.mid
   let kvReadGB
@@ -115,9 +132,20 @@ export function calcAll({
 
   // tok/s（batch 个请求并发，带宽被 batch 共享，但每步产出 batch 个 token）
   const bwLimit    = (effectiveBw / decodeBytesPerStep) * batch
-  const decodeToks = bwLimit * framework.decode
-  const decodeToksMin = bwLimit * decodeFactorMin
-  const decodeToksMax = bwLimit * decodeFactorMax
+  let decodeToks = bwLimit * adjustedFramework.decode
+  let decodeToksMin = bwLimit * decodeFactorMin
+  let decodeToksMax = bwLimit * decodeFactorMax
+
+  // Speculative Decoding 加速：每步尝试验证 draftLen 个 token，接受率为 acceptanceRate
+  // 有效加速比 = 1 + acceptanceRate × draftLen
+  // 例如：acceptanceRate=0.7, draftLen=4 → 加速 1 + 0.7×4 = 3.8x
+  let speculativeSpeedup = 1.0
+  if (speculativeDecoding && acceptanceRate > 0 && draftLen > 0) {
+    speculativeSpeedup = 1 + acceptanceRate * draftLen
+    decodeToks *= speculativeSpeedup
+    decodeToksMin *= speculativeSpeedup
+    decodeToksMax *= speculativeSpeedup
+  }
 
   // ─────────────────────────────────────────────
   // Prefill 速度（算力瓶颈）
@@ -209,6 +237,10 @@ export function calcAll({
     kvCacheLabel: kvCacheQuant?.label ?? 'Auto',
     cpuOffload: cpuOffload && model.type === 'moe',
     pcieBwLabel: (cpuOffload && model.type === 'moe' && pcieBw) ? pcieBw.label : null,
+    speculativeDecoding,
+    speculativeSpeedup,
+    acceptanceRate,
+    draftLen,
   }
 }
 
