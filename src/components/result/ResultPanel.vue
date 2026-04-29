@@ -10,10 +10,10 @@ import VramPieChart from './VramPieChart.vue'
 import WarningList from './WarningList.vue'
 
 const { t } = useI18n()
-defineProps({ 
-  result: Object, 
-  model: Object, 
-  quantMatrix: Array, 
+defineProps({
+  result: Object,
+  model: Object,
+  quantMatrix: Array,
   gpuVendor: String,
   gpu: Object,
   gpuCount: Number,

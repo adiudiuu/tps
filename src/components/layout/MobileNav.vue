@@ -39,7 +39,7 @@ const isActive = (path) => {
         </svg>
         <span class="text-xs font-medium">{{ t('nav.calc_short') }}</span>
       </RouterLink>
-      
+
       <RouterLink
         to="/ranking"
         class="relative flex flex-col items-center justify-center gap-1 transition-colors text-gray-500"
@@ -55,7 +55,7 @@ const isActive = (path) => {
         </svg>
         <span class="text-xs font-medium">{{ t('nav.ranking_short') }}</span>
       </RouterLink>
-      
+
       <RouterLink
         to="/supported"
         class="relative flex flex-col items-center justify-center gap-1 transition-colors text-gray-500"

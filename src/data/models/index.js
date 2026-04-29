@@ -23,6 +23,10 @@ import llama4_maverick from './llama4_maverick/index.js'
 import llama4_scout from './llama4_scout/index.js'
 import minimax_m1 from './minimax_m1/index.js'
 import minimax_text_01 from './minimax_text_01/index.js'
+import command_r_plus_104b from './command_r_plus_104b/index.js'
+import command_r_35b from './command_r_35b/index.js'
+import mistral_nemo_12b from './mistral_nemo_12b/index.js'
+import mistral_large_2 from './mistral_large_2/index.js'
 import mistral_large_3 from './mistral_large_3/index.js'
 import ministral_3_14b from './ministral_3_14b/index.js'
 import ministral_3_8b from './ministral_3_8b/index.js'
@@ -49,6 +53,9 @@ import deepseek_v4_flash from './deepseek_v4_flash/index.js'
 import deepseek_v4_pro from './deepseek_v4_pro/index.js'
 import qwen3_6_27b from './qwen3_6_27b/index.js'
 import qwen3_6_35b_a3b from './qwen3_6_35b_a3b/index.js'
+import llama3_1_8b from './llama3_1_8b/index.js'
+import llama3_1_70b from './llama3_1_70b/index.js'
+import nemotron_70b from './nemotron_70b/index.js'
 import llama3_405b from './llama3_405b/index.js'
 import llama3_3_70b from './llama3_3_70b/index.js'
 import qwen2_72b from './qwen2_72b/index.js'
@@ -61,17 +68,22 @@ import qwen25_coder_1_5b from './qwen25_coder_1_5b/index.js'
 import qwen25_coder_0_5b from './qwen25_coder_0_5b/index.js'
 import qwen25_32b from './qwen25_32b/index.js'
 import mistral_7b from './mistral_7b/index.js'
+import olmo2_13b from './olmo2_13b/index.js'
+import olmo2_7b from './olmo2_7b/index.js'
 import olmo_7b from './olmo_7b/index.js'
 import olmo_1b from './olmo_1b/index.js'
 import olmoe_1b_7b from './olmoe_1b_7b/index.js'
+import yi_coder_9b from './yi_coder_9b/index.js'
 import yi_1_5_9b from './yi_1_5_9b/index.js'
 import yi_1_5_6b from './yi_1_5_6b/index.js'
 import llama3_2_90b from './llama3_2_90b/index.js'
 import llama3_2_11b from './llama3_2_11b/index.js'
 import llama3_2_3b from './llama3_2_3b/index.js'
 import llama3_2_1b from './llama3_2_1b/index.js'
+import phi3_5_mini from './phi3_5_mini/index.js'
 import phi3_medium_14b from './phi3_medium_14b/index.js'
 import phi3_small_7b from './phi3_small_7b/index.js'
+import smollm2_1_7b from './smollm2_1_7b/index.js'
 import phi3_mini_3_8b from './phi3_mini_3_8b/index.js'
 import qwen3_coder_480b from './qwen3_coder_480b/index.js'
 import deepseek_coder_33b from './deepseek_coder_33b/index.js'
@@ -90,6 +102,13 @@ import deepseek_coder_v2_236b from './deepseek_coder_v2_236b/index.js'
 import deepseek_coder_v2_16b from './deepseek_coder_v2_16b/index.js'
 import codestral_mamba_7b from './codestral_mamba_7b/index.js'
 import codestral_22b from './codestral_22b/index.js'
+import granite_moe_3b from './granite_moe_3b/index.js'
+import granite_3_8b from './granite_3_8b/index.js'
+import granite_3_2b from './granite_3_2b/index.js'
+import exaone_3_5_7_8b from './exaone_3_5_7_8b/index.js'
+import aya_expanse_32b from './aya_expanse_32b/index.js'
+import aya_expanse_8b from './aya_expanse_8b/index.js'
+import solar_pro_22b from './solar_pro_22b/index.js'
 import granite_code_34b from './granite_code_34b/index.js'
 import granite_code_20b from './granite_code_20b/index.js'
 import granite_code_8b from './granite_code_8b/index.js'
@@ -101,23 +120,42 @@ import codellama_70b from './codellama_70b/index.js'
 import codellama_34b from './codellama_34b/index.js'
 import codellama_13b from './codellama_13b/index.js'
 import codellama_7b from './codellama_7b/index.js'
+import qwen25_math_72b from './qwen25_math_72b/index.js'
+import qwen2_57b_a14b from './qwen2_57b_a14b/index.js'
+import snowflake_arctic from './snowflake_arctic/index.js'
+import qwen25_72b from './qwen25_72b/index.js'
+import qwen25_7b from './qwen25_7b/index.js'
+import qwen25_3b from './qwen25_3b/index.js'
+import qwen25_1_5b from './qwen25_1_5b/index.js'
+import qwen25_0_5b from './qwen25_0_5b/index.js'
 import qwen25_14b from './qwen25_14b/index.js'
 import qwen2_7b from './qwen2_7b/index.js'
 import gemma3_27b from './gemma3_27b/index.js'
 import gemma3_12b from './gemma3_12b/index.js'
 import gemma3_4b from './gemma3_4b/index.js'
 import gemma3_1b from './gemma3_1b/index.js'
+import gemma2_2b from './gemma2_2b/index.js'
 import gemma2_27b from './gemma2_27b/index.js'
 import gemma2_9b from './gemma2_9b/index.js'
 import deepseek_v2 from './deepseek_v2/index.js'
 import mixtral_8x22b from './mixtral_8x22b/index.js'
 import mistral_small_24b from './mistral_small_24b/index.js'
+import phi4_mini from './phi4_mini/index.js'
 import phi4_14b from './phi4_14b/index.js'
 import deepseek_r1_distill_llama_70b from './deepseek_r1_distill_llama_70b/index.js'
 import deepseek_r1_distill_qwen_32b from './deepseek_r1_distill_qwen_32b/index.js'
 import deepseek_r1_distill_qwen_14b from './deepseek_r1_distill_qwen_14b/index.js'
 import deepseek_r1_distill_llama_8b from './deepseek_r1_distill_llama_8b/index.js'
 import deepseek_r1_distill_qwen_7b from './deepseek_r1_distill_qwen_7b/index.js'
+import internlm3_8b from './internlm3_8b/index.js'
+import internlm2_5_20b from './internlm2_5_20b/index.js'
+import internlm2_5_7b from './internlm2_5_7b/index.js'
+import falcon3_7b from './falcon3_7b/index.js'
+import deepseek_v2_5 from './deepseek_v2_5/index.js'
+import deepseek_v2_lite from './deepseek_v2_lite/index.js'
+import deepseek_r1_distill_qwen_1_5b from './deepseek_r1_distill_qwen_1_5b/index.js'
+import dbrx from './dbrx/index.js'
+import phi3_5_moe from './phi3_5_moe/index.js'
 import llama3_8b from './llama3_8b/index.js'
 import llama2_13b from './llama2_13b/index.js'
 import tinyllama_1b from './tinyllama_1b/index.js'
@@ -142,6 +180,9 @@ export const DENSE_MODELS = [
   ministral_3_8b,
   ministral_3_3b,
   // 2025
+  phi4_mini,
+  internlm3_8b,
+  deepseek_r1_distill_qwen_1_5b,
   glm4_32b,
   glm4_9b,
   qwen3_32b,
@@ -161,7 +202,16 @@ export const DENSE_MODELS = [
   deepseek_r1_distill_qwen_7b,
   // 2024
   phi4_14b,
+  mistral_large_2,
+  command_r_plus_104b,
+  llama3_1_70b,
+  nemotron_70b,
+  qwen25_math_72b,
+  qwen25_72b,
   llama3_405b,
+  olmo2_13b,
+  aya_expanse_32b,
+  solar_pro_22b,
   llama3_2_90b,
   qwen2_72b,
   llama3_70b,
@@ -178,6 +228,7 @@ export const DENSE_MODELS = [
   starcoder2_15b,
   codellama_13b,
   llama3_2_11b,
+  olmo2_7b,
   yi_1_5_9b,
   granite_code_8b,
   qwen25_coder_7b,
@@ -187,12 +238,15 @@ export const DENSE_MODELS = [
   codellama_7b,
   codegemma_7b,
   phi3_small_7b,
+  internlm2_5_7b,
   mistral_7b,
   olmo_7b,
   yi_1_5_6b,
+  smollm2_1_7b,
   phi3_mini_3_8b,
   qwen25_coder_3b,
   granite_code_3b,
+  granite_3_2b,
   llama3_2_3b,
   stable_code_3b,
   starcoder2_3b,
@@ -201,8 +255,23 @@ export const DENSE_MODELS = [
   llama3_2_1b,
   olmo_1b,
   qwen25_coder_0_5b,
+  llama3_1_8b,
+  command_r_35b,
+  mistral_nemo_12b,
+  internlm2_5_20b,
+  granite_3_8b,
+  aya_expanse_8b,
+  exaone_3_5_7_8b,
+  yi_coder_9b,
+  qwen25_7b,
+  qwen25_3b,
+  phi3_5_mini,
+  falcon3_7b,
+  qwen25_1_5b,
+  qwen25_0_5b,
   gemma2_27b,
   gemma2_9b,
+  gemma2_2b,
   llama3_8b,
   // 2023
   wizardcoder_33b,
@@ -254,6 +323,13 @@ export const MOE_MODELS = [
   deepseek_r1,
   minimax_text_01,
   // 2024
+  dbrx,
+  deepseek_v2_5,
+  deepseek_v2_lite,
+  qwen2_57b_a14b,
+  snowflake_arctic,
+  granite_moe_3b,
+  phi3_5_moe,
   deepseek_v3,
   deepseek_coder_v2_236b,
   deepseek_coder_v2_16b,

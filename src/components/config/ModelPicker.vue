@@ -164,46 +164,43 @@ onMounted(() => {
           :data-model-id="m.id"
           @click="selectModel(m)"
           :class="[
-            'relative rounded-lg p-3 cursor-pointer border transition-colors',
+            'relative rounded-lg p-3 cursor-pointer border-2 transition-colors',
             model?.id === m.id
-              ? 'bg-emerald-100 border-emerald-500 shadow-sm ring-1 ring-emerald-200'
-              : 'bg-gray-50 border-gray-200 hover:bg-gray-100 hover:border-gray-300'
+              ? 'bg-emerald-50 border-emerald-500'
+              : 'bg-white border-gray-200 hover:bg-gray-50 hover:border-gray-300'
           ]"
         >
-          <!-- 标题行 -->
-          <div class="flex items-start justify-between gap-2 mb-2.5">
+          <!-- 标题行 - 包含模型名称和参数信息 -->
+          <div class="flex items-start justify-between gap-3 mb-2">
             <div class="flex items-center gap-2 flex-1 min-w-0">
               <span v-if="m.type === 'moe'" class="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded-md font-semibold shrink-0">MoE</span>
               <span v-else class="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-md font-semibold shrink-0">Dense</span>
               <button
                 @click.stop="openDetails(m)"
-                class="text-sm font-semibold text-gray-900 hover:text-blue-700 transition-colors truncate"
+                class="text-base font-semibold text-gray-900 hover:text-blue-700 transition-colors truncate"
                 :title="t('model.detail.open')"
               >
                 {{ m.name }}
               </button>
             </div>
-            <span v-if="isNew(m.released)" class="inline-block w-2 h-2 rounded-full bg-red-500 shrink-0 mt-1"></span>
-          </div>
-          
-          <!-- 关键参数 -->
-          <div class="grid grid-cols-2 gap-2 mb-2.5">
-            <div class="bg-gray-50 rounded-lg px-2.5 py-1.5">
-              <div class="text-[10px] text-gray-500 mb-0.5">参数</div>
-              <div class="text-sm font-bold text-gray-900">{{ fmtParams(m.params) }}</div>
-            </div>
-            <div class="bg-gray-50 rounded-lg px-2.5 py-1.5">
-              <div class="text-[10px] text-gray-500 mb-0.5">上下文</div>
-              <div class="text-sm font-bold text-gray-900">{{ fmtCtx(m.max_ctx) }}</div>
+            <div class="flex items-center gap-2 shrink-0">
+              <span class="text-sm font-normal text-gray-400">{{ fmtParams(m.params) }}</span>
+              <span class="text-sm font-normal text-gray-400">{{ fmtCtx(m.max_ctx) }}</span>
+              <span v-if="isNew(m.released)" class="inline-block w-2 h-2 rounded-full bg-red-500"></span>
             </div>
           </div>
 
+          <!-- Attention 信息 -->
+          <div class="text-xs text-gray-400 mb-3 font-light">
+            Attention: {{ getAttentionSummary(m) }}
+          </div>
+
           <!-- 下载链接 -->
-          <div class="flex gap-1.5" @click.stop>
+          <div class="flex gap-2" @click.stop>
             <button
               v-if="m.links?.ollama"
               @click="copyOllama(m.links.ollama)"
-              class="text-[10px] px-2 py-1 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-700 hover:text-gray-900 transition-colors font-medium"
+              class="flex-1 text-xs px-3 py-1.5 rounded-lg bg-white hover:bg-gray-50 text-gray-600 hover:text-gray-900 transition-colors font-normal border border-gray-200"
               title="点击复制命令"
             >Ollama</button>
             <a
@@ -211,15 +208,15 @@ onMounted(() => {
               :href="m.links.hf"
               target="_blank"
               rel="noopener"
-              class="text-[10px] px-2 py-1 rounded-md bg-orange-100 hover:bg-orange-200 text-orange-700 hover:text-orange-800 transition-colors font-medium"
-            >HF</a>
+              class="flex-1 text-center text-xs px-3 py-1.5 rounded-lg bg-white hover:bg-gray-50 text-gray-600 hover:text-gray-900 transition-colors font-normal border border-gray-200"
+            >HuggingFace</a>
             <a
               v-if="m.links?.ms"
               :href="m.links.ms"
               target="_blank"
               rel="noopener"
-              class="text-[10px] px-2 py-1 rounded-md bg-emerald-100 hover:bg-emerald-200 text-emerald-700 hover:text-emerald-800 transition-colors font-medium"
-            >MS</a>
+              class="flex-1 text-center text-xs px-3 py-1.5 rounded-lg bg-white hover:bg-gray-50 text-gray-600 hover:text-gray-900 transition-colors font-normal border border-gray-200"
+            >ModelScope</a>
           </div>
         </div>
       </div>
