@@ -27,7 +27,7 @@ export function calcAll({
   cpuOffload = false, pcieBw = null,
 }) {
   const totalVram = gpu.vram * gpuCount * (gpu.usableRatio ?? 1.0)
-  const totalBw   = gpu.bw   * gpuCount
+  const totalBw   = gpu.bw   * gpuCount * (gpu.bwUtilization ?? 0.80)
   const tflops    = (gpu[quant.flops_key] ?? gpu.bf16) * gpuCount
   const attentionType = getAttentionType(model)
   const attentionSummary = getAttentionSummary(model)

@@ -37,5 +37,5 @@ export const FRAMEWORK_MAP = [
   { id: 'llamacpp_metal',labelKey: 'framework.llamacpp_metal',decode: 0.62, prefill: 0.50, decodeMin: 0.52, decodeMax: 0.70, prefillMin: 0.42, prefillMax: 0.58, vendors: ['apple'] },
   // 通用 CPU/跨平台
   // 注意：llama.cpp 在大模型（>30B）+ TP 场景效率更高，小模型（<14B）单卡场景效率较低
-  { id: 'llamacpp',      labelKey: 'framework.llamacpp',      decode: 0.28, prefill: 0.35, decodeMin: 0.25, decodeMax: 0.52, prefillMin: 0.30, prefillMax: 0.40, vendors: null },
+  { id: 'llamacpp',      labelKey: 'framework.llamacpp',      decode: 0.55, prefill: 0.35, decodeMin: 0.48, decodeMax: 0.65, prefillMin: 0.30, prefillMax: 0.40, vendors: null },
 ]
