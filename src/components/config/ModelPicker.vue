@@ -196,14 +196,6 @@ onMounted(() => {
               <div class="text-[10px] text-gray-500 mb-0.5">上下文</div>
               <div class="text-sm font-bold text-gray-900">{{ fmtCtx(m.max_ctx) }}</div>
             </div>
-            <div class="bg-gray-50 rounded-lg px-2.5 py-1.5">
-              <div class="text-[10px] text-gray-500 mb-0.5">注意力</div>
-              <div class="text-xs font-semibold text-gray-900">{{ getAttentionSummary(m) }}</div>
-            </div>
-            <div class="bg-gray-50 rounded-lg px-2.5 py-1.5">
-              <div class="text-[10px] text-gray-500 mb-0.5">{{ m.type === 'moe' ? '激活' : '层数' }}</div>
-              <div class="text-sm font-bold text-gray-900">{{ m.type === 'moe' ? fmtParams(m.active_params) : m.layers }}</div>
-            </div>
           </div>
 
           <!-- 下载链接 -->

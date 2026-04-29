@@ -60,7 +60,32 @@ import qwen25_coder_3b from './qwen25_coder_3b/index.js'
 import qwen25_coder_1_5b from './qwen25_coder_1_5b/index.js'
 import qwen25_coder_0_5b from './qwen25_coder_0_5b/index.js'
 import qwen25_32b from './qwen25_32b/index.js'
+import mistral_7b from './mistral_7b/index.js'
+import olmo_7b from './olmo_7b/index.js'
+import olmo_1b from './olmo_1b/index.js'
+import olmoe_1b_7b from './olmoe_1b_7b/index.js'
+import yi_1_5_9b from './yi_1_5_9b/index.js'
+import yi_1_5_6b from './yi_1_5_6b/index.js'
+import llama3_2_90b from './llama3_2_90b/index.js'
+import llama3_2_11b from './llama3_2_11b/index.js'
+import llama3_2_3b from './llama3_2_3b/index.js'
+import llama3_2_1b from './llama3_2_1b/index.js'
+import phi3_medium_14b from './phi3_medium_14b/index.js'
+import phi3_small_7b from './phi3_small_7b/index.js'
+import phi3_mini_3_8b from './phi3_mini_3_8b/index.js'
 import qwen3_coder_480b from './qwen3_coder_480b/index.js'
+import deepseek_coder_33b from './deepseek_coder_33b/index.js'
+import deepseek_coder_6_7b from './deepseek_coder_6_7b/index.js'
+import deepseek_coder_1_3b from './deepseek_coder_1_3b/index.js'
+import wizardcoder_33b from './wizardcoder_33b/index.js'
+import wizardcoder_15b from './wizardcoder_15b/index.js'
+import phind_codellama_34b from './phind_codellama_34b/index.js'
+import codegemma_7b from './codegemma_7b/index.js'
+import codegemma_2b from './codegemma_2b/index.js'
+import codegen2_5_7b from './codegen2_5_7b/index.js'
+import stable_code_3b from './stable_code_3b/index.js'
+import replit_code_3b from './replit_code_3b/index.js'
+import santacoder_1b from './santacoder_1b/index.js'
 import deepseek_coder_v2_236b from './deepseek_coder_v2_236b/index.js'
 import deepseek_coder_v2_16b from './deepseek_coder_v2_16b/index.js'
 import codestral_mamba_7b from './codestral_mamba_7b/index.js'
@@ -137,6 +162,7 @@ export const DENSE_MODELS = [
   // 2024
   phi4_14b,
   llama3_405b,
+  llama3_2_90b,
   qwen2_72b,
   llama3_70b,
   codellama_70b,
@@ -147,27 +173,50 @@ export const DENSE_MODELS = [
   granite_code_20b,
   qwen25_coder_14b,
   qwen25_14b,
+  phi3_medium_14b,
   codestral_22b,
   starcoder2_15b,
   codellama_13b,
+  llama3_2_11b,
+  yi_1_5_9b,
   granite_code_8b,
   qwen25_coder_7b,
   qwen2_7b,
   codestral_mamba_7b,
   starcoder2_7b,
   codellama_7b,
+  codegemma_7b,
+  phi3_small_7b,
+  mistral_7b,
+  olmo_7b,
+  yi_1_5_6b,
+  phi3_mini_3_8b,
   qwen25_coder_3b,
   granite_code_3b,
+  llama3_2_3b,
+  stable_code_3b,
   starcoder2_3b,
+  codegemma_2b,
   qwen25_coder_1_5b,
+  llama3_2_1b,
+  olmo_1b,
   qwen25_coder_0_5b,
   gemma2_27b,
   gemma2_9b,
   llama3_8b,
+  // 2023
+  wizardcoder_33b,
+  deepseek_coder_33b,
+  phind_codellama_34b,
+  wizardcoder_15b,
+  deepseek_coder_6_7b,
+  codegen2_5_7b,
+  replit_code_3b,
+  deepseek_coder_1_3b,
+  santacoder_1b,
   tinyllama_1b,
   phi2_2b,
   llama2_13b,
-  // 2023
   yi_34b,
   falcon_180b,
 ]
@@ -208,6 +257,7 @@ export const MOE_MODELS = [
   deepseek_v3,
   deepseek_coder_v2_236b,
   deepseek_coder_v2_16b,
+  olmoe_1b_7b,
   deepseek_v2,
   mixtral_8x22b,
   // 2023

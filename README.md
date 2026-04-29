@@ -23,17 +23,27 @@
 - ⏱️ **延迟指标** - TTFT、TPOT、总延迟估算
 - 🔍 **瓶颈分析** - Roofline 模型，识别带宽/算力瓶颈
 - 🔗 **多卡支持** - Tensor Parallel 通信效率建模
-- 🌍 **广泛覆盖** - 170+ GPU（NVIDIA/AMD/Intel/Apple/国产），78+ 主流模型
+- 🌍 **广泛覆盖** - 170+ GPU（NVIDIA/AMD/Intel/Apple/国产），**125+ 主流模型**
 
 ## 📊 支持范围
 
 | 类别 | 支持内容 |
 |------|---------|
 | **GPU** | NVIDIA (RTX/Tesla/H100)、AMD (RX/MI)、Intel Arc、Apple Silicon、国产芯片 |
-| **模型架构** | Dense、MoE、MLA (DeepSeek)、混合注意力 (Gemma) |
+| **模型** | **125+ 主流模型**（通用对话 77 个 + 代码专用 48 个） |
+| **模型架构** | Dense、MoE、MLA (DeepSeek)、混合注意力 (Gemma)、Mamba (SSM) |
 | **量化精度** | FP32/BF16/FP8/INT8/INT4/Q6_K/Q5_K/Q3_K/INT2 |
 | **推理框架** | vLLM、TensorRT-LLM、llama.cpp、MLX、SGLang、TGI |
 | **高级特性** | Flash Attention、KV Cache 量化、Prefix Cache、MoE CPU Offload |
+
+### 🤖 模型覆盖
+
+- **参数规模**: 0.5B - 671B
+- **发布时间**: 2022 - 2026 年主流开源模型
+- **模型类型**: 
+  - 通用对话模型 77 个
+  - 代码专用模型 48 个
+- **架构类型**: Dense (密集) 和 MoE (混合专家)
 
 ## 🎯 适用场景
 
@@ -248,8 +258,9 @@ tps-calculator/
 
 ### 数据来源
 
-- **模型参数** - [HuggingFace](https://huggingface.co) Model Cards、[Ollama](https://ollama.com) 官方页面
+- **模型参数** - [HuggingFace](https://huggingface.co)、[Ollama](https://ollama.com)、[ModelScope](https://modelscope.cn) 等官方模型库
 - **GPU 规格** - 各厂商官方技术文档
+- **模型覆盖** - 125+ 模型，涵盖 2022-2026 年主流开源模型，参数规模从 0.5B 到 671B
 
 ### 理论基础
 

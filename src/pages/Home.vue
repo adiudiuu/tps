@@ -174,6 +174,7 @@ const pinnedQuantMatrix = computed(() => {
             <!-- 固定列 (ref) -->
             <div class="bg-blue-50/30 rounded-xl p-3 border-2 border-blue-200">
               <ResultPanel
+                compact
                 :result="pinnedResult"
                 :model="pinnedConfig.model"
                 :quant-matrix="pinnedQuantMatrix"
@@ -187,6 +188,7 @@ const pinnedQuantMatrix = computed(() => {
             <!-- 当前列 (current) -->
             <div class="bg-emerald-50/30 rounded-xl p-3 border-2 border-emerald-200">
               <ResultPanel
+                compact
                 :result="result"
                 :model="model"
                 :quant-matrix="quantMatrix"

@@ -17,6 +17,7 @@ defineProps({
   gpuVendor: String,
   gpu: Object,
   gpuCount: Number,
+  compact: Boolean,
 })
 const framework = defineModel('framework', { required: true })
 const quant = defineModel('quant', { required: true })
@@ -68,7 +69,7 @@ const quant = defineModel('quant', { required: true })
     <VramCard :result="result" :quant-matrix="quantMatrix" :current-quant-id="result?.quantId" @select-quant="quant = $event" />
     <SpeedCard :result="result" :gpu-vendor="gpuVendor" v-model:framework="framework" />
     <LatencyCard :result="result" />
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    <div :class="compact ? 'grid grid-cols-1 gap-4' : 'grid grid-cols-1 lg:grid-cols-2 gap-4'">
       <RooflineChart :result="result" />
       <VramPieChart :result="result" />
     </div>
