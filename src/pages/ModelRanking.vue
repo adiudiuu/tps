@@ -102,15 +102,16 @@ const modelResults = computed(() => {
 })
 
 function useThisModel(modelData) {
-  // 跳转到主页并应用该模型配置
+  // 跳转到主页并应用该模型配置（参数名与 useUrlState.js 保持一致）
   const query = {
-    gpu: gpu.value.id,
-    gpuCount: gpuCount.value,
+    gpu:   gpu.value.id,
+    n:     gpuCount.value !== 1 ? gpuCount.value : undefined,
+    ic:    interconnect.value?.id ?? undefined,
     model: modelData.model.id,
     quant: modelData.quant?.id ?? 'bf16',
-    framework: framework.value.id,
-    ctx: ctx.value,
-    batch: batch.value,
+    fw:    framework.value.id,
+    ctx:   ctx.value,
+    b:     batch.value !== 1 ? batch.value : undefined,
   }
   router.push({ path: '/', query })
 }

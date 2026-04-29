@@ -757,7 +757,9 @@ export const COMMUNITY_MODELS = [
   samantha_7b,
 ]
 
-export const ALL_MODELS = [...DENSE_MODELS, ...MOE_MODELS, ...COMMUNITY_MODELS].sort((a, b) => {
+export const ALL_MODELS = [...new Map(
+  [...DENSE_MODELS, ...MOE_MODELS, ...COMMUNITY_MODELS].map(m => [m.id, m])
+).values()].sort((a, b) => {
   // Sort by released date descending (newest first)
   const [ay, am] = (a.released || '2000-01').split('-').map(Number)
   const [by, bm] = (b.released || '2000-01').split('-').map(Number)
