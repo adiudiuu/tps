@@ -23,14 +23,14 @@ Given GPU, model, quantization, and runtime parameters, quickly estimate:
 - ⏱️ **Latency Metrics** - TTFT, TPOT, total latency estimation
 - 🔍 **Bottleneck Analysis** - Roofline model to identify bandwidth/compute bottlenecks
 - 🔗 **Multi-GPU Support** - Tensor Parallel communication efficiency modeling
-- 🌍 **Wide Coverage** - 170+ GPUs (NVIDIA/AMD/Intel/Apple/Domestic), **125+ mainstream models**
+- 🌍 **Wide Coverage** - 170+ GPUs (NVIDIA/AMD/Intel/Apple/Domestic), **164+ mainstream models**
 
 ## 📊 Coverage
 
 | Category | Support |
 |----------|---------|
 | **GPUs** | NVIDIA (RTX/Tesla/H100), AMD (RX/MI), Intel Arc, Apple Silicon, Domestic chips |
-| **Models** | **125+ mainstream models** (77 general + 48 code-specific) |
+| **Models** | **164+ mainstream models** (119 Dense + 45 MoE) |
 | **Model Architectures** | Dense, MoE, MLA (DeepSeek), Hybrid Attention (Gemma), Mamba (SSM) |
 | **Quantization** | FP32/BF16/FP8/INT8/INT4/Q6_K/Q5_K/Q3_K/INT2 |
 | **Inference Frameworks** | vLLM, TensorRT-LLM, llama.cpp, MLX, SGLang, TGI |
@@ -41,9 +41,9 @@ Given GPU, model, quantization, and runtime parameters, quickly estimate:
 - **Parameter Scale**: 0.5B - 671B
 - **Release Period**: 2022 - 2026 mainstream open-source models
 - **Model Types**: 
-  - 77 general conversational models
-  - 48 code-specific models
-- **Architecture Types**: Dense and MoE (Mixture-of-Experts)
+  - 119 Dense models
+  - 45 MoE (Mixture-of-Experts) models
+- **Architecture Types**: Dense, MoE (Mixture-of-Experts), MLA (Multi-head Latent Attention), Hybrid Attention
 
 ## 🎯 Use Cases
 
@@ -247,7 +247,7 @@ This project uses a **Custom Non-Commercial License**. See [LICENSE](LICENSE) fo
 
 - **Model Parameters** - [HuggingFace](https://huggingface.co), [Ollama](https://ollama.com), [ModelScope](https://modelscope.cn) and other official model repositories
 - **GPU Specifications** - Official technical documentation from various vendors
-- **Model Coverage** - 125+ models spanning 2022-2026 mainstream open-source models, parameter scales from 0.5B to 671B
+- **Model Coverage** - 164+ models spanning 2022-2026 mainstream open-source models, parameter scales from 0.5B to 671B
 
 ### Theoretical Foundation
 
