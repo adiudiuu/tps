@@ -54,19 +54,23 @@ function fmtFrameworkRange(min, max) {
           :key="f.id"
           @click="f.available && (framework = f)"
           :disabled="!f.available"
+          :title="!f.available ? t('run.framework_unavailable', { vendor: gpuVendor }) : f.recommended ? t('run.framework_recommended') : ''"
           :class="[
             'flex flex-col items-center gap-0.5 px-1 py-1.5 rounded-lg text-xs border transition-colors relative',
             !f.available
-              ? 'bg-gray-50 border-gray-200 text-gray-400 cursor-not-allowed'
+              ? 'bg-gray-100 border-gray-300 text-gray-500 cursor-not-allowed opacity-60'
               : framework.id === f.id
                 ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm'
-                : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:border-gray-300'
+                : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100 hover:border-gray-300'
           ]"
         >
-          <span class="font-medium leading-tight text-center">{{ t(f.labelKey) }}</span>
-          <span v-if="f.recommended" class="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-emerald-500" :title="t('run.framework_recommended')"></span>
-          <span class="text-[10px] leading-tight opacity-50">d {{ fmtFrameworkRange(f.decodeMin ?? f.decode, f.decodeMax ?? f.decode) }}</span>
-          <span class="text-[10px] leading-tight opacity-50">p {{ fmtFrameworkRange(f.prefillMin ?? f.prefill, f.prefillMax ?? f.prefill) }}</span>
+          <span :class="['font-medium leading-tight text-center', !f.available && 'line-through']">{{ t(f.labelKey) }}</span>
+          <span v-if="f.recommended && f.available" class="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-emerald-500" :title="t('run.framework_recommended')"></span>
+          <span v-if="!f.available" class="text-[9px] leading-tight text-red-600 font-medium">{{ t('run.not_supported') }}</span>
+          <template v-else>
+            <span :class="['text-[10px] leading-tight', framework.id === f.id ? 'opacity-70' : 'opacity-50']">d {{ fmtFrameworkRange(f.decodeMin ?? f.decode, f.decodeMax ?? f.decode) }}</span>
+            <span :class="['text-[10px] leading-tight', framework.id === f.id ? 'opacity-70' : 'opacity-50']">p {{ fmtFrameworkRange(f.prefillMin ?? f.prefill, f.prefillMax ?? f.prefill) }}</span>
+          </template>
         </button>
       </div>
     </div>

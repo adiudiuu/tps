@@ -67,6 +67,8 @@ export default {
     output_tip: 'Number of tokens the model generates. Used for total latency estimation. Does not affect decode tok/s.',
     framework: 'Inference Framework',
     framework_recommended: 'Recommended',
+    framework_unavailable: 'Not supported by current GPU',
+    not_supported: 'Not Supported',
     flash_attention: 'Flash Attention',
     flash_attention_tip: 'Recomputes attention weights to save memory while greatly speeding up long-context Prefill. Recommended in production.',
     kv_cache_quant: 'KV Cache Quantization',
