@@ -185,6 +185,7 @@ const pinnedQuantMatrix = computed(() => {
               <div class="bg-blue-50/60 p-3">
                 <ResultPanel
                   compact
+                  readonly
                   :result="pinnedResult"
                   :model="pinnedConfig.model"
                   :quant-matrix="pinnedQuantMatrix"

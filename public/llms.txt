@@ -1,0 +1,115 @@
+# TPS Calculator — GPU 推理速度计算器
+
+> 在线估算大语言模型（LLM）在各类 GPU 上的推理速度（TPS）、显存占用与延迟的免费工具。支持 348+ 主流开源模型，覆盖 170+ GPU。
+
+TPS Calculator 是一款面向 AI 工程师、研究人员和开发者的 GPU 推理性能估算工具。用户无需实际部署，即可快速得到给定 GPU + 模型 + 量化精度组合下的性能预估数据，辅助硬件选型、成本预估和部署方案设计。
+
+## 核心功能
+
+- **TPS 估算**：Decode/Prefill 每秒 Token 数（token/s），支持多框架效率建模
+- **显存计算**：权重占用、KV Cache、系统开销，以及 OOM 风险预警
+- **延迟指标**：TTFT（首 Token 时延）、TPOT（每输出 Token 时延）、端到端总延迟
+- **Roofline 分析**：识别推理瓶颈（带宽受限 vs 算力受限）
+- **多卡支持**：Tensor Parallel 通信效率建模
+- **模型排行榜**：给定 GPU 配置，一键查看所有模型的可运行速度排名
+
+## 支持范围
+
+### GPU
+
+覆盖 170+ GPU，包括：
+
+- **NVIDIA**：H100 SXM/PCIe、A100、H200、RTX 4090/4080/4070、L40S、L4、T4 等
+- **AMD**：RX 7900 XTX、MI300X、MI250X 等
+- **Apple Silicon**：M1/M2/M3/M4 全系列
+- **Intel**：Arc A770、Gaudi 2/3 等
+- **国产芯片**：昇腾 910B/910C、天数 TU140、沐曦 C500 等
+
+### 模型
+
+覆盖 348+ 主流开源模型，包括：
+
+- **DeepSeek 系列**：DeepSeek-R1（671B MoE）、DeepSeek-V3、DeepSeek-R1-Distill 全系列
+- **Qwen 系列**：Qwen3（0.6B–235B）、Qwen2.5、QwQ-32B 等
+- **Meta Llama 系列**：Llama 3.1/3.2/3.3（1B–405B）
+- **Google 系列**：Gemma 2/3（2B–27B）、Gemini 等
+- **Mistral / Mixtral 系列**
+- **GLM 系列**：ChatGLM、GLM-4、GLM-Z1 等
+- **Baichuan、Yi、Falcon、Phi、Bloom** 等百余款模型
+
+### 量化精度
+
+FP32、BF16、FP16、FP8、INT8、INT4、Q6_K、Q5_K、Q4_K、Q3_K、Q2_K、INT2
+
+### 推理框架
+
+vLLM、TensorRT-LLM、llama.cpp、MLX、SGLang、TGI（Text Generation Inference）
+
+## 页面结构
+
+- [首页 / 计算器](https://tps.bunai.com/)：输入 GPU + 模型 + 参数，即时估算推理性能
+- [模型排行榜](https://tps.bunai.com/ranking)：给定 GPU，查看所有可运行模型的速度排名
+- [支持列表](https://tps.bunai.com/library)：查询已支持的所有 GPU 和模型的详细参数
+
+## 常见问题
+
+**TPS 是什么？**
+TPS（Tokens Per Second）即每秒生成的 Token 数量，是衡量 LLM 推理速度的核心指标。TPS 越高，模型响应越快。相关指标还有 TTFT（首 Token 延迟）和 TPOT（每输出 Token 延迟）。
+
+**DeepSeek-R1 671B 需要多少显存？在 H100 上跑多快？**
+DeepSeek-R1（671B MoE）BF16 精度约需 1342 GB 显存，FP8 量化约需 671 GB（8 张 H100 SXM），INT4 量化约需 336 GB。8 张 H100 SXM FP8 精度下 vLLM Decode TPS 约 200–400 token/s（batch=1）。
+
+**DeepSeek-V3 685B 在 H100 上的推理速度？**
+DeepSeek-V3（685B MoE）在 8 张 H100 SXM FP8 下，vLLM Decode TPS 约 150–350 token/s。其 MLA 注意力机制使 KV Cache 显存占用极低，可支持更长上下文。
+
+**Llama 3.1 70B 在 A100 上推理速度？**
+Llama-3.1-70B 在单张 A100 80GB（INT4 量化，约 35 GB）vLLM Decode TPS 约 400–600 token/s；BF16 需 2 张 A100。
+
+**Llama 3.3 70B 在 RTX 4090 上能运行吗？**
+单张 RTX 4090（24 GB）无法运行 INT4（约 35 GB），需 2 张或使用 Q3_K（约 24 GB）勉强放入，llama.cpp 约 30–50 token/s。
+
+**Qwen3 235B 在 H100 上的速度？**
+Qwen3-235B-A22B（MoE，激活参数 22B）在 4 张 H100 SXM BF16 下，vLLM Decode TPS 约 300–600 token/s。
+
+**Qwen2.5 72B 在 A100 上的速度？**
+Qwen2.5-72B 在 2 张 A100 80GB（BF16）下 vLLM TPS 约 300–500 token/s；INT4 单卡 A100 约 400–700 token/s。
+
+**Qwen2.5 7B 在 RTX 4090 上跑多快？**
+Qwen2.5-7B 在 RTX 4090（BF16，约 14 GB）vLLM Decode TPS 约 800–1200 token/s，是本地高速推理的优选。
+
+**RTX 4090 能跑多大模型？**
+RTX 4090（24 GB）：BF16 支持约 13B，INT4 约 34B，Q2_K 极限压缩可尝试 70B（质量下降明显）。
+
+**RTX 4090 和 A100 推理速度对比？**
+A100 SXM 带宽 2 TB/s，RTX 4090 约 1 TB/s。相同配置下 A100 Decode TPS 约是 RTX 4090 的 1.8–2 倍，但 A100 显存更大（80 GB vs 24 GB）。
+
+**H100 和 A100 推理速度对比？**
+H100 SXM 带宽 3.35 TB/s，A100 约 2 TB/s，H100 快约 1.6 倍。加上 FP8 原生支持，LLM 推理综合性能 H100 通常是 A100 的 2–3 倍。
+
+**QwQ 32B 在 RTX 3090 上能运行吗？**
+RTX 3090（24 GB）单卡可运行 QwQ-32B Q4_K 量化（约 18 GB），llama.cpp 约 25–40 token/s。
+
+**Gemma 3 27B 在 A100 上推理速度？**
+Gemma-3-27B 在单张 A100 80GB（BF16，约 54 GB）vLLM TPS 约 600–900 token/s。Gemma-3 的混合注意力机制使 KV Cache 比同规模模型小约 5 倍。
+
+**Mistral 7B 在 RTX 4080 上的速度？**
+RTX 4080（16 GB，717 GB/s 带宽），Mistral-7B BF16（约 14 GB）vLLM TPS 约 500–700 token/s，llama.cpp Q4_K 约 150–200 token/s。
+
+**Apple M3 Max 能跑 Llama 3 吗？**
+M3 Max（128 GB 统一内存，400 GB/s 带宽）可运行 Llama-3.1-70B Q4_K（约 40 GB），llama.cpp/MLX 约 30–50 token/s；Llama-3.2-3B BF16 约 200+ token/s。
+
+**部署 70B 模型需要几张 GPU？**
+以 Llama-3.1-70B 为例：BF16 需 2 张 A100/H100 80GB 或 6 张 RTX 4090；INT4 量化可单张 A100 80GB 或 2 张 RTX 4090 运行。
+
+**昇腾 910B 跑 LLM 速度如何？**
+昇腾 910B（64 GB HBM2e，约 2 TB/s 带宽）理论推理速度与 A100 同量级，支持 Qwen、Llama 等主流模型。
+
+**vLLM 和 llama.cpp 速度差多少？**
+vLLM 适合服务端批量推理，高并发吞吐量约是 llama.cpp 的 5–10 倍；单用户 batch=1 场景两者差距缩小。llama.cpp 支持 CPU+GPU 混合，适合本地和边缘部署。
+
+## 技术实现
+
+基于 Roofline 模型和公开的 GPU 硬件规格（显存带宽、算力峰值）进行理论性能上界估算，结合各推理框架的实测效率系数修正。计算结果为参考估算值，实际性能受系统环境、驱动版本等因素影响。
+
+- 前端：Vue 3 + Vite + Tailwind CSS
+- 开源地址：https://github.com/adiudiuu/tps

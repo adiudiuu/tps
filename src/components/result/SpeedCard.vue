@@ -6,17 +6,17 @@ import { FRAMEWORK_MAP } from '../../data/constants.js'
 import TipIcon from '../ui/TipIcon.vue'
 
 const { t } = useI18n()
-const props = defineProps({ result: Object, gpuVendor: String })
+const props = defineProps({ result: Object, gpuVendor: String, readonly: Boolean })
 const framework = defineModel('framework', { required: true })
 
 const speedRating = computed(() => {
   const toks = props.result?.singleToksMax
   if (toks == null) return null
-  if (toks >= 100) return { grade: 'S', c1: '#a855f7', c2: '#6d28d9', glow: '#a855f740', ring: '#c084fc', label: t('result.speed_rating_blazing'), desc: t('result.speed_rating_s_desc') }
-  if (toks >= 60)  return { grade: 'A', c1: '#10b981', c2: '#059669', glow: '#10b98140', ring: '#34d399', label: t('result.speed_rating_blazing'), desc: t('result.speed_rating_blazing_desc') }
-  if (toks >= 30)  return { grade: 'B', c1: '#3b82f6', c2: '#1d4ed8', glow: '#3b82f640', ring: '#60a5fa', label: t('result.speed_rating_smooth'),  desc: t('result.speed_rating_smooth_desc') }
-  if (toks >= 15)  return { grade: 'C', c1: '#f97316', c2: '#c2410c', glow: '#f9731640', ring: '#fb923c', label: t('result.speed_rating_usable'),  desc: t('result.speed_rating_usable_desc') }
-  return                  { grade: 'F', c1: '#ef4444', c2: '#991b1b', glow: '#ef444440', ring: '#f87171', label: t('result.speed_rating_slow'),    desc: t('result.speed_rating_slow_desc') }
+  if (toks >= 100) return { grade: 'S', c1: '#22c55e', c2: '#15803d', label: t('result.speed_rating_blazing'), desc: t('result.speed_rating_s_desc') }
+  if (toks >= 60)  return { grade: 'A', c1: '#60a5fa', c2: '#2563eb', label: t('result.speed_rating_blazing'), desc: t('result.speed_rating_blazing_desc') }
+  if (toks >= 30)  return { grade: 'B', c1: '#fbbf24', c2: '#d97706', label: t('result.speed_rating_smooth'),  desc: t('result.speed_rating_smooth_desc') }
+  if (toks >= 15)  return { grade: 'C', c1: '#a78bfa', c2: '#7c3aed', label: t('result.speed_rating_usable'),  desc: t('result.speed_rating_usable_desc') }
+  return                  { grade: 'F', c1: '#f87171', c2: '#dc2626', label: t('result.speed_rating_slow'),    desc: t('result.speed_rating_slow_desc') }
 })
 
 // 根据当前 GPU vendor 过滤可用框架
@@ -42,25 +42,109 @@ function fmtFrameworkRange(min, max) {
     <!-- 速度体验评级徽章 -->
     <div
       v-if="speedRating && result"
-      class="rounded-xl overflow-hidden flex items-stretch"
-      :style="{ background: `linear-gradient(135deg, ${speedRating.c1}18 0%, ${speedRating.c2}08 100%)`, border: `1px solid ${speedRating.c1}30` }"
+      class="rounded-xl overflow-hidden flex items-center gap-1"
+      :style="{ background: `linear-gradient(135deg, ${speedRating.c1}15 0%, ${speedRating.c2}06 100%)`, border: `1px solid ${speedRating.c1}28` }"
     >
-      <div class="w-1 flex-shrink-0" :style="{ background: `linear-gradient(to bottom, ${speedRating.c1}, ${speedRating.c2})` }" />
-      <div class="flex items-center justify-center px-3 py-3 flex-shrink-0">
-        <div
-          class="w-11 h-11 rounded-full flex items-center justify-center text-white font-black text-xl shadow-sm select-none"
-          :style="{ background: `linear-gradient(135deg, ${speedRating.c1}, ${speedRating.c2})` }"
-        >{{ speedRating.grade }}</div>
+      <div class="w-1 self-stretch flex-shrink-0" :style="{ background: `linear-gradient(to bottom, ${speedRating.c1}, ${speedRating.c2})` }" />
+
+      <!-- 圆形图标徽章 -->
+      <div class="flex items-center justify-center px-2 py-2 flex-shrink-0">
+        <svg viewBox="0 0 64 56" xmlns="http://www.w3.org/2000/svg" style="width:64px;height:56px">
+          <defs>
+            <radialGradient :id="`badge-${speedRating.grade}`" cx="35%" cy="30%" r="65%">
+              <stop offset="0%" :stop-color="speedRating.c1"/>
+              <stop offset="100%" :stop-color="speedRating.c2"/>
+            </radialGradient>
+            <radialGradient :id="`icon-${speedRating.grade}`" cx="35%" cy="30%" r="65%">
+              <stop offset="0%" :stop-color="speedRating.c1"/>
+              <stop offset="100%" :stop-color="speedRating.c2"/>
+            </radialGradient>
+          </defs>
+
+          <!-- 外发光环 -->
+          <circle cx="28" cy="28" r="27" :fill="speedRating.c1" opacity="0.15"/>
+          <!-- 主圆 -->
+          <circle cx="28" cy="28" r="24" :fill="`url(#badge-${speedRating.grade})`"/>
+          <!-- 内环描边 -->
+          <circle cx="28" cy="28" r="22" fill="none" stroke="white" stroke-width="1" opacity="0.22"/>
+          <!-- 高光椭圆 -->
+          <ellipse cx="21" cy="18" rx="9" ry="6" fill="white" opacity="0.22"/>
+          <!-- 底部阴影 -->
+          <ellipse cx="28" cy="50" rx="12" ry="2" fill="black" opacity="0.08"/>
+          <!-- 等级字母 -->
+          <text x="28" y="37" text-anchor="middle"
+            font-size="28" font-weight="900" fill="white"
+            font-family="ui-sans-serif, system-ui, sans-serif">{{ speedRating.grade }}</text>
+
+          <!-- 角标圆背景 (右下角叠加) -->
+          <circle cx="49" cy="45" r="11" fill="white"/>
+          <circle cx="49" cy="45" r="10" :fill="`url(#icon-${speedRating.grade})`"/>
+          <circle cx="49" cy="45" r="9" fill="none" stroke="white" stroke-width="0.8" opacity="0.3"/>
+
+          <!-- S：火箭 -->
+          <g v-if="speedRating.grade === 'S'" transform="translate(49,45)">
+            <g transform="rotate(-40)">
+              <ellipse cx="0" cy="0" rx="2.5" ry="5.5" fill="white"/>
+              <polygon points="-2.5,3 -4.5,7 0,5" fill="white" opacity="0.85"/>
+              <polygon points="2.5,3 4.5,7 0,5" fill="white" opacity="0.85"/>
+              <ellipse cx="0" cy="6.5" rx="1.8" ry="2" fill="#fbbf24" opacity="0.9"/>
+            </g>
+          </g>
+
+          <!-- A：闪电 -->
+          <g v-else-if="speedRating.grade === 'A'" transform="translate(49,45)">
+            <polygon points="2,-7.5 -4,0.5 0.5,0.5 -2,7.5 5.5,-0.5 1,-0.5" fill="white"/>
+          </g>
+
+          <!-- B：速度计（指针偏右，快） -->
+          <g v-else-if="speedRating.grade === 'B'" transform="translate(49,47)">
+            <path d="M -7,0 A 7,7 0 0,1 7,0" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"/>
+            <line x1="-7" y1="0" x2="-5.5" y2="-1.5" stroke="white" stroke-width="1" opacity="0.6"/>
+            <line x1="0" y1="-7" x2="0" y2="-5.5" stroke="white" stroke-width="1" opacity="0.6"/>
+            <line x1="7" y1="0" x2="5.5" y2="-1.5" stroke="white" stroke-width="1" opacity="0.6"/>
+            <line x1="0" y1="0" x2="4.5" y2="-5" stroke="white" stroke-width="2" stroke-linecap="round"/>
+            <circle cx="0" cy="0" r="1.8" fill="white"/>
+          </g>
+
+          <!-- C：速度计（指针偏左，慢） -->
+          <g v-else-if="speedRating.grade === 'C'" transform="translate(49,47)">
+            <path d="M -7,0 A 7,7 0 0,1 7,0" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"/>
+            <line x1="-7" y1="0" x2="-5.5" y2="-1.5" stroke="white" stroke-width="1" opacity="0.6"/>
+            <line x1="0" y1="-7" x2="0" y2="-5.5" stroke="white" stroke-width="1" opacity="0.6"/>
+            <line x1="7" y1="0" x2="5.5" y2="-1.5" stroke="white" stroke-width="1" opacity="0.6"/>
+            <line x1="0" y1="0" x2="-5" y2="-4" stroke="white" stroke-width="2" stroke-linecap="round"/>
+            <circle cx="0" cy="0" r="1.8" fill="white"/>
+          </g>
+
+          <!-- F：蜗牛 -->
+          <g v-else-if="speedRating.grade === 'F'" transform="translate(49,45)">
+            <!-- 壳 -->
+            <circle cx="2" cy="-2" r="5.5" fill="none" stroke="white" stroke-width="1.8"/>
+            <circle cx="2" cy="-2" r="2.5" fill="white" opacity="0.5"/>
+            <!-- 身体 -->
+            <ellipse cx="-2" cy="4" rx="4.5" ry="2.2" fill="white"/>
+            <!-- 头 -->
+            <circle cx="-5.5" cy="3" r="2" fill="white"/>
+            <!-- 触角 -->
+            <line x1="-5.5" y1="1.5" x2="-7.5" y2="-1.5" stroke="white" stroke-width="1.2" stroke-linecap="round"/>
+            <line x1="-4.5" y1="1.5" x2="-6" y2="-1.5" stroke="white" stroke-width="1.2" stroke-linecap="round"/>
+            <circle cx="-7.5" cy="-1.5" r="1" fill="white"/>
+            <circle cx="-6" cy="-1.5" r="1" fill="white"/>
+          </g>
+        </svg>
       </div>
+
+      <!-- 描述文字 -->
       <div class="flex-1 flex flex-col justify-center py-3 min-w-0">
-        <div class="text-sm font-bold text-gray-800 leading-tight">{{ speedRating.label }}</div>
-        <div class="text-xs text-gray-400 leading-snug mt-0.5">{{ speedRating.desc }}</div>
+        <div class="text-xs text-gray-400 leading-snug">{{ speedRating.desc }}</div>
       </div>
+
+      <!-- 速度值 -->
       <div class="flex flex-col items-end justify-center px-4 py-3 flex-shrink-0">
         <div class="text-2xl font-black leading-none tabular-nums" :style="{ color: speedRating.c1 }">
           {{ result.singleToksMax.toFixed(0) }}
         </div>
-        <div class="text-xs font-semibold mt-0.5" :style="{ color: speedRating.c1 + 'aa' }">tok/s</div>
+        <div class="text-xs font-semibold mt-0.5" :style="{ color: speedRating.c2 }">tok/s</div>
       </div>
     </div>
 
@@ -71,8 +155,8 @@ function fmtFrameworkRange(min, max) {
         <button
           v-for="f in availableFrameworks"
           :key="f.id"
-          @click="f.available && (framework = f)"
-          :disabled="!f.available"
+          @click="!props.readonly && f.available && (framework = f)"
+          :disabled="!f.available || props.readonly"
           :title="!f.available ? t('run.framework_unavailable', { vendor: gpuVendor }) : f.recommended ? t('run.framework_recommended') : ''"
           :class="[
             'flex flex-col items-center gap-0.5 px-1 py-1.5 rounded-lg text-xs border transition-colors relative',
