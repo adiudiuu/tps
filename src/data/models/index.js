@@ -58,6 +58,10 @@ import llama3_1_70b from './llama3_1_70b/index.js'
 import nemotron_70b from './nemotron_70b/index.js'
 import llama3_405b from './llama3_405b/index.js'
 import llama3_3_70b from './llama3_3_70b/index.js'
+import qwen1_5_72b from './qwen1_5_72b/index.js'
+import qwen1_5_14b from './qwen1_5_14b/index.js'
+import qwen1_5_7b from './qwen1_5_7b/index.js'
+import qwen25_math_7b from './qwen25_math_7b/index.js'
 import qwen2_72b from './qwen2_72b/index.js'
 import llama3_70b from './llama3_70b/index.js'
 import qwen25_coder_32b from './qwen25_coder_32b/index.js'
@@ -130,6 +134,8 @@ import qwen25_1_5b from './qwen25_1_5b/index.js'
 import qwen25_0_5b from './qwen25_0_5b/index.js'
 import qwen25_14b from './qwen25_14b/index.js'
 import qwen2_7b from './qwen2_7b/index.js'
+import gemma_1_7b from './gemma_1_7b/index.js'
+import gemma_1_2b from './gemma_1_2b/index.js'
 import gemma3_27b from './gemma3_27b/index.js'
 import gemma3_12b from './gemma3_12b/index.js'
 import gemma3_4b from './gemma3_4b/index.js'
@@ -150,18 +156,32 @@ import deepseek_r1_distill_qwen_7b from './deepseek_r1_distill_qwen_7b/index.js'
 import internlm3_8b from './internlm3_8b/index.js'
 import internlm2_5_20b from './internlm2_5_20b/index.js'
 import internlm2_5_7b from './internlm2_5_7b/index.js'
+import internlm2_7b from './internlm2_7b/index.js'
 import falcon3_7b from './falcon3_7b/index.js'
 import deepseek_v2_5 from './deepseek_v2_5/index.js'
 import deepseek_v2_lite from './deepseek_v2_lite/index.js'
+import deepseek_moe_16b from './deepseek_moe_16b/index.js'
+import deepseek_llm_67b from './deepseek_llm_67b/index.js'
 import deepseek_r1_distill_qwen_1_5b from './deepseek_r1_distill_qwen_1_5b/index.js'
 import dbrx from './dbrx/index.js'
+import grok_1 from './grok_1/index.js'
+import qwen1_5_moe_a2_7b from './qwen1_5_moe_a2_7b/index.js'
 import phi3_5_moe from './phi3_5_moe/index.js'
 import llama3_8b from './llama3_8b/index.js'
+import llama2_70b from './llama2_70b/index.js'
+import llama2_7b from './llama2_7b/index.js'
 import llama2_13b from './llama2_13b/index.js'
 import tinyllama_1b from './tinyllama_1b/index.js'
+import mpt_7b from './mpt_7b/index.js'
+import solar_10_7b from './solar_10_7b/index.js'
+import baichuan2_13b from './baichuan2_13b/index.js'
+import chatglm3_6b from './chatglm3_6b/index.js'
 import phi2_2b from './phi2_2b/index.js'
 import mixtral_8x7b from './mixtral_8x7b/index.js'
+import yi_6b from './yi_6b/index.js'
 import yi_34b from './yi_34b/index.js'
+import falcon_40b from './falcon_40b/index.js'
+import falcon_7b from './falcon_7b/index.js'
 import falcon_180b from './falcon_180b/index.js'
 
 export const DENSE_MODELS = [
@@ -207,6 +227,7 @@ export const DENSE_MODELS = [
   llama3_1_70b,
   nemotron_70b,
   qwen25_math_72b,
+  qwen1_5_72b,
   qwen25_72b,
   llama3_405b,
   olmo2_13b,
@@ -223,6 +244,7 @@ export const DENSE_MODELS = [
   granite_code_20b,
   qwen25_coder_14b,
   qwen25_14b,
+  qwen1_5_14b,
   phi3_medium_14b,
   codestral_22b,
   starcoder2_15b,
@@ -239,6 +261,7 @@ export const DENSE_MODELS = [
   codegemma_7b,
   phi3_small_7b,
   internlm2_5_7b,
+  internlm2_7b,
   mistral_7b,
   olmo_7b,
   yi_1_5_6b,
@@ -264,6 +287,7 @@ export const DENSE_MODELS = [
   exaone_3_5_7_8b,
   yi_coder_9b,
   qwen25_7b,
+  qwen1_5_7b,
   qwen25_3b,
   phi3_5_mini,
   falcon3_7b,
@@ -272,6 +296,7 @@ export const DENSE_MODELS = [
   gemma2_27b,
   gemma2_9b,
   gemma2_2b,
+  gemma_1_7b,
   llama3_8b,
   // 2023
   wizardcoder_33b,
@@ -282,10 +307,21 @@ export const DENSE_MODELS = [
   codegen2_5_7b,
   replit_code_3b,
   deepseek_coder_1_3b,
+  solar_10_7b,
+  falcon_40b,
+  baichuan2_13b,
+  chatglm3_6b,
+  deepseek_llm_67b,
   santacoder_1b,
   tinyllama_1b,
   phi2_2b,
+  mpt_7b,
+  falcon_7b,
+  llama2_70b,
+  llama2_7b,
   llama2_13b,
+  yi_6b,
+  gemma_1_2b,
   yi_34b,
   falcon_180b,
 ]
@@ -324,9 +360,12 @@ export const MOE_MODELS = [
   minimax_text_01,
   // 2024
   dbrx,
+  grok_1,
   deepseek_v2_5,
   deepseek_v2_lite,
   qwen2_57b_a14b,
+  qwen1_5_moe_a2_7b,
+  deepseek_moe_16b,
   snowflake_arctic,
   granite_moe_3b,
   phi3_5_moe,
