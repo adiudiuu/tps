@@ -66,6 +66,14 @@ import llama3_3_70b from './llama3_3_70b/index.js'
 import qwen1_5_72b from './qwen1_5_72b/index.js'
 import qwen1_5_14b from './qwen1_5_14b/index.js'
 import qwen1_5_7b from './qwen1_5_7b/index.js'
+import qwen_1_8b from './qwen_1_8b/index.js'
+import qwen2_0_5b from './qwen2_0_5b/index.js'
+import qwen2_1_5b from './qwen2_1_5b/index.js'
+import qwen2_audio_7b from './qwen2_audio_7b/index.js'
+import qwen2_vl_2b from './qwen2_vl_2b/index.js'
+import qwen2_vl_7b from './qwen2_vl_7b/index.js'
+import qwen2_vl_72b from './qwen2_vl_72b/index.js'
+import qwq_32b from './qwq_32b/index.js'
 import qwen25_math_7b from './qwen25_math_7b/index.js'
 import qwen2_72b from './qwen2_72b/index.js'
 import llama3_70b from './llama3_70b/index.js'
@@ -146,6 +154,9 @@ import qwen25_14b from './qwen25_14b/index.js'
 import qwen2_7b from './qwen2_7b/index.js'
 import gemma_1_7b from './gemma_1_7b/index.js'
 import gemma_1_2b from './gemma_1_2b/index.js'
+import gemma_7b from './gemma_7b/index.js'
+import gemma2_7b from './gemma2_7b/index.js'
+import paligemma_3b from './paligemma_3b/index.js'
 import gemma3_27b from './gemma3_27b/index.js'
 import gemma3_12b from './gemma3_12b/index.js'
 import gemma3_4b from './gemma3_4b/index.js'
@@ -233,6 +244,12 @@ import wizardlm_7b from './wizardlm_7b/index.js'
 import wizardmath_13b from './wizardmath_13b/index.js'
 import chatglm_6b from './chatglm_6b/index.js'
 import glm4_9b_chat from './glm4_9b_chat/index.js'
+import glm4_7b from './glm4_7b/index.js'
+import glm4v_9b from './glm4v_9b/index.js'
+import glm_edge_1_5b from './glm_edge_1_5b/index.js'
+import glm_edge_4b from './glm_edge_4b/index.js'
+import codegeex4_9b from './codegeex4_9b/index.js'
+import cogvlm2_19b from './cogvlm2_19b/index.js'
 import baichuan2_7b from './baichuan2_7b/index.js'
 import internlm_7b from './internlm_7b/index.js'
 import skywork_13b from './skywork_13b/index.js'
@@ -303,10 +320,26 @@ export const DENSE_MODELS = [
   // 2024
   llama_pro_8b,
   glm4_9b_chat,
+  glm4_7b,
+  glm4v_9b,
+  glm_edge_4b,
+  glm_edge_1_5b,
+  codegeex4_9b,
+  cogvlm2_19b,
   yi_9b,
   deepseek_vl_7b,
   deepseek_vl_1_3b,
   deepseek_math_7b,
+  qwen2_vl_72b,
+  qwen2_vl_7b,
+  qwen2_vl_2b,
+  qwen2_audio_7b,
+  qwen2_1_5b,
+  qwen2_0_5b,
+  qwq_32b,
+  gemma2_7b,
+  gemma_7b,
+  paligemma_3b,
   phi4_14b,
   mistral_large_2,
   command_r_plus_104b,
@@ -379,10 +412,17 @@ export const DENSE_MODELS = [
   falcon3_7b,
   qwen25_1_5b,
   qwen25_0_5b,
+  qwen2_1_5b,
+  qwen2_0_5b,
+  qwen_1_8b,
   gemma2_27b,
   gemma2_9b,
+  gemma2_7b,
   gemma2_2b,
+  gemma_7b,
   gemma_1_7b,
+  gemma_1_2b,
+  paligemma_3b,
   llama3_8b,
   // 2023
   goliath_120b,
