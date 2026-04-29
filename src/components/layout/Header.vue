@@ -107,9 +107,9 @@ function exportMarkdown() {
           {{ t('nav.ranking') }}
         </RouterLink>
         <RouterLink
-          to="/supported"
+          to="/library"
           class="px-3 py-1.5 text-sm font-medium rounded-md transition-colors"
-          :class="route.path === '/supported'
+          :class="route.path === '/library'
             ? 'text-emerald-700 bg-emerald-100 font-semibold'
             : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'"
         >

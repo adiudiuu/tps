@@ -9,10 +9,10 @@ export default {
     export: '导出报告',
     calc: '计算',
     calc_short: '计算',
-    ranking: '模型排行',
+    ranking: '适配排行',
     ranking_short: '排行',
-    supported: '支持列表',
-    supported_short: '列表',
+    supported: '模型库',
+    supported_short: '模型库',
   },
   supported: {
     models: '支持模型',

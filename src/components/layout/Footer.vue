@@ -31,9 +31,9 @@ const homeLink = computed(() => {
       <span>{{ t('nav.calc_short') }}</span>
     </RouterLink>
     <RouterLink
-      to="/supported"
+      to="/library"
       class="flex-1 flex flex-col items-center justify-center gap-0.5 text-xs font-medium transition-colors"
-      :class="route.path === '/supported'
+      :class="route.path === '/library'
         ? 'text-emerald-700 bg-emerald-100 rounded-xl mx-1'
         : 'text-gray-500'"
     >

@@ -7,7 +7,8 @@ export default createRouter({
   history: createWebHistory(),
   routes: [
     { path: '/',          component: Home },
-    { path: '/supported', component: Supported },
+    { path: '/supported', redirect: '/library' },
+    { path: '/library',   component: Supported },
     { path: '/ranking',   component: ModelRanking },
   ],
 })

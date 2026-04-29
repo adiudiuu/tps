@@ -9,10 +9,10 @@ export default {
     export: 'Export Report',
     calc: 'Calculator',
     calc_short: 'Calc',
-    ranking: 'Model Ranking',
+    ranking: 'Compatibility Rank',
     ranking_short: 'Ranking',
-    supported: 'Supported',
-    supported_short: 'List',
+    supported: 'Model Library',
+    supported_short: 'Library',
   },
   supported: {
     models: 'Models',
