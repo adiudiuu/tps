@@ -48,9 +48,14 @@ import gemma4_e4b from './gemma4_e4b/index.js'
 import gemma4_e2b from './gemma4_e2b/index.js'
 import gemma4_26b_moe from './gemma4_26b_moe/index.js'
 import deepseek_r1 from './deepseek_r1/index.js'
+import deepseek_r1_0528 from './deepseek_r1_0528/index.js'
 import deepseek_v3 from './deepseek_v3/index.js'
+import deepseek_v3_1 from './deepseek_v3_1/index.js'
+import deepseek_v3_2 from './deepseek_v3_2/index.js'
 import deepseek_v4_flash from './deepseek_v4_flash/index.js'
 import deepseek_v4_pro from './deepseek_v4_pro/index.js'
+import deepseek_janus_1_3b from './deepseek_janus_1_3b/index.js'
+import deepseek_janus_7b from './deepseek_janus_7b/index.js'
 import qwen3_6_27b from './qwen3_6_27b/index.js'
 import qwen3_6_35b_a3b from './qwen3_6_35b_a3b/index.js'
 import llama3_1_8b from './llama3_1_8b/index.js'
@@ -91,8 +96,13 @@ import smollm2_1_7b from './smollm2_1_7b/index.js'
 import phi3_mini_3_8b from './phi3_mini_3_8b/index.js'
 import qwen3_coder_480b from './qwen3_coder_480b/index.js'
 import deepseek_coder_33b from './deepseek_coder_33b/index.js'
+import deepseek_coder_v1_33b from './deepseek_coder_v1_33b/index.js'
+import deepseek_coder_7b from './deepseek_coder_7b/index.js'
 import deepseek_coder_6_7b from './deepseek_coder_6_7b/index.js'
 import deepseek_coder_1_3b from './deepseek_coder_1_3b/index.js'
+import deepseek_math_7b from './deepseek_math_7b/index.js'
+import deepseek_vl_7b from './deepseek_vl_7b/index.js'
+import deepseek_vl_1_3b from './deepseek_vl_1_3b/index.js'
 import wizardcoder_33b from './wizardcoder_33b/index.js'
 import wizardcoder_15b from './wizardcoder_15b/index.js'
 import phind_codellama_34b from './phind_codellama_34b/index.js'
@@ -162,6 +172,8 @@ import deepseek_v2_5 from './deepseek_v2_5/index.js'
 import deepseek_v2_lite from './deepseek_v2_lite/index.js'
 import deepseek_moe_16b from './deepseek_moe_16b/index.js'
 import deepseek_llm_67b from './deepseek_llm_67b/index.js'
+import deepseek_v1_67b from './deepseek_v1_67b/index.js'
+import deepseek_v1_7b from './deepseek_v1_7b/index.js'
 import deepseek_r1_distill_qwen_1_5b from './deepseek_r1_distill_qwen_1_5b/index.js'
 import dbrx from './dbrx/index.js'
 import grok_1 from './grok_1/index.js'
@@ -292,6 +304,9 @@ export const DENSE_MODELS = [
   llama_pro_8b,
   glm4_9b_chat,
   yi_9b,
+  deepseek_vl_7b,
+  deepseek_vl_1_3b,
+  deepseek_math_7b,
   phi4_14b,
   mistral_large_2,
   command_r_plus_104b,
@@ -379,6 +394,7 @@ export const DENSE_MODELS = [
   qwen_72b,
   wizardcoder_33b,
   deepseek_coder_33b,
+  deepseek_coder_v1_33b,
   phind_codellama_34b,
   nous_capybara_34b,
   guanaco_33b,
@@ -434,6 +450,8 @@ export const DENSE_MODELS = [
   firefly_7b,
   linly_7b,
   nous_hermes_7b,
+  deepseek_coder_7b,
+  deepseek_v1_7b,
   chatglm2_6b,
   chatglm_6b,
   deepseek_coder_6_7b,
@@ -444,6 +462,7 @@ export const DENSE_MODELS = [
   falcon_40b,
   chatglm3_6b,
   deepseek_llm_67b,
+  deepseek_v1_67b,
   santacoder_1b,
   tinyllama_1b,
   phi2_2b,
@@ -488,7 +507,12 @@ export const MOE_MODELS = [
   qwen3_235b,
   kimi_k2_thinking,
   kimi_k2,
+  deepseek_v3_2,
+  deepseek_r1_0528,
   deepseek_r1,
+  deepseek_v3_1,
+  deepseek_janus_7b,
+  deepseek_janus_1_3b,
   minimax_text_01,
   // 2024
   dbrx,
