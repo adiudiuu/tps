@@ -649,6 +649,6 @@ bottleneck = roofline > 1 ? 'bandwidth' : 'compute'
 6. ✅ Prefill Attention 系数 - 固定为 1，避免 MQA 模型被错误放大
 
 **数据更新**:
-- 164+ 主流模型支持（119 Dense + 45 MoE）
+- 340+ 主流模型支持（280 Dense + 60 MoE）
 - DeepSeek V3 MLA 压缩比：0.18
 - Gemma 3 混合注意力架构完整支持

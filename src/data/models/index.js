@@ -91,6 +91,49 @@ import qwen25_coder_1_5b from './qwen25_coder_1_5b/index.js'
 import qwen25_coder_0_5b from './qwen25_coder_0_5b/index.js'
 import qwen25_32b from './qwen25_32b/index.js'
 import mistral_7b from './mistral_7b/index.js'
+import mistral_7b_v0_1 from './mistral_7b_v0_1/index.js'
+import mistral_7b_v0_2 from './mistral_7b_v0_2/index.js'
+import mistral_7b_v0_3 from './mistral_7b_v0_3/index.js'
+import pixtral_12b from './pixtral_12b/index.js'
+import mathstral_7b from './mathstral_7b/index.js'
+import stablelm_3b from './stablelm_3b/index.js'
+import stablelm_zephyr_3b from './stablelm_zephyr_3b/index.js'
+import stablelm2_1_6b from './stablelm2_1_6b/index.js'
+import stablelm2_12b from './stablelm2_12b/index.js'
+import stable_beluga_7b from './stable_beluga_7b/index.js'
+import stable_beluga_13b from './stable_beluga_13b/index.js'
+import falcon_1b from './falcon_1b/index.js'
+import falcon_11b from './falcon_11b/index.js'
+import falcon_mamba_7b from './falcon_mamba_7b/index.js'
+import yi_vl_6b from './yi_vl_6b/index.js'
+import yi_vl_34b from './yi_vl_34b/index.js'
+import zephyr_3b from './zephyr_3b/index.js'
+import wizardlm2_7b from './wizardlm2_7b/index.js'
+import wizardlm2_8x22b from './wizardlm2_8x22b/index.js'
+import openhermes_llama3_8b from './openhermes_llama3_8b/index.js'
+import nous_hermes2_llama3_8b from './nous_hermes2_llama3_8b/index.js'
+import nous_hermes2_yi_34b from './nous_hermes2_yi_34b/index.js'
+import rwkv5_1_5b from './rwkv5_1_5b/index.js'
+import rwkv5_3b from './rwkv5_3b/index.js'
+import rwkv5_7b from './rwkv5_7b/index.js'
+import rwkv6_3b from './rwkv6_3b/index.js'
+import rwkv6_7b from './rwkv6_7b/index.js'
+import bloom_1b from './bloom_1b/index.js'
+import bloom_3b from './bloom_3b/index.js'
+import bloom_7b from './bloom_7b/index.js'
+import bloom_176b from './bloom_176b/index.js'
+import bloomz_7b from './bloomz_7b/index.js'
+import mamba_130m from './mamba_130m/index.js'
+import mamba_370m from './mamba_370m/index.js'
+import mamba_790m from './mamba_790m/index.js'
+import mamba_1_4b from './mamba_1_4b/index.js'
+import mamba_2_8b from './mamba_2_8b/index.js'
+import pythia_2_8b from './pythia_2_8b/index.js'
+import pythia_6_9b from './pythia_6_9b/index.js'
+import pythia_12b from './pythia_12b/index.js'
+import amber_7b from './amber_7b/index.js'
+import mpt_30b from './mpt_30b/index.js'
+import miqu_70b from './miqu_70b/index.js'
 import olmo2_13b from './olmo2_13b/index.js'
 import olmo2_7b from './olmo2_7b/index.js'
 import olmo_7b from './olmo_7b/index.js'
@@ -109,6 +152,7 @@ import phi3_small_7b from './phi3_small_7b/index.js'
 import smollm2_1_7b from './smollm2_1_7b/index.js'
 import phi3_mini_3_8b from './phi3_mini_3_8b/index.js'
 import qwen3_coder_480b from './qwen3_coder_480b/index.js'
+import qwen3_coder_next_80b from './qwen3_coder_next_80b/index.js'
 import deepseek_coder_33b from './deepseek_coder_33b/index.js'
 import deepseek_coder_v1_33b from './deepseek_coder_v1_33b/index.js'
 import deepseek_coder_7b from './deepseek_coder_7b/index.js'
@@ -344,9 +388,12 @@ export const DENSE_MODELS = [
   codegeex4_9b,
   cogvlm2_19b,
   yi_9b,
+  yi_vl_34b,
+  yi_vl_6b,
   deepseek_vl_7b,
   deepseek_vl_1_3b,
   deepseek_math_7b,
+  mathstral_7b,
   qwen2_vl_72b,
   qwen2_vl_7b,
   qwen2_vl_2b,
@@ -382,10 +429,14 @@ export const DENSE_MODELS = [
   qwen25_14b,
   qwen1_5_14b,
   phi3_medium_14b,
+  pixtral_12b,
+  stablelm2_12b,
   codestral_22b,
   starcoder2_15b,
+  stable_beluga_13b,
   codellama_13b,
   llama3_2_11b,
+  falcon_11b,
   olmo2_7b,
   yi_1_5_9b,
   granite_code_8b,
@@ -398,7 +449,12 @@ export const DENSE_MODELS = [
   phi3_small_7b,
   internlm2_5_7b,
   internlm2_7b,
+  mistral_7b_v0_3,
   mistral_7b,
+  rwkv6_7b,
+  rwkv5_7b,
+  stable_beluga_7b,
+  falcon_mamba_7b,
   olmo_7b,
   yi_1_5_6b,
   smollm2_1_7b,
@@ -408,12 +464,25 @@ export const DENSE_MODELS = [
   granite_3_2b,
   llama3_2_3b,
   stable_code_3b,
+  stablelm_zephyr_3b,
+  stablelm_3b,
+  rwkv6_3b,
+  rwkv5_3b,
+  zephyr_3b,
   starcoder2_3b,
+  mamba_2_8b,
   codegemma_2b,
   qwen25_coder_1_5b,
+  stablelm2_1_6b,
+  rwkv5_1_5b,
+  mamba_1_4b,
   llama3_2_1b,
+  falcon_1b,
   olmo_1b,
+  mamba_790m,
   qwen25_coder_0_5b,
+  mamba_370m,
+  mamba_130m,
   llama3_1_8b,
   command_r_35b,
   mistral_nemo_12b,
@@ -422,6 +491,7 @@ export const DENSE_MODELS = [
   aya_expanse_8b,
   exaone_3_5_7_8b,
   yi_coder_9b,
+  qwen25_math_7b,
   qwen25_7b,
   qwen1_5_7b,
   qwen25_3b,
@@ -441,7 +511,10 @@ export const DENSE_MODELS = [
   gemma_1_2b,
   paligemma_3b,
   llama3_8b,
+  openhermes_llama3_8b,
+  nous_hermes2_llama3_8b,
   // 2023
+  miqu_70b,
   goliath_120b,
   xwin_70b,
   airoboros_70b,
@@ -454,8 +527,10 @@ export const DENSE_MODELS = [
   deepseek_coder_v1_33b,
   phind_codellama_34b,
   nous_capybara_34b,
+  nous_hermes2_yi_34b,
   guanaco_33b,
   vicuna_33b,
+  mpt_30b,
   internlm_20b,
   moss_16b,
   wizardcoder_15b,
@@ -476,6 +551,7 @@ export const DENSE_MODELS = [
   belle_13b,
   firefly_13b,
   nous_hermes_13b,
+  pythia_12b,
   qwen_14b,
   solar_10_7b_instruct,
   solar_10_7b,
@@ -498,6 +574,7 @@ export const DENSE_MODELS = [
   tigerbot_7b,
   yayi_7b,
   bluelmv2_7b,
+  wizardlm2_7b,
   wizardlm_7b,
   wizardmath_7b,
   alpaca_7b,
@@ -506,16 +583,25 @@ export const DENSE_MODELS = [
   belle_7b,
   firefly_7b,
   linly_7b,
+  amber_7b,
+  bloom_7b,
+  bloomz_7b,
+  pythia_6_9b,
   nous_hermes_7b,
   deepseek_coder_7b,
   deepseek_v1_7b,
+  mistral_7b_v0_2,
+  mistral_7b_v0_1,
   chatglm2_6b,
   chatglm_6b,
   deepseek_coder_6_7b,
   codegen2_5_7b,
   replit_code_3b,
+  bloom_3b,
+  pythia_2_8b,
   deepseek_coder_1_3b,
   yuan2_2b,
+  bloom_1b,
   falcon_40b,
   chatglm3_6b,
   deepseek_llm_67b,
@@ -527,11 +613,13 @@ export const DENSE_MODELS = [
   falcon_7b,
   llama2_70b,
   llama2_34b,
+  llama2_chinese_13b,
   llama2_7b,
   llama2_13b,
   yi_6b,
   gemma_1_2b,
   yi_34b,
+  bloom_176b,
   falcon_180b,
   llama_65b,
   llama_30b,
@@ -558,6 +646,7 @@ export const MOE_MODELS = [
   gemma4_26b_moe,
   // 2025
   qwen3_coder_480b,
+  qwen3_coder_next_80b,
   mistral_large_3,
   gpt_oss_120b,
   gpt_oss_20b,
@@ -605,6 +694,7 @@ export const MOE_MODELS = [
   deepseek_coder_v2_16b,
   olmoe_1b_7b,
   deepseek_v2,
+  wizardlm2_8x22b,
   mixtral_8x22b,
   nous_hermes2_mixtral,
   dolphin_mixtral,
@@ -615,8 +705,21 @@ export const MOE_MODELS = [
 
 export const COMMUNITY_MODELS = [
   // 2024
+  wizardlm2_8x22b,
+  wizardlm2_7b,
+  openhermes_llama3_8b,
+  nous_hermes2_llama3_8b,
+  nous_hermes2_yi_34b,
   nous_hermes2_mixtral,
   dolphin_mixtral,
+  miqu_70b,
+  stable_beluga_13b,
+  stable_beluga_7b,
+  stablelm2_12b,
+  stablelm2_1_6b,
+  stablelm_zephyr_3b,
+  stablelm_3b,
+  zephyr_3b,
   // 2023
   goliath_120b,
   xwin_70b,
