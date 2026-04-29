@@ -1,4 +1,5 @@
 <script setup>
+import { computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { QUANT_MAP } from '../../data/constants.js'
 import { KV_CACHE_MAP, PREFIX_CACHE_OPTIONS, PCIE_BW_OPTIONS } from '../../data/runtime.js'
@@ -9,6 +10,7 @@ const { t } = useI18n()
 
 const props = defineProps({
   model: { type: Object, default: null },
+  framework: { type: Object, default: null },
 })
 
 const quant = defineModel('quant', { required: true })
@@ -21,8 +23,22 @@ const kvCacheQuant = defineModel('kvCacheQuant', { required: true })
 const prefixCacheHit = defineModel('prefixCacheHit', { required: true })
 const cpuOffload = defineModel('cpuOffload', { required: true })
 const pcieBw = defineModel('pcieBw', { required: true })
+const speculativeDecoding = defineModel('speculativeDecoding', { required: true })
+const acceptanceRate = defineModel('acceptanceRate', { required: true })
+const draftLen = defineModel('draftLen', { required: true })
 
-import { computed } from 'vue'
+// Speculative Decoding 支持的框架
+const speculativeSupported = computed(() => {
+  const supportedFrameworks = ['vllm', 'trtllm']
+  return supportedFrameworks.includes(props.framework?.id)
+})
+
+// 当切换到不支持的框架时，自动关闭 Speculative Decoding
+watch(() => props.framework, (newFramework) => {
+  if (newFramework && !speculativeSupported.value && speculativeDecoding.value) {
+    speculativeDecoding.value = false
+  }
+})
 
 const BASE_CTX_OPTIONS = [512, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072, 262144, 524288, 1048576, 2097152, 4194304, 10485760]
 const BATCH_OPTIONS = [1, 2, 4, 8, 16, 32, 64, 128]
@@ -204,7 +220,7 @@ const ctxOptions = computed(() => {
             :class="[
               'px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors',
               cpuOffload
-                ? 'bg-amber-500 border-amber-500 text-white shadow-sm'
+                ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm'
                 : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:border-gray-300'
             ]"
           >{{ t('run.enabled') }}</button>
@@ -228,12 +244,81 @@ const ctxOptions = computed(() => {
               :class="[
                 'px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors',
                 pcieBw.id === option.id
-                  ? 'bg-amber-500 border-amber-500 text-white shadow-sm'
+                  ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm'
                   : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:border-gray-300'
               ]"
             >
               {{ option.label }} <span class="opacity-70">({{ option.bw }} GB/s)</span>
             </button>
+          </div>
+        </template>
+      </div>
+
+      <!-- Speculative Decoding -->
+      <div>
+        <label class="flex items-center gap-1 text-xs text-gray-500 mb-2">
+          {{ t('run.speculative_decoding') }}<TipIcon :text="t('run.speculative_decoding_tip')" />
+          <span v-if="!speculativeSupported" class="text-red-600 text-[10px] ml-1">({{ t('run.framework_not_supported') }})</span>
+        </label>
+        <div class="grid grid-cols-2 gap-1.5 mb-2">
+          <button
+            @click="speculativeDecoding = true"
+            :disabled="!speculativeSupported"
+            :class="[
+              'px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors',
+              !speculativeSupported
+                ? 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed'
+                : speculativeDecoding
+                  ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm'
+                  : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:border-gray-300'
+            ]"
+          >{{ t('run.enabled') }}</button>
+          <button
+            @click="speculativeDecoding = false"
+            :disabled="!speculativeSupported"
+            :class="[
+              'px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors',
+              !speculativeSupported
+                ? 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed'
+                : !speculativeDecoding
+                  ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm'
+                  : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:border-gray-300'
+            ]"
+          >{{ t('run.disabled') }}</button>
+        </div>
+        <template v-if="speculativeDecoding && speculativeSupported">
+          <div class="space-y-2">
+            <div>
+              <label class="flex items-center justify-between text-xs text-gray-500 mb-1">
+                <span class="flex items-center gap-1">{{ t('run.acceptance_rate') }}<TipIcon :text="t('run.acceptance_rate_tip')" /></span>
+                <span class="text-emerald-700 font-medium">{{ (acceptanceRate * 100).toFixed(0) }}%</span>
+              </label>
+              <input
+                type="range"
+                v-model.number="acceptanceRate"
+                min="0.3"
+                max="0.9"
+                step="0.05"
+                class="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+              />
+            </div>
+            <div>
+              <label class="flex items-center justify-between text-xs text-gray-500 mb-1">
+                <span class="flex items-center gap-1">{{ t('run.draft_len') }}<TipIcon :text="t('run.draft_len_tip')" /></span>
+                <span class="text-emerald-700 font-medium">{{ draftLen }} tok</span>
+              </label>
+              <input
+                type="range"
+                v-model.number="draftLen"
+                min="2"
+                max="8"
+                step="1"
+                class="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+              />
+            </div>
+            <div class="text-xs text-emerald-700 bg-emerald-50 rounded px-2 py-1.5 border border-emerald-200">
+              {{ t('run.speculative_speedup', { speedup: (1 + acceptanceRate * draftLen).toFixed(1) }) }}
+            </div>
           </div>
         </template>
       </div>

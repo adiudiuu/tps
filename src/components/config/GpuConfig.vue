@@ -169,7 +169,7 @@ watch(gpu, (g) => {
           </div>
 
           <!-- 选项列表 -->
-          <div ref="dropdownRef" class="max-h-64 overflow-y-auto">
+          <div ref="dropdownRef" class="max-h-96 overflow-y-auto">
             <template v-if="filteredGroups.length">
               <div v-for="([vendor, list]) in filteredGroups" :key="vendor">
                 <div class="px-3 py-1 text-xs font-semibold text-gray-400 bg-gray-50 sticky top-0">
@@ -181,13 +181,45 @@ watch(gpu, (g) => {
                   :data-gpu-id="g.id"
                   type="button"
                   @click="selectGpu(g)"
-                  class="w-full text-left px-3 py-1.5 text-sm hover:bg-emerald-50 hover:text-emerald-800 transition-colors"
-                  :class="{ 'bg-emerald-50 text-emerald-700 font-medium': g.id === gpu?.id }"
+                  class="w-full text-left px-3 py-2 hover:bg-emerald-50 transition-colors border-b border-gray-50 last:border-0"
+                  :class="{ 'bg-emerald-50 text-emerald-700': g.id === gpu?.id }"
                 >
-                  <span class="flex items-center gap-1.5">
-                    {{ g.name }}
-                    <span v-if="isNew(g.released)" class="inline-block w-1.5 h-1.5 rounded-full bg-red-500 shrink-0"></span>
-                  </span>
+                  <div class="flex items-start justify-between gap-2">
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center gap-1.5 mb-0.5">
+                        <span class="text-sm font-medium truncate" :class="g.id === gpu?.id ? 'text-emerald-700' : 'text-gray-900'">
+                          {{ g.name }}
+                        </span>
+                        <span v-if="isNew(g.released)" class="inline-block w-1.5 h-1.5 rounded-full bg-red-500 shrink-0"></span>
+                      </div>
+                      <div class="flex items-center gap-3 text-[11px]" :class="g.id === gpu?.id ? 'text-emerald-600' : 'text-gray-500'">
+                        <span class="flex items-center gap-0.5">
+                          <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+                          </svg>
+                          {{ g.vram }}GB
+                        </span>
+                        <span class="flex items-center gap-0.5">
+                          <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                          </svg>
+                          {{ g.bw }}GB/s
+                        </span>
+                        <span class="flex items-center gap-0.5">
+                          <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+                          </svg>
+                          {{ g.bf16 }}T
+                        </span>
+                        <span class="flex items-center gap-0.5">
+                          <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                          </svg>
+                          {{ g.tdp }}W
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                 </button>
               </div>
             </template>

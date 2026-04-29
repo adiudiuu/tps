@@ -18,7 +18,7 @@ export function isNew(released) {
 export function fmtToks(val) {
   if (!isFinite(val) || val <= 0) return '—'
   if (val >= 1e6) return (val / 1e6).toFixed(1) + 'M tok/s'
-  if (val >= 1000) return (val / 1000).toFixed(1) + 'K tok/s'
+  if (val >= 1000) return (val / 1000).toFixed(1) + 'k tok/s'
   return val.toFixed(1) + ' tok/s'
 }
 
@@ -58,7 +58,7 @@ export function fmtParams(val) {
  */
 export function fmtCtx(val) {
   if (val >= 1000000) return (val / 1000000).toFixed(0) + 'M'
-  if (val >= 1000) return (val / 1000).toFixed(0) + 'K'
+  if (val >= 1000) return (val / 1000).toFixed(0) + 'k'
   return String(val)
 }
 

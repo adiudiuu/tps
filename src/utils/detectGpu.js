@@ -200,10 +200,18 @@ async function probeAppleRamGB(adapter) {
   const GB = 1024 ** 3
   // 阈值取各档内存 × 0.75 的保守值（Metal 可分配上限约为总内存 75%）
   const PROBES = [
-    { limitGB: 46, ramGB: 64 },
-    { limitGB: 22, ramGB: 32 },
-    { limitGB: 10, ramGB: 16 },
-    { limitGB:  5, ramGB:  8 },
+    { limitGB: 286, ramGB: 384 },  // M4 Ultra 预留
+    { limitGB: 142, ramGB: 192 },  // M2 Ultra 192GB
+    { limitGB:  94, ramGB: 128 },  // M3/M4/M5 Max 128GB
+    { limitGB:  70, ramGB:  96 },  // M3 Max 96GB
+    { limitGB:  46, ramGB:  64 },  // M2/M3/M4/M5 Max/Pro 64GB
+    { limitGB:  34, ramGB:  48 },  // M4/M5 Max/Pro 48GB
+    { limitGB:  25, ramGB:  36 },  // M3/M4 Max 36GB
+    { limitGB:  22, ramGB:  32 },  // M2/M4/M5 32GB
+    { limitGB:  16, ramGB:  24 },  // M3/M4/M5 24GB
+    { limitGB:  12, ramGB:  18 },  // M3 Pro 18GB
+    { limitGB:  10, ramGB:  16 },  // M1/M2/M3/M4 16GB
+    { limitGB:   5, ramGB:   8 },  // M3 8GB
   ]
   for (const { limitGB, ramGB } of PROBES) {
     try {
@@ -318,7 +326,9 @@ export async function detectLocalGpu() {
         const ext = gl.getExtension('WEBGL_debug_renderer_info')
         if (ext) {
           rawName = gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) || null
-        } else {
+        }
+        // 降级：如果 WEBGL_debug_renderer_info 不可用（Firefox/Safari 隐私模式），使用标准 RENDERER
+        if (!rawName) {
           rawName = gl.getParameter(gl.RENDERER) || null
         }
       }
@@ -328,12 +338,16 @@ export async function detectLocalGpu() {
   if (!rawName) return { gpu: null, rawName: null, error: 'no_webgpu' }
 
   const nameLower = rawName.toLowerCase()
-  const isApple = nameLower.includes('apple') && /m[1-9]/.test(nameLower)
+  const isApple = nameLower.includes('apple') && /m\d+/.test(nameLower)
 
   // 3. Apple Silicon：多维评分匹配
   if (isApple) {
     // 从名称中提取 chip family（如 "m4 max"、"m3 pro"）
-    const familyMatch = rawName.match(/\b(m[1-9])\s*(ultra|max|pro)?\b/i)
+    // 支持多种命名格式：
+    // - 标准格式: "Apple M4 Max"
+    // - WebGPU adapter 格式: "Apple M4-Max", "Apple M4Max"
+    // - 完整格式: "Apple M5 Pro GPU"
+    const familyMatch = rawName.match(/\b(m[1-9])[\s-]*(ultra|max|pro)?\b/i)
     const chipFamily = familyMatch
       ? (familyMatch[1] + (familyMatch[2] ? ' ' + familyMatch[2] : '')).toLowerCase()
       : null

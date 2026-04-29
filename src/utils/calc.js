@@ -25,9 +25,10 @@ export function calcAll({
   gpu, gpuCount, interconnect, model, quant, ctx, batch, promptLen, outputLen, framework,
   flashAttention = true, kvCacheQuant = null, prefixCacheHit = 0,
   cpuOffload = false, pcieBw = null,
+  speculativeDecoding = false, acceptanceRate = 0.7, draftLen = 4,
 }) {
   const totalVram = gpu.vram * gpuCount * (gpu.usableRatio ?? 1.0)
-  const totalBw   = gpu.bw   * gpuCount
+  const totalBw   = gpu.bw   * gpuCount * (gpu.bwUtilization ?? 0.80)
   const tflops    = (gpu[quant.flops_key] ?? gpu.bf16) * gpuCount
   const attentionType = getAttentionType(model)
   const attentionSummary = getAttentionSummary(model)
@@ -35,6 +36,22 @@ export function calcAll({
   const prefixHitRatio = Math.min(0.99, Math.max(0, Number(prefixCacheHit || 0) / 100))
   const effectivePromptLen = Math.max(1, Math.round(promptLen * (1 - prefixHitRatio)))
   const avgDecodeSeqLen = Math.max(1, Math.min(ctx, promptLen + Math.round(outputLen / 2)))
+
+  // 框架效率按模型规模动态调整（如果配置了 modelSizeScaling）
+  let adjustedFramework = framework
+  if (framework.modelSizeScaling && Array.isArray(framework.modelSizeScaling)) {
+    const params = model.params
+    // 找到匹配的规模区间
+    const scaling = framework.modelSizeScaling.find(s => params < s.maxParams)
+    if (scaling) {
+      adjustedFramework = {
+        ...framework,
+        decode: scaling.decode ?? framework.decode,
+        decodeMin: scaling.decodeMin ?? framework.decodeMin ?? framework.decode,
+        decodeMax: scaling.decodeMax ?? framework.decodeMax ?? framework.decode,
+      }
+    }
+  }
 
   // ─────────────────────────────────────────────
   // 显存计算
@@ -64,7 +81,8 @@ export function calcAll({
   if (model.mla_ratio) kvGB *= model.mla_ratio
 
   // 系统开销（CUDA context、激活值、临时 buffer 等）
-  const overheadGB  = weightGB * 0.05
+  // 动态调整：小模型固定 1GB，大模型按权重 3% 计算，上限 5GB
+  const overheadGB  = Math.max(1.0, Math.min(weightGB * 0.03, 5.0))
   const totalNeeded = weightGB + kvGB + overheadGB
 
   // ─────────────────────────────────────────────
@@ -86,10 +104,10 @@ export function calcAll({
     ? model.active_params * quant.bytes
     : weightGB
 
-  const decodeFactorMin = framework.decodeMin ?? framework.decode
-  const decodeFactorMax = framework.decodeMax ?? framework.decode
-  const prefillFactorMin = framework.prefillMin ?? framework.prefill
-  const prefillFactorMax = framework.prefillMax ?? framework.prefill
+  const decodeFactorMin = adjustedFramework.decodeMin ?? adjustedFramework.decode
+  const decodeFactorMax = adjustedFramework.decodeMax ?? adjustedFramework.decode
+  const prefillFactorMin = adjustedFramework.prefillMin ?? adjustedFramework.prefill
+  const prefillFactorMax = adjustedFramework.prefillMax ?? adjustedFramework.prefill
   const flashRange = getFlashAttentionBoostRange({ enabled: flashAttention, promptLen: effectivePromptLen })
   const flashFactor = flashRange.mid
   let kvReadGB
@@ -114,12 +132,20 @@ export function calcAll({
 
   // tok/s（batch 个请求并发，带宽被 batch 共享，但每步产出 batch 个 token）
   const bwLimit    = (effectiveBw / decodeBytesPerStep) * batch
-  const decodeToks = bwLimit * framework.decode
-  const decodeToksMin = bwLimit * decodeFactorMin
-  const decodeToksMax = bwLimit * decodeFactorMax
+  let decodeToks = bwLimit * adjustedFramework.decode
+  let decodeToksMin = bwLimit * decodeFactorMin
+  let decodeToksMax = bwLimit * decodeFactorMax
 
-  // 单 token 生成时间（ms），batch=1 时的延迟基准
-  const tpot = (decodeBytesPerStep / effectiveBw) * 1000  // ms/tok
+  // Speculative Decoding 加速：每步尝试验证 draftLen 个 token，接受率为 acceptanceRate
+  // 有效加速比 = 1 + acceptanceRate × draftLen
+  // 例如：acceptanceRate=0.7, draftLen=4 → 加速 1 + 0.7×4 = 3.8x
+  let speculativeSpeedup = 1.0
+  if (speculativeDecoding && acceptanceRate > 0 && draftLen > 0) {
+    speculativeSpeedup = 1 + acceptanceRate * draftLen
+    decodeToks *= speculativeSpeedup
+    decodeToksMin *= speculativeSpeedup
+    decodeToksMax *= speculativeSpeedup
+  }
 
   // ─────────────────────────────────────────────
   // Prefill 速度（算力瓶颈）
@@ -141,7 +167,10 @@ export function calcAll({
   const prefillToksMax = computeBaseLimit * prefillFactorMax * prefillAttentionFactor * flashRange.max
 
   // 首 token 延迟（ms）：纯 prefill 计算时间，多并发时实际排队延迟更高
-  const ttft = (effectivePromptLen * 2 * activeParams * 1e9) / (tflops * 1e12) * 1000 / (prefillAttentionFactor * flashFactor) * Math.max(1, batch)
+  const ttft = (effectivePromptLen * 2 * activeParams * 1e9) / (tflops * 1e12) * 1000 / (prefillAttentionFactor * flashFactor * framework.prefill) * Math.max(1, batch)
+
+  // 单 token 生成时间（ms），batch=1 时的延迟基准，同步除以 fw.decode 保持一致性
+  const tpot = (decodeBytesPerStep / effectiveBw) * 1000 / framework.decode  // ms/tok
 
   // ─────────────────────────────────────────────
   // Roofline 分析
@@ -208,6 +237,10 @@ export function calcAll({
     kvCacheLabel: kvCacheQuant?.label ?? 'Auto',
     cpuOffload: cpuOffload && model.type === 'moe',
     pcieBwLabel: (cpuOffload && model.type === 'moe' && pcieBw) ? pcieBw.label : null,
+    speculativeDecoding,
+    speculativeSpeedup,
+    acceptanceRate,
+    draftLen,
   }
 }
 

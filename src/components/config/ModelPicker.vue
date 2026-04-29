@@ -164,55 +164,59 @@ onMounted(() => {
           :data-model-id="m.id"
           @click="selectModel(m)"
           :class="[
-            'relative rounded-lg p-2.5 cursor-pointer border transition-colors',
+            'relative rounded-lg p-3 cursor-pointer border-2 transition-colors',
             model?.id === m.id
-              ? 'bg-emerald-100 border-emerald-500 shadow-sm ring-1 ring-emerald-200'
-              : 'bg-gray-50 border-gray-200 hover:bg-gray-100 hover:border-gray-300'
+              ? 'bg-emerald-50 border-emerald-500'
+              : 'bg-white border-gray-200 hover:bg-gray-50 hover:border-gray-300'
           ]"
         >
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-1.5">
-              <span v-if="m.type === 'moe'" class="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-medium">MoE</span>
+          <!-- 标题行 - 包含模型名称和参数信息 -->
+          <div class="flex items-start justify-between gap-3 mb-2">
+            <div class="flex items-center gap-2 flex-1 min-w-0">
+              <span v-if="m.type === 'moe'" class="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded-md font-semibold shrink-0">MoE</span>
+              <span v-else class="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-md font-semibold shrink-0">Dense</span>
               <button
                 @click.stop="openDetails(m)"
-                class="text-sm font-medium text-gray-900 hover:text-emerald-700 transition-colors"
+                class="text-base font-semibold text-gray-900 hover:text-blue-700 transition-colors truncate"
                 :title="t('model.detail.open')"
               >
                 {{ m.name }}
               </button>
-              <span v-if="isNew(m.released)" class="inline-block w-1.5 h-1.5 rounded-full bg-red-500 shrink-0"></span>
             </div>
-            <div class="flex items-center gap-2 text-xs text-gray-500">
-              <span>{{ fmtParams(m.params) }}</span>
-              <span>{{ fmtCtx(m.max_ctx) }}</span>
+            <div class="flex items-center gap-2 shrink-0">
+              <span class="text-sm font-normal text-gray-400">{{ fmtParams(m.params) }}</span>
+              <span class="text-sm font-normal text-gray-400">{{ fmtCtx(m.max_ctx) }}</span>
+              <span v-if="isNew(m.released)" class="inline-block w-2 h-2 rounded-full bg-red-500"></span>
             </div>
           </div>
-          <div class="mt-1 text-[11px] text-gray-500">
-            {{ t('model.attention') }}: {{ getAttentionSummary(m) }}
+
+          <!-- Attention 信息 -->
+          <div class="text-xs text-gray-400 mb-3 font-light">
+            Attention: {{ getAttentionSummary(m) }}
           </div>
 
           <!-- 下载链接 -->
-          <div class="flex gap-1.5 mt-1.5" @click.stop>
+          <div class="flex gap-2" @click.stop>
             <button
               v-if="m.links?.ollama"
               @click="copyOllama(m.links.ollama)"
-              class="text-xs px-2 py-0.5 rounded bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-gray-900 transition-colors"
+              class="flex-1 text-xs px-3 py-1.5 rounded-lg bg-white hover:bg-gray-50 text-gray-600 hover:text-gray-900 transition-colors font-normal border border-gray-200"
               title="点击复制命令"
-            >{{ t('model.download.ollama') }}</button>
+            >Ollama</button>
             <a
               v-if="m.links?.hf"
               :href="m.links.hf"
               target="_blank"
               rel="noopener"
-              class="text-xs px-2 py-0.5 rounded bg-gray-100 hover:bg-orange-50 text-gray-600 hover:text-orange-600 transition-colors"
-            >{{ t('model.download.hf') }}</a>
+              class="flex-1 text-center text-xs px-3 py-1.5 rounded-lg bg-white hover:bg-gray-50 text-gray-600 hover:text-gray-900 transition-colors font-normal border border-gray-200"
+            >HuggingFace</a>
             <a
               v-if="m.links?.ms"
               :href="m.links.ms"
               target="_blank"
               rel="noopener"
-              class="text-xs px-2 py-0.5 rounded bg-gray-100 hover:bg-emerald-50 text-gray-600 hover:text-emerald-700 transition-colors"
-            >{{ t('model.download.ms') }}</a>
+              class="flex-1 text-center text-xs px-3 py-1.5 rounded-lg bg-white hover:bg-gray-50 text-gray-600 hover:text-gray-900 transition-colors font-normal border border-gray-200"
+            >ModelScope</a>
           </div>
         </div>
       </div>

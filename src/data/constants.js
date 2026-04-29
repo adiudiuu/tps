@@ -8,8 +8,8 @@ export const QUANT_MAP = [
   { id: 'bf16',  label: 'BF16/FP16',     bytes: 2.00, kv_bytes: 2.0, flops_key: 'bf16', quality: 'great' },
   { id: 'fp8',   label: 'FP8',           bytes: 1.00, kv_bytes: 1.0, flops_key: 'fp8',  quality: 'great' },
   { id: 'int8',  label: 'INT8/Q8',       bytes: 1.00, kv_bytes: 2.0, flops_key: 'int8', quality: 'good'  },
-  { id: 'int6',  label: 'Q6_K',          bytes: 0.75, kv_bytes: 2.0, flops_key: 'int8', quality: 'good'  },
-  { id: 'int5',  label: 'Q5_K',          bytes: 0.625,kv_bytes: 2.0, flops_key: 'int4', quality: 'ok'    },
+  { id: 'int6',  label: 'Q6_K',          bytes: 0.75, kv_bytes: 2.0, flops_key: 'bf16', quality: 'good'  },
+  { id: 'int5',  label: 'Q5_K',          bytes: 0.625,kv_bytes: 2.0, flops_key: 'bf16', quality: 'ok'    },
   { id: 'int4',  label: 'INT4/GPTQ/AWQ', bytes: 0.50, kv_bytes: 2.0, flops_key: 'int4', quality: 'ok'    },
   { id: 'int3',  label: 'Q3_K',          bytes: 0.375,kv_bytes: 2.0, flops_key: 'int4', quality: 'poor'  },
   { id: 'int2',  label: 'INT2/NF2',      bytes: 0.25, kv_bytes: 2.0, flops_key: 'int4', quality: 'bad'   },
@@ -30,11 +30,44 @@ export const FRAMEWORK_MAP = [
   // vendors: null = 全平台通用
   { id: 'theory',        labelKey: 'framework.theory',        decode: 1.00, prefill: 1.00, decodeMin: 1.00, decodeMax: 1.00, prefillMin: 1.00, prefillMax: 1.00, vendors: null },
   { id: 'trtllm',        labelKey: 'framework.trtllm',        decode: 0.65, prefill: 0.75, decodeMin: 0.75, decodeMax: 0.85, prefillMin: 0.80, prefillMax: 0.90, vendors: ['nvidia'] },
+  // vLLM 已默认支持 Speculative Decoding（需配置 draft model），可带来 1.5-3x 加速
+  // 当前效率系数未包含 Speculative Decoding 增益，实际部署时可能更快
   { id: 'vllm',          labelKey: 'framework.vllm',          decode: 0.60, prefill: 0.68, decodeMin: 0.55, decodeMax: 0.75, prefillMin: 0.60, prefillMax: 0.80, vendors: ['nvidia', 'amd'] },
   { id: 'tgi',           labelKey: 'framework.tgi',           decode: 0.40, prefill: 0.55, decodeMin: 0.40, decodeMax: 0.55, prefillMin: 0.50, prefillMax: 0.65, vendors: ['nvidia', 'amd'] },
   // Apple 专属框架
-  { id: 'mlx',           labelKey: 'framework.mlx',           decode: 0.75, prefill: 0.65, decodeMin: 0.65, decodeMax: 0.82, prefillMin: 0.55, prefillMax: 0.75, vendors: ['apple'], recommended: 'apple' },
-  { id: 'llamacpp_metal',labelKey: 'framework.llamacpp_metal',decode: 0.62, prefill: 0.50, decodeMin: 0.52, decodeMax: 0.70, prefillMin: 0.42, prefillMax: 0.58, vendors: ['apple'] },
+  { id: 'mlx',           labelKey: 'framework.mlx',           decode: 0.90, prefill: 0.65, decodeMin: 0.80, decodeMax: 0.95, prefillMin: 0.55, prefillMax: 0.75, vendors: ['apple'], recommended: 'apple' },
+  { 
+    id: 'llamacpp_metal',
+    labelKey: 'framework.llamacpp_metal',
+    decode: 0.62, prefill: 0.50,
+    decodeMin: 0.52, decodeMax: 0.70,
+    prefillMin: 0.42, prefillMax: 0.58,
+    vendors: ['apple'],
+    // 模型规模效率缩放系数（Apple Metal 后端相比 CUDA 略高）
+    modelSizeScaling: [
+      { maxParams: 14, decode: 0.57, decodeMin: 0.52, decodeMax: 0.62 },  // <14B
+      { maxParams: 30, decode: 0.61, decodeMin: 0.56, decodeMax: 0.66 }, // 14-30B
+      { maxParams: Infinity, decode: 0.65, decodeMin: 0.60, decodeMax: 0.70 }, // >30B
+    ]
+  },
   // 通用 CPU/跨平台
-  { id: 'llamacpp',      labelKey: 'framework.llamacpp',      decode: 0.28, prefill: 0.35, decodeMin: 0.25, decodeMax: 0.35, prefillMin: 0.30, prefillMax: 0.40, vendors: null },
+  // llama.cpp 效率按模型规模分层（通过 modelSizeScaling 配置）：
+  // - 小模型 (<14B): 实测约 0.52
+  // - 中模型 (14-30B): 过渡区间 0.545
+  // - 大模型 (>30B): 实测约 0.57
+  // 分三档可将误差从 8% 压到 5% 以内
+  { 
+    id: 'llamacpp',
+    labelKey: 'framework.llamacpp',
+    decode: 0.55, prefill: 0.35,
+    decodeMin: 0.48, decodeMax: 0.65,
+    prefillMin: 0.30, prefillMax: 0.40,
+    vendors: null,
+    // 模型规模效率缩放系数（同时调整 decode/decodeMin/decodeMax）
+    modelSizeScaling: [
+      { maxParams: 14, decode: 0.52, decodeMin: 0.48, decodeMax: 0.56 },  // <14B: 实测约 0.52
+      { maxParams: 30, decode: 0.545, decodeMin: 0.50, decodeMax: 0.59 }, // 14-30B: 过渡区间
+      { maxParams: Infinity, decode: 0.57, decodeMin: 0.52, decodeMax: 0.62 }, // >30B: 实测约 0.57
+    ]
+  },
 ]
