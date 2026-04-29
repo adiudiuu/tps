@@ -6,7 +6,7 @@
 
 [![License](https://img.shields.io/badge/license-Custom%20Non--Commercial-blue.svg)](LICENSE)
 [![Vue 3](https://img.shields.io/badge/Vue-3.x-4FC08D?logo=vue.js)](https://vuejs.org/)
-[![Vite](https://img.shields.io/badge/Vite-5.x-646CFF?logo=vite)](https://vitejs.dev/)
+[![Vite](https://img.shields.io/badge/Vite-8.x-646CFF?logo=vite)](https://vitejs.dev/)
 
 [Live Demo](https://tps.bunai.cc) · [Algorithm Docs](Docs.md) · [中文文档](README.md)
 
@@ -23,7 +23,7 @@ Given GPU, model, quantization, and runtime parameters, quickly estimate:
 - ⏱️ **Latency Metrics** - TTFT, TPOT, total latency estimation
 - 🔍 **Bottleneck Analysis** - Roofline model to identify bandwidth/compute bottlenecks
 - 🔗 **Multi-GPU Support** - Tensor Parallel communication efficiency modeling
-- 🌍 **Wide Coverage** - 100+ GPUs (NVIDIA/AMD/Intel/Apple/Domestic), 80+ mainstream models
+- 🌍 **Wide Coverage** - 100+ GPUs (NVIDIA/AMD/Intel/Apple/Domestic), 78+ mainstream models
 
 ## 📊 Coverage
 
@@ -214,10 +214,10 @@ The project includes data validation scripts to ensure data integrity:
 
 ```bash
 # Validate model data structure
-node scripts/validate-model-data.mjs
+npm run models:validate
 
 # Verify model source links
-node scripts/verify-model-sources.mjs
+npm run models:verify-sources
 ```
 
 ## ⚠️ Disclaimer

@@ -6,7 +6,7 @@
 
 [![License](https://img.shields.io/badge/license-Custom%20Non--Commercial-blue.svg)](LICENSE)
 [![Vue 3](https://img.shields.io/badge/Vue-3.x-4FC08D?logo=vue.js)](https://vuejs.org/)
-[![Vite](https://img.shields.io/badge/Vite-5.x-646CFF?logo=vite)](https://vitejs.dev/)
+[![Vite](https://img.shields.io/badge/Vite-8.x-646CFF?logo=vite)](https://vitejs.dev/)
 
 [在线体验](https://tps.bunai.cc) · [算法文档](Docs.md) · [English](README.en.md)
 
@@ -23,7 +23,7 @@
 - ⏱️ **延迟指标** - TTFT、TPOT、总延迟估算
 - 🔍 **瓶颈分析** - Roofline 模型，识别带宽/算力瓶颈
 - 🔗 **多卡支持** - Tensor Parallel 通信效率建模
-- 🌍 **广泛覆盖** - 100+ GPU（NVIDIA/AMD/Intel/Apple/国产），80+ 主流模型
+- 🌍 **广泛覆盖** - 100+ GPU（NVIDIA/AMD/Intel/Apple/国产），78+ 主流模型
 
 ## 📊 支持范围
 
@@ -227,10 +227,10 @@ tps-calculator/
 
 ```bash
 # 验证模型数据结构
-node scripts/validate-model-data.mjs
+npm run models:validate
 
 # 验证模型来源链接
-node scripts/verify-model-sources.mjs
+npm run models:verify-sources
 ```
 
 ## ⚠️ 免责声明

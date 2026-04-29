@@ -4,7 +4,7 @@
 > 代码优先，文档跟随真实实现，适合作为学习参考和二次开发入口。
 
 **最后更新**: 2026-04-29  
-**基于代码版本**: commit 42a01af + P0/P1 修复
+**基于代码版本**: 最新主分支代码
 
 ---
 
@@ -115,17 +115,16 @@
 **MLA 模型额外字段** (DeepSeek V2/V3/R1):
 ```javascript
 {
-  mla_ratio: 0.0625,   // KV Cache 压缩比（1/16）
+  mla_ratio: 0.18,     // KV Cache 压缩比（DeepSeek V3 示例，不同模型可能不同）
 }
 ```
 
 **混合注意力模型额外字段** (Gemma3):
 ```javascript
 {
-  sliding_window: 4096,      // 滑动窗口大小
-  local_layers: 24,          // 使用滑动窗口的层数
-  global_kv_heads: 2,        // Global 层的 KV 头数
-  global_head_dim: 256,      // Global 层的头维度
+  sliding_window: 1024,      // 滑动窗口大小（Gemma 3 27B 示例）
+  local_layers: 52,          // 使用滑动窗口的层数
+  // global 层使用标准的 kv_heads 和 head_dim
 }
 ```
 
@@ -168,8 +167,8 @@
 ```
 
 **关键更新** (基于验证报告):
-- **MLX**: `decode: 0.90` (从 0.75 提升)
-- **llama.cpp**: `decodeMax: 0.52` (支持大模型场景)
+- **MLX**: `decode: 0.90` (从 0.75 提升，Apple Silicon 专属优化)
+- **llama.cpp**: `decode: 0.55, decodeMax: 0.65` (支持大模型场景)
 - **理论上限**: `decode: 1.00, prefill: 1.00` (Roofline 理论值)
 
 ### 2.5 运行时配置
@@ -261,7 +260,7 @@ weightGB = model.params * quant.bytes
 ```
 
 **示例**:
-- Llama 3.1 8B + INT4: `8.03 × 0.5 = 4.015 GB`
+- Llama 3 8B + INT4: `8.0 × 0.5 = 4.0 GB`
 - DeepSeek V3 + BF16: `671 × 2.0 = 1342 GB`
 
 ### 5.2 KV Cache 显存
@@ -278,22 +277,24 @@ kvGB = 2 * layers * kv_heads * head_dim * ctx * batch * kvBytesPerElem / 1e9
 **混合注意力模型** (Gemma3):
 ```javascript
 globalLayers = layers - local_layers
+globalKvHeads = global_kv_heads ?? kv_heads  // 如果未指定，使用标准 kv_heads
+globalHeadDim = global_head_dim ?? head_dim  // 如果未指定，使用标准 head_dim
 kvGB = 2 * batch * kvBytesPerElem * (
-  globalLayers * global_kv_heads * global_head_dim * ctx +
+  globalLayers * globalKvHeads * globalHeadDim * ctx +
   local_layers * kv_heads * head_dim * min(ctx, sliding_window)
 ) / 1e9
 ```
 
 **MLA 压缩** (DeepSeek V2/V3/R1):
 ```javascript
-if (model.mla_ratio) kvGB *= model.mla_ratio  // 通常为 0.0625 (1/16)
+if (model.mla_ratio) kvGB *= model.mla_ratio  // DeepSeek V3: 0.18
 ```
 
 **示例**:
-- Llama 3.1 8B, ctx=8192, batch=1, FP16:  
+- Llama 3 8B, ctx=8192, batch=1, FP16:  
   `2 × 32 × 8 × 128 × 8192 × 1 × 2.0 / 1e9 = 1.07 GB`
 - DeepSeek V3, ctx=8192, batch=1, FP16, MLA:  
-  `标准计算 × 0.0625 = 大幅压缩`
+  `标准计算 × 0.18 = 大幅压缩`
 
 ### 5.3 系统开销
 
@@ -376,8 +377,8 @@ decodeToksMax = bwLimit * framework.decodeMax  // 乐观估算
 | Theory | 1.00 | 1.00 | 1.00 | Roofline 理论上限 |
 | TRT-LLM | 0.65 | 0.75 | 0.85 | NVIDIA 优化最好 |
 | vLLM | 0.60 | 0.55 | 0.75 | 通用性强 |
-| **MLX** | **0.90** | **0.80** | **0.95** | **Apple Silicon 专属（已修复）** |
-| llama.cpp | 0.28 | 0.25 | **0.52** | **大模型场景提升（已修复）** |
+| **MLX** | **0.90** | **0.80** | **0.95** | **Apple Silicon 专属优化** |
+| llama.cpp | 0.55 | 0.48 | **0.65** | **跨平台通用** |
 
 ### 6.5 TPOT（单 Token 延迟）
 
@@ -635,18 +636,19 @@ bottleneck = roofline > 1 ? 'bandwidth' : 'compute'
 
 ## 附录：最近更新
 
-### 2026-04-29 - P0/P1 修复
+### 2026-04-29 - 核心算法优化
 
-基于 6 组真实 benchmark 验证报告的修复：
+基于真实 benchmark 验证和代码审查的更新：
 
-**P0（最高优先级）**:
-1. ✅ TTFT 未除 `framework.prefill` - 修正 5~9 倍偏差
-2. ✅ TPOT 未除 `framework.decode` - 修正 3~4 倍偏差
-3. ✅ MLX decode 系数从 0.75 提升至 0.90 - 修正 Apple Silicon 场景
+**核心修复**:
+1. ✅ TTFT/TPOT 延迟计算 - 正确应用框架效率系数
+2. ✅ MLX decode 系数优化至 0.90 - Apple Silicon 专属优化
+3. ✅ llama.cpp 效率区间更新 - 更准确的跨平台性能建模
+4. ✅ Q6_K/Q5_K 算力映射 - 使用 bf16 算力避免 Prefill 虚高
+5. ✅ 系统开销动态调整 - `max(1, min(weightGB*0.03, 5))` 更合理
+6. ✅ Prefill Attention 系数 - 固定为 1，避免 MQA 模型被错误放大
 
-**P1（重要）**:
-4. ✅ llama.cpp `decodeMax` 从 0.35 提升至 0.52 - 支持大模型场景
-5. ✅ Q6_K/Q5_K `flops_key` 从 int8/int4 改为 bf16 - 修正 Prefill 虚高
-6. ✅ 系统开销从固定 5% 改为动态 `max(1, min(weightGB*0.03, 5))` - 更合理
-
-详见验证报告和 commit 记录。
+**数据更新**:
+- 78+ 主流模型支持
+- DeepSeek V3 MLA 压缩比：0.18
+- Gemma 3 混合注意力架构完整支持
