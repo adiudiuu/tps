@@ -201,7 +201,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-gray-50 via-emerald-50/30 to-gray-50 pt-12 sm:pt-14 pb-14 sm:pb-0">
+  <div class="min-h-screen bg-gradient-to-br from-gray-50 via-emerald-50/30 to-gray-50 pt-12 sm:pt-14 pb-20 sm:pb-0">
     <TopBar />
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6 py-8">

@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import TopBar from '../components/layout/TopBar.vue'
 import TwoColumn from '../components/layout/TwoColumn.vue'
 import GpuConfig from '../components/config/GpuConfig.vue'
@@ -13,6 +14,7 @@ import { KV_CACHE_MAP, PCIE_BW_OPTIONS } from '../data/runtime.js'
 import { calcAll } from '../utils/calc.js'
 import { readUrlState, resolveUrlState, watchUrlState } from '../utils/useUrlState.js'
 
+const { t } = useI18n()
 const _url = resolveUrlState(readUrlState())
 const defaultModel = ALL_MODELS[0]
 
@@ -34,6 +36,29 @@ const pcieBw         = ref(_url.pcieBw       ?? PCIE_BW_OPTIONS[1])
 const speculativeDecoding = ref(_url.speculativeDecoding ?? false)
 const acceptanceRate = ref(_url.acceptanceRate ?? 0.7)
 const draftLen       = ref(_url.draftLen       ?? 4)
+
+// 双列对比模式
+const pinnedResult = ref(null)
+const pinnedConfig = ref(null)
+
+function pinCurrentResult() {
+  if (!result.value) return
+  pinnedResult.value = { ...result.value }
+  pinnedConfig.value = {
+    gpu: gpu.value,
+    gpuCount: gpuCount.value,
+    model: model.value,
+    quant: quant.value,
+    framework: framework.value,
+    ctx: ctx.value,
+    batch: batch.value,
+  }
+}
+
+function unpinResult() {
+  pinnedResult.value = null
+  pinnedConfig.value = null
+}
 
 watch(model, (m) => {
   if (!m?.max_ctx) return
@@ -84,10 +109,29 @@ const quantMatrix = computed(() => {
     } catch { return null }
   }).filter(Boolean)
 })
+
+// 固定列的量化对比矩阵
+const pinnedQuantMatrix = computed(() => {
+  if (!pinnedConfig.value) return []
+  const config = pinnedConfig.value
+  return QUANT_MAP.map(q => {
+    try {
+      const r = calcAll({
+        gpu: config.gpu, gpuCount: config.gpuCount, interconnect: interconnect.value,
+        model: config.model, quant: q, ctx: ctx.value, batch: batch.value,
+        promptLen: promptLen.value, outputLen: outputLen.value, framework: config.framework,
+        flashAttention: flashAttention.value, kvCacheQuant: kvCacheQuant.value,
+        prefixCacheHit: prefixCacheHit.value, cpuOffload: cpuOffload.value, pcieBw: pcieBw.value,
+        speculativeDecoding: speculativeDecoding.value, acceptanceRate: acceptanceRate.value, draftLen: draftLen.value,
+      })
+      return { quant: q, vramGB: r.totalNeeded, vramOk: r.vramOk, vramPct: r.vramPct, decodeToks: r.decodeToks }
+    } catch { return null }
+  }).filter(Boolean)
+})
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-50 overflow-x-hidden pt-12 sm:pt-14 pb-14 sm:pb-0">
+  <div class="min-h-screen bg-gray-50 overflow-x-hidden pt-12 sm:pt-14 pb-20 sm:pb-0">
     <TopBar
       :result="result" :model="model" :gpu="gpu" :gpu-count="gpuCount"
       :interconnect="interconnect" :quant="quant" :framework="framework"
@@ -110,7 +154,75 @@ const quantMatrix = computed(() => {
         />
       </template>
       <template #result>
-        <ResultPanel :result="result" :model="model" :quant-matrix="quantMatrix" :gpu-vendor="gpu?.vendor" v-model:framework="framework" v-model:quant="quant" />
+        <div v-if="pinnedResult" class="space-y-4">
+          <!-- 双列对比模式 -->
+          <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+              <span class="text-sm font-medium text-blue-900">{{ t('result.compare_mode_active') }}</span>
+            </div>
+            <button
+              @click="unpinResult"
+              class="text-xs px-3 py-1 bg-white hover:bg-blue-100 text-blue-700 rounded-lg border border-blue-300 transition-colors"
+            >
+              {{ t('result.unpin') }}
+            </button>
+          </div>
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <!-- 固定列 (ref) -->
+            <div class="bg-blue-50/30 rounded-xl p-3 border-2 border-blue-200">
+              <ResultPanel
+                :result="pinnedResult"
+                :model="pinnedConfig.model"
+                :quant-matrix="pinnedQuantMatrix"
+                :gpu-vendor="pinnedConfig.gpu.vendor"
+                :gpu="pinnedConfig.gpu"
+                :gpu-count="pinnedConfig.gpuCount"
+                v-model:framework="pinnedConfig.framework"
+                v-model:quant="pinnedConfig.quant"
+              />
+            </div>
+            <!-- 当前列 (current) -->
+            <div class="bg-emerald-50/30 rounded-xl p-3 border-2 border-emerald-200">
+              <ResultPanel
+                :result="result"
+                :model="model"
+                :quant-matrix="quantMatrix"
+                :gpu-vendor="gpu?.vendor"
+                :gpu="gpu"
+                :gpu-count="gpuCount"
+                v-model:framework="framework"
+                v-model:quant="quant"
+              />
+            </div>
+          </div>
+        </div>
+        <div v-else class="space-y-4">
+          <!-- 单列模式 + 固定按钮（仅桌面端显示） -->
+          <div v-if="result" class="hidden sm:flex justify-end">
+            <button
+              @click="pinCurrentResult"
+              class="text-xs px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm transition-colors flex items-center gap-1.5"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+              </svg>
+              {{ t('result.pin_current') }}
+            </button>
+          </div>
+          <ResultPanel
+            :result="result"
+            :model="model"
+            :quant-matrix="quantMatrix"
+            :gpu-vendor="gpu?.vendor"
+            :gpu="gpu"
+            :gpu-count="gpuCount"
+            v-model:framework="framework"
+            v-model:quant="quant"
+          />
+        </div>
       </template>
     </TwoColumn>
   </div>

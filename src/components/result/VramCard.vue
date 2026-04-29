@@ -1,11 +1,12 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { fmtGB, fmtPct } from '../../utils/format.js'
 
 const { t } = useI18n()
 const props = defineProps({ result: Object, quantMatrix: Array, currentQuantId: String })
 const emit = defineEmits(['selectQuant'])
+const showMatrix = ref(true) // 默认展开
 
 const barColor = computed(() => {
   if (!props.result) return 'bg-emerald-500'
@@ -86,29 +87,43 @@ const pieData = computed(() => {
 
     <!-- 量化对比矩阵 -->
     <div v-if="quantMatrix?.length" class="border-t border-gray-100 pt-3 space-y-1">
-      <div class="grid grid-cols-4 text-xs text-gray-400 font-medium px-1 pb-1">
-        <span>{{ t('result.quant_matrix_quant') }}</span>
-        <span class="text-right">{{ t('result.quant_matrix_vram') }}</span>
-        <span class="text-center">{{ t('result.quant_matrix_status') }}</span>
-        <span class="text-right">{{ t('result.quant_matrix_speed') }}</span>
-      </div>
-      <div
-        v-for="row in quantMatrix" :key="row.quant.id"
-        @click="emit('selectQuant', row.quant)"
-        class="grid grid-cols-4 text-xs px-2 py-1.5 rounded items-center cursor-pointer transition-colors"
-        :class="row.quant.id === currentQuantId ? 'bg-emerald-600 text-white' : 'hover:bg-gray-100'"
+      <button
+        @click="showMatrix = !showMatrix"
+        class="w-full flex items-center justify-between text-sm font-semibold text-gray-700 hover:text-gray-900 transition-colors px-1 pb-2"
       >
-        <span class="font-medium" :class="row.quant.id === currentQuantId ? 'text-white' : 'text-gray-700'">{{ row.quant.label }}</span>
-        <span class="text-right" :class="row.quant.id === currentQuantId ? 'text-white' : 'text-gray-600'">{{ fmtGB(row.vramGB) }}</span>
-        <span class="text-center">
-          <span v-if="row.vramOk" :class="row.quant.id === currentQuantId ? 'text-emerald-200' : 'text-emerald-600'">✓ {{ fmtPct(row.vramPct) }}</span>
-          <span v-else :class="row.quant.id === currentQuantId ? 'text-red-200' : 'text-red-500'">✗ OOM</span>
-        </span>
-        <span class="text-right" :class="row.quant.id === currentQuantId ? 'text-white' : 'text-gray-500'">
-          {{ row.vramOk ? row.decodeToks.toFixed(1) + ' tok/s' : '—' }}
-        </span>
+        <span>{{ t('result.quant_comparison') }}</span>
+        <svg
+          :class="['w-4 h-4 transition-transform', showMatrix ? 'rotate-180' : '']"
+          fill="none" stroke="currentColor" viewBox="0 0 24 24"
+        >
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      <div v-show="showMatrix" class="space-y-1">
+        <div class="grid grid-cols-4 text-xs text-gray-400 font-medium px-1 pb-1">
+          <span>{{ t('result.quant_matrix_quant') }}</span>
+          <span class="text-right">{{ t('result.quant_matrix_vram') }}</span>
+          <span class="text-center">{{ t('result.quant_matrix_status') }}</span>
+          <span class="text-right">{{ t('result.quant_matrix_speed') }}</span>
+        </div>
+        <div
+          v-for="row in quantMatrix" :key="row.quant.id"
+          @click="emit('selectQuant', row.quant)"
+          class="grid grid-cols-4 text-xs px-2 py-1.5 rounded items-center cursor-pointer transition-colors"
+          :class="row.quant.id === currentQuantId ? 'bg-emerald-600 text-white' : 'hover:bg-gray-100'"
+        >
+          <span class="font-medium" :class="row.quant.id === currentQuantId ? 'text-white' : 'text-gray-700'">{{ row.quant.label }}</span>
+          <span class="text-right" :class="row.quant.id === currentQuantId ? 'text-white' : 'text-gray-600'">{{ fmtGB(row.vramGB) }}</span>
+          <span class="text-center">
+            <span v-if="row.vramOk" :class="row.quant.id === currentQuantId ? 'text-emerald-200' : 'text-emerald-600'">✓ {{ fmtPct(row.vramPct) }}</span>
+            <span v-else :class="row.quant.id === currentQuantId ? 'text-red-200' : 'text-red-500'">✗ OOM</span>
+          </span>
+          <span class="text-right" :class="row.quant.id === currentQuantId ? 'text-white' : 'text-gray-500'">
+            {{ row.vramOk ? row.decodeToks.toFixed(1) + ' tok/s' : '—' }}
+          </span>
+        </div>
+        <p class="text-xs text-gray-400 leading-snug pt-1">{{ t('result.vram_theory_note') }}</p>
       </div>
-      <p class="text-xs text-gray-400 leading-snug pt-1">{{ t('result.vram_theory_note') }}</p>
     </div>
   </div>
 </template>
