@@ -82,7 +82,7 @@ const quantMatrix = computed(() => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-50 overflow-x-hidden">
+  <div class="min-h-screen bg-gray-50 overflow-x-hidden pt-12 sm:pt-14 pb-14 sm:pb-0">
     <TopBar
       :result="result" :model="model" :gpu="gpu" :gpu-count="gpuCount"
       :interconnect="interconnect" :quant="quant" :framework="framework"
