@@ -119,9 +119,6 @@ export function calcAll({
   const decodeToksMin = bwLimit * decodeFactorMin
   const decodeToksMax = bwLimit * decodeFactorMax
 
-  // 单 token 生成时间（ms），batch=1 时的延迟基准
-  const tpot = (decodeBytesPerStep / effectiveBw) * 1000 / framework.decode  // ms/tok
-
   // ─────────────────────────────────────────────
   // Prefill 速度（算力瓶颈）
   // ─────────────────────────────────────────────
@@ -143,6 +140,9 @@ export function calcAll({
 
   // 首 token 延迟（ms）：纯 prefill 计算时间，多并发时实际排队延迟更高
   const ttft = (effectivePromptLen * 2 * activeParams * 1e9) / (tflops * 1e12) * 1000 / (prefillAttentionFactor * flashFactor * framework.prefill) * Math.max(1, batch)
+
+  // 单 token 生成时间（ms），batch=1 时的延迟基准，同步除以 fw.decode 保持一致性
+  const tpot = (decodeBytesPerStep / effectiveBw) * 1000 / framework.decode  // ms/tok
 
   // ─────────────────────────────────────────────
   // Roofline 分析

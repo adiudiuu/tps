@@ -318,7 +318,9 @@ export async function detectLocalGpu() {
         const ext = gl.getExtension('WEBGL_debug_renderer_info')
         if (ext) {
           rawName = gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) || null
-        } else {
+        }
+        // 降级：如果 WEBGL_debug_renderer_info 不可用（Firefox/Safari 隐私模式），使用标准 RENDERER
+        if (!rawName) {
           rawName = gl.getParameter(gl.RENDERER) || null
         }
       }
@@ -333,7 +335,11 @@ export async function detectLocalGpu() {
   // 3. Apple Silicon：多维评分匹配
   if (isApple) {
     // 从名称中提取 chip family（如 "m4 max"、"m3 pro"）
-    const familyMatch = rawName.match(/\b(m[1-9])\s*(ultra|max|pro)?\b/i)
+    // 支持多种命名格式：
+    // - 标准格式: "Apple M4 Max"
+    // - WebGPU adapter 格式: "Apple M4-Max", "Apple M4Max"
+    // - 完整格式: "Apple M5 Pro GPU"
+    const familyMatch = rawName.match(/\b(m[1-9])[\s-]*(ultra|max|pro)?\b/i)
     const chipFamily = familyMatch
       ? (familyMatch[1] + (familyMatch[2] ? ' ' + familyMatch[2] : '')).toLowerCase()
       : null
