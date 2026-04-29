@@ -64,7 +64,8 @@ export function calcAll({
   if (model.mla_ratio) kvGB *= model.mla_ratio
 
   // 系统开销（CUDA context、激活值、临时 buffer 等）
-  const overheadGB  = weightGB * 0.05
+  // 动态调整：小模型固定 1GB，大模型按权重 3% 计算，上限 5GB
+  const overheadGB  = Math.max(1.0, Math.min(weightGB * 0.03, 5.0))
   const totalNeeded = weightGB + kvGB + overheadGB
 
   // ─────────────────────────────────────────────
@@ -119,7 +120,7 @@ export function calcAll({
   const decodeToksMax = bwLimit * decodeFactorMax
 
   // 单 token 生成时间（ms），batch=1 时的延迟基准
-  const tpot = (decodeBytesPerStep / effectiveBw) * 1000  // ms/tok
+  const tpot = (decodeBytesPerStep / effectiveBw) * 1000 / framework.decode  // ms/tok
 
   // ─────────────────────────────────────────────
   // Prefill 速度（算力瓶颈）
@@ -141,7 +142,7 @@ export function calcAll({
   const prefillToksMax = computeBaseLimit * prefillFactorMax * prefillAttentionFactor * flashRange.max
 
   // 首 token 延迟（ms）：纯 prefill 计算时间，多并发时实际排队延迟更高
-  const ttft = (effectivePromptLen * 2 * activeParams * 1e9) / (tflops * 1e12) * 1000 / (prefillAttentionFactor * flashFactor) * Math.max(1, batch)
+  const ttft = (effectivePromptLen * 2 * activeParams * 1e9) / (tflops * 1e12) * 1000 / (prefillAttentionFactor * flashFactor * framework.prefill) * Math.max(1, batch)
 
   // ─────────────────────────────────────────────
   // Roofline 分析
