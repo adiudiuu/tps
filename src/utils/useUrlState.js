@@ -49,6 +49,7 @@ export function readUrlState() {
     prefixCacheHit: p.has('pc')   ? Number(p.get('pc'))  : null,
     cpuOffload:     p.has('co')   ? p.get('co') === '1'  : null,
     pcieBwId:       p.get('pcie'),
+    sharedVram:     p.has('sv')   ? Math.max(1, Math.min(512, Number(p.get('sv')))) : null,
   }
 }
 
@@ -70,6 +71,7 @@ export function resolveUrlState(init) {
     prefixCacheHit: init.prefixCacheHit,
     cpuOffload:   init.cpuOffload,
     pcieBw:       PCIE_BW_OPTIONS.find(p => p.id === init.pcieBwId) ?? null,
+    sharedVram:   init.sharedVram,
   }
 }
 
@@ -77,13 +79,13 @@ export function resolveUrlState(init) {
 export function watchUrlState({
   gpu, gpuCount, interconnect, model, quant, ctx, batch,
   promptLen, outputLen, framework, flashAttention,
-  kvCacheQuant, prefixCacheHit, cpuOffload, pcieBw,
+  kvCacheQuant, prefixCacheHit, cpuOffload, pcieBw, sharedVram,
 }) {
   watch(
     [gpu, gpuCount, interconnect, model, quant, ctx, batch,
      promptLen, outputLen, framework, flashAttention,
-     kvCacheQuant, prefixCacheHit, cpuOffload, pcieBw],
-    ([g, n, ic, m, q, c, b, pl, ol, fw, fa, kv, pc, co, pb]) => {
+     kvCacheQuant, prefixCacheHit, cpuOffload, pcieBw, sharedVram],
+    ([g, n, ic, m, q, c, b, pl, ol, fw, fa, kv, pc, co, pb, sv]) => {
       setParams({
         gpu:   g?.id   ?? null,
         n:     n !== 1 ? n : null,
@@ -100,6 +102,7 @@ export function watchUrlState({
         pc:    pc > 0 ? pc : null,
         co:    co ? '1' : null,
         pcie:  pb?.id  ?? null,
+        sv:    sv != null && sv !== 16 ? sv : null,
       })
     },
     { immediate: true }

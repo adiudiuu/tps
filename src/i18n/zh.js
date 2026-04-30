@@ -66,6 +66,8 @@ export default {
     bw_label: '带宽',
     bf16_label: 'BF16',
     tdp_label: 'TDP',
+    shared_vram_label: '共享内存大小',
+    shared_vram_hint: '集成显卡使用系统内存，请输入可分配给 GPU 的内存大小（GB）',
     search_placeholder: '搜索显卡型号...',
     select_placeholder: '选择显卡',
     no_result: '无匹配显卡',

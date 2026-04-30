@@ -66,6 +66,8 @@ export default {
     bw_label: 'Bandwidth',
     bf16_label: 'BF16',
     tdp_label: 'TDP',
+    shared_vram_label: 'Shared Memory',
+    shared_vram_hint: 'iGPU uses system RAM. Enter the amount allocated to the GPU (GB).',
     search_placeholder: 'Search GPU model...',
     select_placeholder: 'Select GPU',
     no_result: 'No matching GPU',

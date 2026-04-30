@@ -37,9 +37,16 @@ const isCalculating = ref(false)
 const sortBy = ref(['speed','vram','params'].includes(_p.sort) ? _p.sort : 'speed')
 const filterType = ref(['all','dense','moe'].includes(_p.type) ? _p.type : 'all')
 const showOnlyRunnable = ref(_p.runnable === '0' ? false : true)
+const sharedVram = ref(_p.sv ? Math.max(1, Math.min(512, Number(_p.sv))) : 16)
+
+// iGPU 共享内存支持
+const effectiveGpu = computed(() =>
+  gpu.value?.sharedMemory && gpu.value?.vram === 0
+    ? { ...gpu.value, vram: sharedVram.value }
+    : gpu.value)
 
 // 状态变化时同步到 URL
-watch([gpu, gpuCount, interconnect, ctx, batch, framework, sortBy, filterType, showOnlyRunnable], ([g, n, ic, c, b, fw, sort, type, runnable]) => {
+watch([gpu, gpuCount, interconnect, ctx, batch, framework, sortBy, filterType, showOnlyRunnable, sharedVram], ([g, n, ic, c, b, fw, sort, type, runnable, sv]) => {
   const query = {}
   if (g?.id) query.gpu = g.id
   if (n !== 1) query.n = n
@@ -50,6 +57,7 @@ watch([gpu, gpuCount, interconnect, ctx, batch, framework, sortBy, filterType, s
   if (sort !== 'speed') query.sort = sort
   if (type !== 'all') query.type = type
   if (!runnable) query.runnable = '0'
+  if (sv !== 16) query.sv = sv
   router.replace({ query })
 })
 
@@ -67,9 +75,9 @@ const modelResults = computed(() => {
 
     for (const quant of QUANT_MAP) {
       try {
-        const useCpuOffload = needsCpuOffload(model, gpu.value, gpuCount.value)
+      const useCpuOffload = needsCpuOffload(model, effectiveGpu.value, gpuCount.value)
         const commonArgs = {
-          gpu: gpu.value,
+          gpu: effectiveGpu.value,
           gpuCount: gpuCount.value,
           interconnect: interconnect.value,
           model,
@@ -149,6 +157,7 @@ function useThisModel(modelData) {
     b:     batch.value !== 1 ? batch.value : undefined,
     co:    modelData.cpuOffload ? '1' : undefined,
     pcie:  modelData.cpuOffload ? defaultPcieBw.id : undefined,
+    sv:    gpu.value?.sharedMemory && sharedVram.value !== 16 ? sharedVram.value : undefined,
   }
   router.push({ path: '/', query })
 }
@@ -167,7 +176,7 @@ function useThisModel(modelData) {
 
       <!-- GPU 配置 -->
       <div class="bg-white rounded-xl border border-gray-200 p-4">
-        <GpuConfig v-model:gpu="gpu" v-model:gpuCount="gpuCount" v-model:interconnect="interconnect" />
+        <GpuConfig v-model:gpu="gpu" v-model:gpuCount="gpuCount" v-model:interconnect="interconnect" v-model:sharedVram="sharedVram" />
       </div>
 
       <!-- 筛选和排序 -->

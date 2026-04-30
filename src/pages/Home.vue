@@ -32,6 +32,8 @@ const framework      = ref(_url.framework    ?? FRAMEWORK_MAP.find(f => f.id ===
 const flashAttention = ref(_url.flashAttention ?? true)
 const kvCacheQuant   = ref(_url.kvCacheQuant ?? KV_CACHE_MAP[0])
 const prefixCacheHit = ref(_url.prefixCacheHit ?? 0)
+// 共享内存（iGPU 专用）
+const sharedVram     = ref(_url.sharedVram    ?? 16)
 // 只有 MoE 模型放不下显存时（INT4 权重 > 可用显存）才自动开启 CPU 卸载
 function needsCpuOffload(m, g, n) {
   if (!m || m.type !== 'moe' || !m.active_params) return false
@@ -41,6 +43,12 @@ function needsCpuOffload(m, g, n) {
 }
 const cpuOffload     = ref(_url.cpuOffload   ?? needsCpuOffload(model.value, gpu.value, gpuCount.value))
 const pcieBw         = ref(_url.pcieBw       ?? PCIE_BW_OPTIONS[1])
+
+// 共享内存 iGPU：用用户设置的共享内存大小覆盖 vram=0
+const effectiveGpu = computed(() =>
+  gpu.value?.sharedMemory && gpu.value?.vram === 0
+    ? { ...gpu.value, vram: sharedVram.value }
+    : gpu.value)
 const speculativeDecoding = ref(_url.speculativeDecoding ?? false)
 const acceptanceRate = ref(_url.acceptanceRate ?? 0.7)
 const draftLen       = ref(_url.draftLen       ?? 4)
@@ -55,7 +63,7 @@ function pinCurrentResult() {
   if (!result.value) return
   pinnedResult.value = { ...result.value }
   pinnedConfig.value = {
-    gpu: gpu.value,
+    gpu: effectiveGpu.value,
     gpuCount: gpuCount.value,
     model: model.value,
     quant: quant.value,
@@ -74,7 +82,7 @@ watch(model, (m, prev) => {
   if (m?.max_ctx) ctx.value = Math.min(m.max_ctx, 16384)
   // MoE 模型：仅在放不下显存时才自动开启 CPU 卸载；能放下则关闭；切换到非 MoE 时关闭
   if (m?.type === 'moe' && m?.active_params) {
-    cpuOffload.value = needsCpuOffload(m, gpu.value, gpuCount.value)
+    cpuOffload.value = needsCpuOffload(m, effectiveGpu.value, gpuCount.value)
   } else if (prev?.type === 'moe') {
     cpuOffload.value = false
   }
@@ -89,13 +97,13 @@ watch(gpu, (g) => {
 
 watchUrlState({ gpu, gpuCount, interconnect, model, quant, ctx, batch,
   promptLen, outputLen, framework, flashAttention, kvCacheQuant,
-  prefixCacheHit, cpuOffload, pcieBw, speculativeDecoding, acceptanceRate, draftLen, ppCount, imageCount })
+  prefixCacheHit, cpuOffload, pcieBw, speculativeDecoding, acceptanceRate, draftLen, ppCount, imageCount, sharedVram })
 
 const result = computed(() => {
   if (!gpu.value || !model.value || !quant.value || !framework.value) return null
   try {
     return { ...calcAll({
-      gpu: gpu.value, gpuCount: gpuCount.value, interconnect: interconnect.value,
+      gpu: effectiveGpu.value, gpuCount: gpuCount.value, interconnect: interconnect.value,
       model: model.value, quant: quant.value, ctx: ctx.value, batch: batch.value,
       promptLen: promptLen.value, outputLen: outputLen.value, framework: framework.value,
       flashAttention: flashAttention.value, kvCacheQuant: kvCacheQuant.value,
@@ -115,7 +123,7 @@ const quantMatrix = computed(() => {
   return QUANT_MAP.map(q => {
     try {
       const r = calcAll({
-        gpu: gpu.value, gpuCount: gpuCount.value, interconnect: interconnect.value,
+        gpu: effectiveGpu.value, gpuCount: gpuCount.value, interconnect: interconnect.value,
         model: model.value, quant: q, ctx: ctx.value, batch: batch.value,
         promptLen: promptLen.value, outputLen: outputLen.value, framework: framework.value,
         flashAttention: flashAttention.value, kvCacheQuant: kvCacheQuant.value,
@@ -130,7 +138,7 @@ const quantMatrix = computed(() => {
         try {
           const fallbackPcie = pcieBw.value ?? INTERCONNECT_MAP.find(x => x.id === 'pcie4')
           const ro = calcAll({
-            gpu: gpu.value, gpuCount: gpuCount.value, interconnect: interconnect.value,
+            gpu: effectiveGpu.value, gpuCount: gpuCount.value, interconnect: interconnect.value,
             model: model.value, quant: q, ctx: ctx.value, batch: batch.value,
             promptLen: promptLen.value, outputLen: outputLen.value, framework: framework.value,
             flashAttention: flashAttention.value, kvCacheQuant: kvCacheQuant.value,
@@ -186,7 +194,7 @@ const pinnedBatchSweepData = computed(() => {
 const batchSweepData = computed(() => {
   if (!gpu.value || !model.value || !quant.value) return []
   return calcBatchSweep({
-    gpu: gpu.value,
+    gpu: effectiveGpu.value,
     gpuCount: gpuCount.value,
     interconnect: interconnect.value,
     model: model.value,
@@ -212,7 +220,7 @@ const batchSweepData = computed(() => {
 <template>
   <div class="min-h-screen bg-gray-50 overflow-x-hidden pt-12 sm:pt-14 pb-20 sm:pb-0">
     <TopBar
-      :result="result" :model="model" :gpu="gpu" :gpu-count="gpuCount"
+      :result="result" :model="model" :gpu="effectiveGpu" :gpu-count="gpuCount"
       :interconnect="interconnect" :quant="quant" :framework="framework"
       :ctx="ctx" :batch="batch" :prompt-len="promptLen" :output-len="outputLen"
       :flash-attention="flashAttention" :kv-cache-quant="kvCacheQuant"
@@ -221,7 +229,7 @@ const batchSweepData = computed(() => {
     <ScrollingNotice />
     <TwoColumn>
       <template #config>
-        <GpuConfig v-model:gpu="gpu" v-model:gpuCount="gpuCount" v-model:interconnect="interconnect" />
+        <GpuConfig v-model:gpu="gpu" v-model:gpuCount="gpuCount" v-model:interconnect="interconnect" v-model:sharedVram="sharedVram" />
         <ModelPicker v-model:model="model" />
         <RunConfig
           v-model:quant="quant" v-model:ctx="ctx" v-model:batch="batch"
@@ -295,7 +303,7 @@ const batchSweepData = computed(() => {
                   :model="model"
                   :quant-matrix="quantMatrix"
                   :gpu-vendor="gpu?.vendor"
-                  :gpu="gpu"
+                  :gpu="effectiveGpu"
                   :gpu-count="gpuCount"
                   :sweep-data="batchSweepData"
                   :current-batch="batch"
@@ -324,7 +332,7 @@ const batchSweepData = computed(() => {
             :model="model"
             :quant-matrix="quantMatrix"
             :gpu-vendor="gpu?.vendor"
-            :gpu="gpu"
+            :gpu="effectiveGpu"
             :gpu-count="gpuCount"
             :sweep-data="batchSweepData"
             :current-batch="batch"

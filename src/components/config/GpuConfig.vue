@@ -11,6 +11,9 @@ const { t } = useI18n()
 const gpu = defineModel('gpu', { required: true })
 const gpuCount = defineModel('gpuCount', { required: true })
 const interconnect = defineModel('interconnect', { required: true })
+const sharedVram = defineModel('sharedVram', { default: 16 })
+
+const isSharedMemory = computed(() => gpu.value?.sharedMemory && gpu.value?.vram === 0)
 
 const GPU_COUNT_OPTIONS = [1, 2, 4, 8, 16]
 
@@ -206,7 +209,7 @@ watch(gpu, (g) => {
                           <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
                           </svg>
-                          {{ g.vram }}GB
+                          {{ g.sharedMemory ? '共享' : g.vram + 'GB' }}
                         </span>
                         <span class="flex items-center gap-0.5">
                           <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -244,7 +247,7 @@ watch(gpu, (g) => {
     <div v-if="gpu" class="grid grid-cols-2 sm:grid-cols-4 gap-2">
       <div class="bg-gray-50 rounded-lg p-2 text-center">
         <div class="text-xs text-gray-500">{{ t('gpu.vram_label') }}</div>
-        <div class="text-sm font-semibold text-emerald-700">{{ gpu.vram }} GB</div>
+        <div class="text-sm font-semibold text-emerald-700">{{ isSharedMemory ? sharedVram : gpu.vram }} GB</div>
       </div>
       <div class="bg-gray-50 rounded-lg p-2 text-center">
         <div class="text-xs text-gray-500">{{ t('gpu.bw_label') }}</div>
@@ -258,6 +261,18 @@ watch(gpu, (g) => {
         <div class="text-xs text-gray-500">{{ t('gpu.tdp_label') }}</div>
         <div class="text-sm font-semibold text-gray-700">{{ gpu.tdp }} <span class="text-xs">W</span></div>
       </div>
+    </div>
+
+    <!-- 共享内存输入（iGPU 时显示）-->
+    <div v-if="isSharedMemory" class="flex items-center gap-3 px-1">
+      <label class="text-xs text-gray-500 whitespace-nowrap">{{ t('gpu.shared_vram_label') }}</label>
+      <input
+        :value="sharedVram"
+        @input="sharedVram = Math.max(1, Math.min(512, Number($event.target.value) || 16))"
+        type="number" min="1" max="512" step="1"
+        class="w-24 py-1 px-2 rounded-lg text-sm border border-amber-300 bg-amber-50 text-gray-800 focus:outline-none focus:ring-1 focus:ring-amber-500 text-center"
+      />
+      <span class="text-xs text-gray-400">GB &nbsp;—&nbsp; {{ t('gpu.shared_vram_hint') }}</span>
     </div>
 
     <!-- GPU 数量（Apple Silicon 不支持多卡）-->
