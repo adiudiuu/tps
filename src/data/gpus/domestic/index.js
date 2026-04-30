@@ -1,5 +1,6 @@
 // 国产 AI 加速卡（华为昇腾、寒武纪、壁仞、摩尔线程）
 export default [
+  { id: 'ascend910e', name: '华为昇腾 910E', vendor: 'domestic', tier: 'datacenter', released: '2026-04', vram: 64, bw: 2800, bwUtilization: 0.85, bf16: 720, int8: 1440, int4: null, nvlink_bw: null, tdp: 650 },
   { id: 'ascend910d', name: '华为昇腾 910D', vendor: 'domestic', tier: 'datacenter', released: '2025-05', vram: 64, bw: 2400, bwUtilization: 0.85, bf16: 600, int8: 1200, int4: null, nvlink_bw: null, tdp: 600 },
   { id: 'ascend910c', name: '华为昇腾 910C', vendor: 'domestic', tier: 'datacenter', released: '2024-02', vram: 64, bw: 2400, bwUtilization: 0.85, bf16: 480, int8: 960,  int4: null, nvlink_bw: null, tdp: 450 },
   { id: 'ascend910b', name: '华为昇腾 910B', vendor: 'domestic', tier: 'datacenter', released: '2023-08', vram: 64, bw: 2000, bwUtilization: 0.85, bf16: 320, int8: 640,  int4: null, nvlink_bw: null, tdp: 400 },

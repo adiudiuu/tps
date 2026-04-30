@@ -1,5 +1,6 @@
 // AMD 数据中心 GPU（CDNA 架构）
 export default [
+  { id: 'mi400x',  name: 'MI400X',  vendor: 'amd', tier: 'datacenter', released: '2026-04', vram: 256, bw: 8000, bwUtilization: 0.88, bf16: 1792, int8: 3584, int4: 7168, nvlink_bw: null, tdp: 800 },
   { id: 'mi325x',  name: 'MI325X',  vendor: 'amd', tier: 'datacenter', released: '2024-10', vram: 256, bw: 6000, bwUtilization: 0.88, bf16: 1307, int8: 2614, int4: 5228, nvlink_bw: null, tdp: 750 },
   { id: 'mi300x',  name: 'MI300X',  vendor: 'amd', tier: 'datacenter', released: '2023-12', vram: 192, bw: 5300, bwUtilization: 0.88, bf16: 1307, int8: 2614, int4: 5228, nvlink_bw: null, tdp: 750 },
   { id: 'mi300a',  name: 'MI300A',  vendor: 'amd', tier: 'datacenter', released: '2023-12', vram: 128, bw: 5300, bwUtilization: 0.88, bf16: 1307, int8: 2614, int4: 5228, nvlink_bw: null, tdp: 550 },

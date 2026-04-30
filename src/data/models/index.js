@@ -219,7 +219,9 @@ import gemma3_27b from './gemma3_27b/index.js'
 import gemma3_12b from './gemma3_12b/index.js'
 import gemma3_4b from './gemma3_4b/index.js'
 import gemma3_1b from './gemma3_1b/index.js'
+import gemma3n from './gemma3n/index.js'
 import gemma2_2b from './gemma2_2b/index.js'
+import gpt4o from './gpt4o/index.js'
 import gemma2_27b from './gemma2_27b/index.js'
 import gemma2_9b from './gemma2_9b/index.js'
 import deepseek_v2 from './deepseek_v2/index.js'
@@ -380,6 +382,7 @@ export const DENSE_MODELS = [
   gemma3_12b,
   gemma3_4b,
   gemma3_1b,
+  gemma3n,
   mistral_small_24b,
   deepseek_r1_distill_llama_70b,
   deepseek_r1_distill_qwen_32b,
@@ -639,6 +642,8 @@ export const DENSE_MODELS = [
 export const MOE_MODELS = [
   // 2026
   nemotron_cascade_2_30b,
+  // 2024
+  gpt4o,
   glm5_1,
   glm5,
   glm4_7,
