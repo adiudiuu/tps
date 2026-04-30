@@ -199,6 +199,8 @@ export default {
     export_value: 'Value',
     export_status: 'Status',
     export_speed: 'Speed',
+    oom_no_speed_title: 'VRAM Insufficient — Cannot Run',
+    oom_no_speed_desc: 'Speed shown is theoretical only. Lower quantization, add GPUs, or enable CPU offload.',
     speed_rating_s_desc: 'Exceptional — near-instant output',
     speed_rating_blazing: 'Blazing',
     speed_rating_blazing_desc: 'Real-time chat ready',
@@ -220,6 +222,7 @@ export default {
     quant_matrix_vram: 'VRAM',
     quant_matrix_status: 'Status',
     quant_matrix_speed: 'Est. Speed',
+    quant_matrix_offloadable_tip: '⚡ Fits with CPU offload enabled (MoE experts offloaded to RAM) — shows GPU VRAM after offload',
   },
   warning: {
     vram_oom: 'VRAM insufficient by {diff} GB — add more GPUs or lower quantization',

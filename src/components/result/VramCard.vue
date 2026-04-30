@@ -116,6 +116,7 @@ const pieData = computed(() => {
           <span class="text-right" :class="row.quant.id === currentQuantId ? 'text-white' : 'text-gray-600'">{{ fmtGB(row.vramGB) }}</span>
           <span class="text-center">
             <span v-if="row.vramOk" :class="row.quant.id === currentQuantId ? 'text-emerald-200' : 'text-emerald-600'">✓ {{ fmtPct(row.vramPct) }}</span>
+            <span v-else-if="row.cpuOffloadFeasible" :class="row.quant.id === currentQuantId ? 'text-amber-200' : 'text-amber-500'" :title="t('result.quant_matrix_offloadable_tip')">⚡ {{ fmtGB(row.offloadVramGB) }}</span>
             <span v-else :class="row.quant.id === currentQuantId ? 'text-red-200' : 'text-red-500'">✗ OOM</span>
           </span>
           <span class="text-right" :class="row.quant.id === currentQuantId ? 'text-white' : 'text-gray-500'">

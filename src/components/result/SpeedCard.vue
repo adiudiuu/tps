@@ -39,9 +39,28 @@ function fmtFrameworkRange(min, max) {
 <template>
   <div class="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
 
-    <!-- 速度体验评级徽章 -->
+    <!-- 显存不足时：OOM 提示条（替换速度评级） -->
     <div
-      v-if="speedRating && result"
+      v-if="result && !result.vramOk"
+      class="rounded-xl overflow-hidden flex items-center gap-3 px-4 py-3"
+      style="background:linear-gradient(135deg,#fef2f215 0%,#fee2e206 100%);border:1px solid #fca5a528"
+    >
+      <div class="w-1 self-stretch flex-shrink-0 rounded-full" style="background:linear-gradient(to bottom,#f87171,#dc2626)" />
+      <div class="flex-1 min-w-0">
+        <div class="text-sm font-bold text-red-600">{{ t('result.oom_no_speed_title') }}</div>
+        <div class="text-xs text-red-400 leading-snug mt-0.5">{{ t('result.oom_no_speed_desc') }}</div>
+      </div>
+      <div class="flex flex-col items-end flex-shrink-0">
+        <div class="text-2xl font-black leading-none text-red-300 line-through tabular-nums">
+          {{ result.singleToksMax.toFixed(0) }}
+        </div>
+        <div class="text-xs font-semibold text-red-300 mt-0.5">tok/s</div>
+      </div>
+    </div>
+
+    <!-- 速度体验评级徽章（仅显存够用时显示） -->
+    <div
+      v-else-if="speedRating && result"
       class="rounded-xl overflow-hidden flex items-center gap-1"
       :style="{ background: `linear-gradient(135deg, ${speedRating.c1}15 0%, ${speedRating.c2}06 100%)`, border: `1px solid ${speedRating.c1}28` }"
     >

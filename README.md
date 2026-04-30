@@ -33,7 +33,7 @@
 | **模型** | **348+ 主流模型**（Dense 密集模型 279 个 + MoE 混合专家 69 个） |
 | **模型架构** | Dense、MoE、MLA (DeepSeek)、混合注意力 (Gemma)、Mamba (SSM) |
 | **量化精度** | FP32/BF16/FP8/INT8/INT4/Q6_K/Q5_K/Q3_K/INT2 |
-| **推理框架** | vLLM、TensorRT-LLM、llama.cpp、MLX、SGLang、TGI |
+| **推理框架** | vLLM、TensorRT-LLM、SGLang、LMDeploy、TGI、llama.cpp、ExLlamaV2、MLX |
 | **高级特性** | Flash Attention、KV Cache 量化、Prefix Cache、MoE CPU Offload |
 
 ### 🤖 模型覆盖

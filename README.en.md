@@ -33,7 +33,7 @@ Given GPU, model, quantization, and runtime parameters, quickly estimate:
 | **Models** | **348+ mainstream models** (279 Dense + 69 MoE) |
 | **Model Architectures** | Dense, MoE, MLA (DeepSeek), Hybrid Attention (Gemma), Mamba (SSM) |
 | **Quantization** | FP32/BF16/FP8/INT8/INT4/Q6_K/Q5_K/Q3_K/INT2 |
-| **Inference Frameworks** | vLLM, TensorRT-LLM, llama.cpp, MLX, SGLang, TGI |
+| **Inference Frameworks** | vLLM, TensorRT-LLM, SGLang, LMDeploy, TGI, llama.cpp, ExLlamaV2, MLX |
 | **Advanced Features** | Flash Attention, KV Cache Quantization, Prefix Cache, MoE CPU Offload |
 
 ### 🤖 Model Coverage

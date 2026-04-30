@@ -3,6 +3,7 @@
 import { fmtToks, fmtToksRange, fmtGB, fmtMs, fmtPct, fmtParams, fmtCtx } from './format.js'
 import { calcAll, getWarnings } from './calc.js'
 import { QUANT_MAP } from '../data/constants.js'
+import { PCIE_BW_OPTIONS } from '../data/runtime.js'
 
 /**
  * 生成 Markdown 报告字符串
@@ -95,6 +96,9 @@ export function generateMarkdown({
   if (result.cpuOffload) {
     lines.push(`| MoE CPU Offload | ${isZh ? '开启' : 'Enabled'} (${result.pcieBwLabel ?? ''}) |`)
   }
+  if (result.speculativeDecoding) {
+    lines.push(`| ${isZh ? '投机解码' : 'Speculative Decoding'} | ${isZh ? '开启' : 'Enabled'} · draft ${result.draftLen} tok · ${isZh ? '接受率' : 'acceptance'} ${(result.acceptanceRate * 100).toFixed(0)}% · ×${(1 + result.acceptanceRate * result.draftLen).toFixed(1)} ${isZh ? '加速' : 'speedup'} |`)
+  }
   lines.push('')
 
   // ── 4. 显存分析 ──────────────────────────────────────
@@ -116,6 +120,9 @@ export function generateMarkdown({
   lines.push('|---|---|---|')
   lines.push(`| ${isZh ? '模型权重' : 'Model Weights'} | ${fmtGB(result.weightGB)} | ${fmtPct(result.weightGB / result.totalVram * 100)} |`)
   lines.push(`| KV Cache | ${fmtGB(result.kvGB)} | ${fmtPct(result.kvGB / result.totalVram * 100)} |`)
+  if (result.activationGB > 0) {
+    lines.push(`| ${isZh ? '激活内存' : 'Activation Mem'} | ${fmtGB(result.activationGB)} | ${fmtPct(result.activationGB / result.totalVram * 100)} |`)
+  }
   lines.push(`| ${isZh ? '系统开销' : 'Overhead'} | ${fmtGB(result.overheadGB)} | ${fmtPct(result.overheadGB / result.totalVram * 100)} |`)
   lines.push(`| **${isZh ? '总需求' : 'Total Needed'}** | **${fmtGB(result.totalNeeded)}** | **${fmtPct(result.vramPct)}** |`)
   lines.push(`| ${isZh ? '可用显存' : 'Available'} | ${fmtGB(result.totalVram)} | — |`)
@@ -130,19 +137,40 @@ export function generateMarkdown({
   lines.push('')
   lines.push(`| ${isZh ? '量化' : 'Quant'} | ${isZh ? '显存需求' : 'VRAM'} | ${isZh ? '状态' : 'Status'} | ${isZh ? '预估速度' : 'Est. Speed'} |`)
   lines.push('|---|---|---|---|')
+  const _speculativeDecoding = result.speculativeDecoding
+  const _acceptanceRate = result.acceptanceRate
+  const _draftLen = result.draftLen
   for (const q of QUANT_MAP) {
     try {
       const r = calcAll({
         gpu, gpuCount, interconnect, model, quant: q, ctx, batch,
         promptLen, outputLen, framework, flashAttention, kvCacheQuant,
         prefixCacheHit, cpuOffload, pcieBw,
+        speculativeDecoding: _speculativeDecoding, acceptanceRate: _acceptanceRate, draftLen: _draftLen,
       })
       const isCurrent = q.id === quant.id
       const label = isCurrent ? `**${q.label}**` : q.label
       const vram = isCurrent ? `**${fmtGB(r.totalNeeded)}**` : fmtGB(r.totalNeeded)
-      const status = r.vramOk
-        ? `✅ ${fmtPct(r.vramPct)}`
-        : `❌ OOM`
+      // OOM 时检查 MoE CPU offload 可行性
+      let status
+      if (r.vramOk) {
+        status = `✅ ${fmtPct(r.vramPct)}`
+      } else if (!cpuOffload && model.type === 'moe' && model.active_params) {
+        try {
+          const fallbackPcie = pcieBw ?? PCIE_BW_OPTIONS.find(x => x.id === 'gen4')
+          const ro = calcAll({
+            gpu, gpuCount, interconnect, model, quant: q, ctx, batch,
+            promptLen, outputLen, framework, flashAttention, kvCacheQuant,
+            prefixCacheHit, cpuOffload: true, pcieBw: fallbackPcie,
+            speculativeDecoding: _speculativeDecoding, acceptanceRate: _acceptanceRate, draftLen: _draftLen,
+          })
+          status = ro.vramOk
+            ? `⚡ ${fmtGB(ro.totalNeeded)} ${isZh ? '(可卸载)' : '(offloadable)'}`
+            : `❌ OOM`
+        } catch { status = `❌ OOM` }
+      } else {
+        status = `❌ OOM`
+      }
       const speed = r.vramOk ? `${r.decodeToks.toFixed(1)} tok/s` : '—'
       lines.push(`| ${label} | ${vram} | ${status} | ${speed} |`)
     } catch { /* skip */ }
@@ -152,10 +180,18 @@ export function generateMarkdown({
   // ── 5. 速度与延迟 ──────────────────────────────────────
   lines.push(isZh ? '## 速度与延迟' : '## Speed & Latency')
   lines.push('')
+  // OOM 提示
+  if (!result.vramOk) {
+    lines.push(isZh
+      ? '> ⚠️ **显存不足，以下速度为理论估算值，实际无法运行。** 请降低量化精度、增加显卡数量或为 MoE 模型开启 CPU 卸载。'
+      : '> ⚠️ **VRAM insufficient — speed values below are theoretical only and cannot be achieved.** Lower quantization, add more GPUs, or enable CPU offload for MoE models.')
+    lines.push('')
+  }
   // 速度评级（基于单请求速度）
   const toks = result.singleToksMax
   let speedRatingStr
-  if (toks >= 60)      speedRatingStr = isZh ? '🟢 极快 — 适合实时对话'         : '🟢 Blazing — Real-time chat ready'
+  if (!result.vramOk)  speedRatingStr = isZh ? '⛔ 无法运行 — 显存不足'         : '⛔ Cannot run — VRAM insufficient'
+  else if (toks >= 60) speedRatingStr = isZh ? '🟢 极快 — 适合实时对话'         : '🟢 Blazing — Real-time chat ready'
   else if (toks >= 30) speedRatingStr = isZh ? '🟡 流畅 — 适合普通使用'         : '🟡 Smooth — Great for everyday use'
   else if (toks >= 15) speedRatingStr = isZh ? '🟠 可用 — 轻度使用'             : '🟠 Usable — Light usage'
   else                 speedRatingStr = isZh ? '🔴 较慢 — 建议换量化或升级硬件' : '🔴 Slow — Consider quantization or better hardware'

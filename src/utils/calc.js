@@ -58,7 +58,13 @@ export function calcAll({
   // ─────────────────────────────────────────────
 
   // 权重显存：总参数 × 每参数字节数
-  const weightGB = model.params * quant.bytes
+  // MoE CPU Offload：expert 权重卸载到 CPU RAM，GPU 只需保留当前激活的 expert 块 + 非 MoE dense 层
+  // 估算：active_params × quant.bytes × 1.5
+  //   active_params × quant.bytes ≈ 当前激活 expert 权重
+  //   × 1.5 覆盖 attention / embedding / normalization 等始终驻留 GPU 的非 MoE 层
+  const weightGB = (cpuOffload && model.type === 'moe')
+    ? model.active_params * quant.bytes * 1.5
+    : model.params * quant.bytes
 
   // KV Cache 显存：精度独立于权重量化，通常为 FP16（2 bytes）
   // 公式（混合注意力）：global 层用全上下文，local sliding 层只用窗口大小
@@ -127,13 +133,34 @@ export function calcAll({
   if (model.mla_ratio) kvReadGB *= model.mla_ratio
   const decodeBytesPerStep = activeWeight + kvReadGB
 
-  // MoE CPU Offload：expert 权重经 PCIe 读取，带宽瓶颈从 GPU HBM 变为 PCIe
-  const effectiveBw = (cpuOffload && model.type === 'moe' && pcieBw != null)
-    ? pcieBw.bw   // GB/s，PCIe 带宽
-    : totalBw     // GB/s，GPU HBM 带宽
-
-  // tok/s（batch 个请求并发，带宽被 batch 共享，但每步产出 batch 个 token）
-  const bwLimit    = (effectiveBw / decodeBytesPerStep) * batch
+  // MoE CPU Offload：精细 IO 分拆 + 串行时序模型
+  // - expert FFN 权重在 CPU RAM，每步经 PCIe 读到 GPU
+  // - 非专家权重（attention/embed）+ KV Cache 始终在 GPU HBM
+  // - 两部分串行：t_total = t_pcie_expert + t_gpu_rest → bwLimit = batch / t_total
+  let effectiveBw, bwLimit
+  if (cpuOffload && model.type === 'moe' && pcieBw != null) {
+    let expertIOPerStep
+    if (model.experts && model.experts_per_token) {
+      // 有字段时精确计算：base_ratio ≈ experts_per_token/experts，上限 0.5
+      const baseRatio = Math.min(0.5, model.experts_per_token / model.experts)
+      expertIOPerStep = model.active_params * (1 - baseRatio) * quant.bytes
+    } else {
+      // 无字段时：expert FFN 约占 active_params 的 70%
+      expertIOPerStep = model.active_params * 0.70 * quant.bytes
+    }
+    const nonExpertIOPerStep = model.active_params * quant.bytes - expertIOPerStep
+    const gpuIOPerStep = nonExpertIOPerStep + kvReadGB
+    // PCIe 常量存储的是双向聚合带宽（如 PCIe 4.0 x16 = 64 GB/s 双向）
+    // CPU→GPU DMA 传输为单向，实际可用带宽 = bw / 2
+    const pcieBwUnidirectional = pcieBw.bw / 2
+    const tExpert = expertIOPerStep / pcieBwUnidirectional  // s/tok，PCIe 瓶颈
+    const tGpu    = gpuIOPerStep    / totalBw               // s/tok，GPU HBM 瓶颈
+    bwLimit = (1 / (tExpert + tGpu)) * batch
+    effectiveBw = pcieBw.bw  // 仅用于展示
+  } else {
+    effectiveBw = totalBw
+    bwLimit = (effectiveBw / decodeBytesPerStep) * batch
+  }
   let decodeToks = bwLimit * adjustedFramework.decode
   let decodeToksMin = bwLimit * decodeFactorMin
   let decodeToksMax = bwLimit * decodeFactorMax
@@ -174,8 +201,11 @@ export function calcAll({
   const isContinuousBatching = (framework.schedulingMode ?? 'continuous') === 'continuous'
   const ttft = (effectivePromptLen * 2 * activeParams * 1e9) / (tflops * 1e12) * 1000 / (prefillAttentionFactor * flashFactor * framework.prefill) * (isContinuousBatching ? 1 : Math.max(1, batch))
 
-  // 单 token 生成时间（ms），batch=1 时的延迟基准，同步除以 fw.decode 保持一致性
-  const tpot = (decodeBytesPerStep / effectiveBw) * 1000 / framework.decode  // ms/tok
+  // 单 token 生成时间（ms），batch=1 时的延迟基准
+  // offload 模式：bwLimit 已包含串行 IO，从 bwLimit 反推 tpot 保持一致
+  const tpot = (cpuOffload && model.type === 'moe' && pcieBw != null)
+    ? (batch / bwLimit) * 1000 / framework.decode
+    : (decodeBytesPerStep / effectiveBw) * 1000 / framework.decode  // ms/tok
 
   // ─────────────────────────────────────────────
   // Roofline 分析

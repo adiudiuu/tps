@@ -16,7 +16,7 @@ import { readUrlState, resolveUrlState, watchUrlState } from '../utils/useUrlSta
 
 const { t } = useI18n()
 const _url = resolveUrlState(readUrlState())
-const defaultModel = ALL_MODELS[0]
+const defaultModel = ALL_MODELS.find(m => m.id === 'qwen3_6_35b_a3b') ?? ALL_MODELS[0]
 
 const gpu            = ref(_url.gpu          ?? GPU_LIST.find(g => g.id === 'h100_sxm') ?? GPU_LIST[0])
 const gpuCount       = ref(_url.gpuCount     ?? 1)
@@ -60,9 +60,14 @@ function unpinResult() {
   pinnedConfig.value = null
 }
 
-watch(model, (m) => {
-  if (!m?.max_ctx) return
-  ctx.value = Math.min(m.max_ctx, 16384)
+watch(model, (m, prev) => {
+  if (m?.max_ctx) ctx.value = Math.min(m.max_ctx, 16384)
+  // MoE 模型自动开启 CPU 卸载；切换到非 MoE 时自动关闭（开关本就不显示）
+  if (m?.type === 'moe' && m?.active_params) {
+    cpuOffload.value = true
+  } else if (prev?.type === 'moe') {
+    cpuOffload.value = false
+  }
 })
 
 watch(gpu, (g) => {
@@ -105,7 +110,25 @@ const quantMatrix = computed(() => {
         prefixCacheHit: prefixCacheHit.value, cpuOffload: cpuOffload.value, pcieBw: pcieBw.value,
         speculativeDecoding: speculativeDecoding.value, acceptanceRate: acceptanceRate.value, draftLen: draftLen.value,
       })
-      return { quant: q, vramGB: r.totalNeeded, vramOk: r.vramOk, vramPct: r.vramPct, decodeToks: r.decodeToks }
+      // 当前行 OOM 且未开启 CPU 卸载时，额外计算"启用卸载后能否容纳"
+      let cpuOffloadFeasible = false
+      let offloadVramGB = null
+      if (!r.vramOk && !cpuOffload.value && model.value?.type === 'moe' && model.value?.active_params) {
+        try {
+          const fallbackPcie = pcieBw.value ?? INTERCONNECT_MAP.find(x => x.id === 'pcie4')
+          const ro = calcAll({
+            gpu: gpu.value, gpuCount: gpuCount.value, interconnect: interconnect.value,
+            model: model.value, quant: q, ctx: ctx.value, batch: batch.value,
+            promptLen: promptLen.value, outputLen: outputLen.value, framework: framework.value,
+            flashAttention: flashAttention.value, kvCacheQuant: kvCacheQuant.value,
+            prefixCacheHit: prefixCacheHit.value, cpuOffload: true, pcieBw: fallbackPcie,
+            speculativeDecoding: speculativeDecoding.value, acceptanceRate: acceptanceRate.value, draftLen: draftLen.value,
+          })
+          cpuOffloadFeasible = ro.vramOk
+          offloadVramGB = ro.totalNeeded
+        } catch { /* ignore */ }
+      }
+      return { quant: q, vramGB: r.totalNeeded, vramOk: r.vramOk, vramPct: r.vramPct, decodeToks: r.decodeToks, cpuOffloadFeasible, offloadVramGB }
     } catch { return null }
   }).filter(Boolean)
 })

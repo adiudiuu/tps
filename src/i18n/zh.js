@@ -199,6 +199,8 @@ export default {
     export_value: '数值',
     export_status: '状态',
     export_speed: '速度',
+    oom_no_speed_title: '显存不足，无法运行',
+    oom_no_speed_desc: '以下速度为理论值，实际无法运行。请降低量化精度、增加显卡数量或开启 CPU 卸载。',
     speed_rating_s_desc: '顶级体验，逐字即出',
     speed_rating_blazing: '极快',
     speed_rating_blazing_desc: '适合实时对话',
@@ -220,6 +222,7 @@ export default {
     quant_matrix_vram: '显存需求',
     quant_matrix_status: '状态',
     quant_matrix_speed: '预估速度',
+    quant_matrix_offloadable_tip: '⚡ 启用 CPU 卸载后可容纳（MoE Expert 卸载到内存），显示为卸载后的 GPU 显存占用',
   },
   warning: {
     vram_oom: '显存不足 {diff} GB，建议增加显卡数量或降低量化精度',

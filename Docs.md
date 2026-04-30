@@ -3,7 +3,7 @@
 > **本文档基于当前代码实现编写**  
 > 代码优先，文档跟随真实实现，适合作为学习参考和二次开发入口。
 
-**最后更新**: 2026-04-29  
+**最后更新**: 2026-04-30  
 **基于代码版本**: 最新主分支代码
 
 ---
@@ -156,20 +156,37 @@
 {
   id: 'vllm',
   labelKey: 'framework.vllm',
-  decode: 0.60,        // 中位效率
+  decode: 0.65,        // 中位效率
   prefill: 0.68,
   decodeMin: 0.55,     // 最小效率（保守估计）
   decodeMax: 0.75,     // 最大效率（乐观估计）
   prefillMin: 0.60,
   prefillMax: 0.80,
   vendors: ['nvidia', 'amd'],  // 支持的硬件厂商
+  schedulingMode: 'continuous', // 'continuous' | 'serial'
 }
 ```
 
-**关键更新** (基于验证报告):
-- **MLX**: `decode: 0.90` (从 0.75 提升，Apple Silicon 专属优化)
-- **llama.cpp**: `decode: 0.55, decodeMax: 0.65` (支持大模型场景)
-- **理论上限**: `decode: 1.00, prefill: 1.00` (Roofline 理论值)
+**`schedulingMode` 说明**：
+- `'continuous'`：连续批处理（vLLM/SGLang/TRT-LLM/TGI/MLX/LMDeploy）。多请求并行调度，TTFT 不随 batch 线性增加。
+- `'serial'`：串行排队（llama.cpp/ExLlamaV2/理论上限）。新请求需等待前一次 Prefill 完成，TTFT × batch。
+
+**所有框架系数**（基于验证报告）：
+
+| 框架 | decode | decodeMin | decodeMax | schedulingMode | 平台 |
+|------|--------|-----------|-----------|----------------|------|
+| Theory | 1.00 | 1.00 | 1.00 | serial | 全平台 |
+| TRT-LLM | 0.80 | 0.75 | 0.85 | continuous | NVIDIA |
+| LMDeploy | 0.76 | 0.73 | 0.80 | continuous | NVIDIA |
+| **MLX** | **0.90** | **0.80** | **0.95** | continuous | Apple |
+| ExLlamaV2 | 0.70 | 0.65 | 0.75 | serial | NVIDIA |
+| SGLang | 0.68 | 0.65 | 0.75 | continuous | NVIDIA/AMD |
+| vLLM | 0.65 | 0.55 | 0.75 | continuous | NVIDIA/AMD |
+| TGI | 0.47 | 0.40 | 0.55 | continuous | NVIDIA/AMD |
+| llama.cpp | 0.55\* | 0.48 | 0.65 | serial | 全平台 |
+| llama.cpp metal | 0.62\* | 0.52 | 0.70 | serial | Apple |
+
+\* llama.cpp 支持 `modelSizeScaling`，按模型规模三档动态调整（<14B/14-30B/>30B）。
 
 ### 2.5 运行时配置
 
@@ -189,11 +206,15 @@ KV_CACHE_MAP = [
 **PCIe 带宽选项** (MoE CPU Offload):
 ```javascript
 PCIE_BW_OPTIONS = [
-  { id: 'gen3', label: 'PCIe 3.0', bw: 16 },  // GB/s
-  { id: 'gen4', label: 'PCIe 4.0', bw: 32 },
-  { id: 'gen5', label: 'PCIe 5.0', bw: 64 },
+  { id: 'gen3', label: 'PCIe 3.0', bw: 16 },  // GB/s，单向
+  { id: 'gen4', label: 'PCIe 4.0', bw: 32 },  // GB/s，单向
+  { id: 'gen5', label: 'PCIe 5.0', bw: 64 },  // GB/s，单向
 ]
 ```
+
+**注意**：calc.js 内部对 `pcieBw.bw` 再除以 2 (`pcieBwUnidirectional = pcieBw.bw / 2`) 以模拟 DMA 实际带宽损耗（PCIe 全双工共享总线、协议开销等），保守估计：
+- PCIe 4.0：32 / 2 = **16 GB/s** 有效 DMA 带宽
+- PCIe 5.0：64 / 2 = **32 GB/s** 有效 DMA 带宽
 
 ---
 
@@ -302,14 +323,22 @@ if (model.mla_ratio) kvGB *= model.mla_ratio  // DeepSeek V3: 0.18
 overheadGB = Math.max(1.0, Math.min(weightGB * 0.03, 5.0))
 ```
 
-**动态调整逻辑** (P1 修复):
+**动态调整逻辑**:
 - 小模型 (<33B): 最少 1GB
 - 大模型: 按权重 3% 计算
 - 超大模型: 上限 5GB
 
-**旧版本**: 固定 `weightGB * 0.05`，对小模型过高，对超大模型过低
+### 5.4 激活内存（Activation Memory）
 
-### 5.4 总显存需求与判断
+大 batch / 长 Prompt 下，反向传播（若有）和中间激活占用额外显存：
+
+```javascript
+activationGB = batch * promptLen * hidden_size * layers * 2 / 1e9
+```
+
+当 `activationGB > 2 GB` 时触发 `activation_oom` 警告。纯推理（无梯度）场景下激活内存远低于训练，此公式偏保守，用于预警极端 batch 场景。
+
+### 5.5 总显存需求与判断
 
 ```javascript
 totalNeeded = weightGB + kvGB + overheadGB
@@ -317,9 +346,13 @@ totalVram = gpu.vram * gpuCount * (gpu.usableRatio ?? 1.0)
 vramOk = totalNeeded <= totalVram
 ```
 
-**usableRatio 说明**:
-- 扣除操作系统、驱动、其他进程占用的显存
-- 通常为 0.95 (NVIDIA) 或 1.0 (Apple Unified Memory)
+**MoE CPU Offload 时的 weightGB**:
+```javascript
+weightGB = cpuOffload && model.type === 'moe'
+  ? model.active_params * quant.bytes * 1.5  // 只需 GPU 存 active 专家 × 1.5（含 attention/embed）
+  : model.params * quant.bytes               // 完整权重
+```
+×1.5 覆盖始终驻留 GPU 的非 MoE 层（attention、embedding、normalization）。
 
 ---
 
@@ -349,14 +382,35 @@ kvReadGB = 2 * layers * kv_heads * head_dim * avgDecodeSeqLen * batch * kvBytesP
 
 ### 6.3 带宽上限计算
 
+**标准模式**：
 ```javascript
-decodeBytesPerStep = activeWeight + kvReadGB  // 每步总读取量
-effectiveBw = (cpuOffload && model.type === 'moe' && pcieBw)
-  ? pcieBw.bw   // MoE CPU Offload: PCIe 带宽
-  : totalBw     // 标准模式: GPU HBM 带宽
-
-bwLimit = (effectiveBw / decodeBytesPerStep) * batch  // tok/s
+decodeBytesPerStep = activeWeight + kvReadGB
+bwLimit = (totalBw / decodeBytesPerStep) * batch
 ```
+
+**MoE CPU Offload 混合 IO 串行模型**：
+
+Expert FFN 权重在 CPU RAM，通过 PCIe 读取；attention/embed 权重 + KV Cache 在 GPU HBM，两段串行：
+
+```javascript
+// 专家权重比例（MoE 特有，expert FFN 占激活参数的约 50-70%）
+if (model.experts && model.experts_per_token) {
+  const baseRatio = Math.min(0.5, model.experts_per_token / model.experts)
+  expertIOPerStep = model.active_params * (1 - baseRatio) * quant.bytes
+} else {
+  expertIOPerStep = model.active_params * 0.70 * quant.bytes  // 默认 70%
+}
+nonExpertIOPerStep = model.active_params * quant.bytes - expertIOPerStep
+gpuIOPerStep = nonExpertIOPerStep + kvReadGB
+
+// PCIe 有效带宽（存储双向值，/2 = 单向 DMA 带宽）
+pcieBwUnidirectional = pcieBw.bw / 2
+tExpert = expertIOPerStep / pcieBwUnidirectional  // s/tok，PCIe 瓶颈
+tGpu    = gpuIOPerStep    / totalBw               // s/tok，HBM 瓶颈
+bwLimit = (1 / (tExpert + tGpu)) * batch          // tok/s
+```
+
+**关键理解**：PCIe 和 HBM 两段串行，总时间为两者之和，不是简单取较小值。
 
 **关键理解**:
 - `batch` 个请求并发，带宽被共享，但每步产出 `batch` 个 token
@@ -370,15 +424,7 @@ decodeToksMin = bwLimit * framework.decodeMin  // 保守估算
 decodeToksMax = bwLimit * framework.decodeMax  // 乐观估算
 ```
 
-**框架效率系数** (基于验证报告更新):
-
-| 框架 | decode | decodeMin | decodeMax | 说明 |
-|------|--------|-----------|-----------|------|
-| Theory | 1.00 | 1.00 | 1.00 | Roofline 理论上限 |
-| TRT-LLM | 0.65 | 0.75 | 0.85 | NVIDIA 优化最好 |
-| vLLM | 0.60 | 0.55 | 0.75 | 通用性强 |
-| **MLX** | **0.90** | **0.80** | **0.95** | **Apple Silicon 专属优化** |
-| llama.cpp | 0.55 | 0.48 | **0.65** | **跨平台通用** |
+**框架效率系数** 见 §2.4 完整表格。
 
 ### 6.5 TPOT（单 Token 延迟）
 
@@ -449,31 +495,40 @@ computeBaseLimit = (tflops * 1e12) / (2 * activeParams * 1e9)  // tok/s
 
 ```javascript
 function getPrefillAttentionFactor({ totalHeads, kvHeads, attentionType }) {
-  return 1  // 固定为 1
+  // GQA/MQA 减少注意力 FLOPs：注意力占总 FLOPs 约 20%
+  // 节省比例 = (1 - kv_heads/total_heads) × 0.20
+  const attnFlopsFraction = 0.20
+  if (kvHeads != null && totalHeads > 0 && kvHeads < totalHeads) {
+    return 1 - (1 - kvHeads / totalHeads) * attnFlopsFraction
+  }
+  return 1  // MHA 或无 GQA 信息时
 }
 ```
 
-**重要说明**:
-- GQA/MQA 的 Q/KV head 比例已体现在 `2 × activeParams` 的主干 FLOPs 中
-- 不再额外放大，避免 MQA 模型（如 Llama 3 70B, kvHeads=1）被错误放大 64x
-- 这是基于实测数据的修正，与早期理论模型不同
+**示例**：
+- Llama 3 70B (kv_heads=8, total=64): `1 - (1 - 8/64) × 0.20 = 0.887` (-11.3%)
+- Llama 3 8B (kv_heads=8, total=32): `1 - (1 - 8/32) × 0.20 = 0.950` (-5%)
+- MHA 模型 (kv_heads=total): `factor = 1.0`
 
 ### 7.4 Flash Attention 加速区间
 
 ```javascript
-function getFlashAttentionBoostRange({ enabled, promptLen }) {
+function getFlashAttentionBoostRange({ enabled, promptLen, headDim }) {
   if (!enabled) return { min: 1, mid: 1, max: 1 }
+  // headDim 缩放：head_dim=256 比 128 约有 2× 收益；head_dim=64 仅 0.5×
+  const dimScale = Math.min(2.0, Math.max(0.5, headDim / 128))
   
   if (promptLen >= 32768) return { min: 3, mid: 4, max: 5 }
   if (promptLen >= 8192)  return { min: 2, mid: 2.5, max: 3 }
   if (promptLen >= 2048)  return { min: 1.5, mid: 1.75, max: 2 }
   return { min: 1, mid: 1, max: 1.1 }  // < 2048 tokens 收益极小
+  // 各档乘以 dimScale
 }
 ```
 
 **加速原理**:
 - 减少 HBM 访问次数，序列越长收益越大
-- 基于实测数据，非理论上限
+- `headDim` 越大（如 256），每次加载的有效数据量更大，FA 收益更显著
 - 关闭时固定返回 1x
 
 ### 7.5 Prefill 吞吐
@@ -489,17 +544,17 @@ prefillToksMax = computeBaseLimit * framework.prefillMax * prefillAttentionFacto
 ### 7.6 TTFT（首 Token 延迟）
 
 ```javascript
+// isContinuousBatching：framework.schedulingMode === 'continuous'
 ttft = (effectivePromptLen * 2 * activeParams * 1e9) / (tflops * 1e12)
        * 1000
        / (prefillAttentionFactor * flashFactor * framework.prefill)
-       * max(1, batch)
+       * (isContinuousBatching ? 1 : Math.max(1, batch))
 ```
 
-**P0 修复**: 现在正确除以 `framework.prefill`，修正了之前 5~9 倍的偏差。
-
 **batch 系数说明**:
-- `* batch`: 反映多并发时新请求需排队等待前面 Prefill 完成
-- 这是最坏情况近似，实际调度可能更优
+- **continuous batching 模式**（vLLM/SGLang/TRT-LLM/TGI/MLX/LMDeploy）：多请求并行处理，TTFT 不随 batch 增加，乘以 1
+- **serial 模式**（llama.cpp/ExLlamaV2/理论）：新请求需等前一请求 Prefill 完成，TTFT 乘以 `max(1, batch)`
+- 这由 `framework.schedulingMode` 控制，见 §2.4
 
 ### 7.7 总延迟
 
@@ -535,6 +590,7 @@ bottleneck = roofline > 1 ? 'bandwidth' : 'compute'
 |------|------|-----|------|
 | `!vramOk` | error | `vram_oom` | 显存不足，无法运行 |
 | `vramPct > 95%` | warn | `vram_high` | 显存利用率过高，可能 OOM |
+| `activationGB > 2 GB` | warn | `activation_oom` | 激活内存过大，大 batch 可能溢出 |
 | `tpEfficiency < 0.7` | warn | `tp_comm` | TP 通信开销过大，效率低 |
 | `singleToks < 20` | warn | `slow_single` | 单请求速度过慢 |
 | `roofline > 10` | info | `bw_bottleneck` | 严重带宽瓶颈 |
@@ -582,6 +638,22 @@ bottleneck = roofline > 1 ? 'bandwidth' : 'compute'
   
 - ❌ **极端 batch size** (>100)
   - 框架调度开销未建模
+
+### 10.4 UI 行为说明
+
+**VramCard 量化矩阵状态列**（三态）：
+- ✓ X%：显存充足，显示利用率
+- ⚡ X.X GB：显存不足，但 MoE 模型可通过 CPU 卸载运行，显示卸载后 GPU 显存占用（琥珀色）
+- ✗ OOM：显存不足且无法卸载（红色）
+
+**SpeedCard OOM 处理**：
+- 当 `!result.vramOk` 时，隐藏速度评级徽章，显示红色 OOM banner，注明速度值为理论值不可实际运行
+
+**exportMd.js 报告**：
+- 推测解码（Speculative Decoding）参数单独成行输出
+- VRAM 表增加 `activationGB` 行（当 >0 时）
+- 速度区块 OOM 时添加 `⚠️ VRAM insufficient` 注释行
+- 量化矩阵 MoE OOM 行显示 `⚡ X.X GB (offloadable)` 或 `❌ OOM`
 
 ---
 
