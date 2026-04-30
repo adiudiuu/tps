@@ -141,9 +141,12 @@ export function calcAll({
   if (cpuOffload && model.type === 'moe' && pcieBw != null) {
     let expertIOPerStep
     if (model.experts && model.experts_per_token) {
-      // 有字段时精确计算：base_ratio ≈ experts_per_token/experts，上限 0.5
-      const baseRatio = Math.min(0.5, model.experts_per_token / model.experts)
-      expertIOPerStep = model.active_params * (1 - baseRatio) * quant.bytes
+      // 有字段时精确计算：代数推导非专家参数量
+      // non_expert_total = (params × experts_per_token - experts × active_params) / (experts_per_token - experts)
+      const non_expert_total = (model.params * model.experts_per_token - model.experts * model.active_params)
+                               / (model.experts_per_token - model.experts)
+      const active_expert_params = model.active_params - non_expert_total
+      expertIOPerStep = active_expert_params * quant.bytes
     } else {
       // 无字段时：expert FFN 约占 active_params 的 70%
       expertIOPerStep = model.active_params * 0.70 * quant.bytes
