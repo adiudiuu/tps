@@ -259,12 +259,62 @@
               }
             }
           ]
+        },
+        {
+          "@type": "Organization",
+          "@id": "https://tps.bunai.com/#organization",
+          "name": "TPS Calculator",
+          "url": "https://tps.bunai.com/",
+          "description": "提供 GPU 推理性能估算工具，帮助 AI 工程师和开发者选型 GPU、量化方案与推理框架",
+          "logo": {
+            "@type": "ImageObject",
+            "url": "https://tps.bunai.com/favicon.svg",
+            "width": 512,
+            "height": 512
+          },
+          "sameAs": [
+            "https://github.com/adiudiuu/tps"
+          ]
         }
       ]
     }
     </script>
   </head>
   <body>
+    <!-- GEO: 静态语义内容，供不执行 JS 的 LLM/AI 爬虫读取 -->
+    <main id="static-content" style="display:none" aria-hidden="true">
+      <h1>GPU 推理速度计算器 · TPS Calculator</h1>
+      <p>在线估算大语言模型（LLM）在各类 GPU 上的推理速度（TPS）、显存占用与延迟的免费工具。支持 348+ 主流开源模型，覆盖 170+ GPU。</p>
+
+      <h2>核心功能</h2>
+      <ul>
+        <li>TPS 估算：Decode/Prefill 每秒 Token 数，支持多框架效率建模</li>
+        <li>显存计算：权重占用、KV Cache、系统开销及 OOM 风险预警</li>
+        <li>延迟指标：TTFT（首 Token 时延）、TPOT（每输出 Token 时延）、端到端总延迟</li>
+        <li>Roofline 分析：识别推理瓶颈（带宽受限 vs 算力受限）</li>
+        <li>多卡支持：Tensor Parallel 通信效率建模</li>
+        <li>模型排行榜：给定 GPU，一键查看所有模型速度排名</li>
+      </ul>
+
+      <h2>支持的 GPU</h2>
+      <p>覆盖 170+ GPU，包括 NVIDIA H100/A100/H200/RTX 4090、AMD MI300X/RX 7900 XTX、Apple M1/M2/M3/M4 全系列、Intel Gaudi 2/3、昇腾 910B/910C 等国产芯片。</p>
+
+      <h2>支持的模型</h2>
+      <p>覆盖 348+ 主流开源模型：DeepSeek-R1（671B MoE）、DeepSeek-V3、Qwen3（0.6B–235B）、Qwen2.5、Llama 3.1/3.2/3.3（1B–405B）、Gemma 2/3、Mistral/Mixtral、ChatGLM/GLM-4、Baichuan、Yi、Falcon、Phi、Bloom 等。</p>
+
+      <h2>支持的量化精度</h2>
+      <p>FP32、BF16、FP16、FP8、INT8、INT4、Q6_K、Q5_K、Q4_K、Q3_K、Q2_K、INT2</p>
+
+      <h2>支持的推理框架</h2>
+      <p>vLLM、TensorRT-LLM、llama.cpp、MLX、SGLang、TGI（Text Generation Inference）</p>
+
+      <h2>页面</h2>
+      <ul>
+        <li><a href="https://tps.bunai.com/">首页 / 计算器</a>：输入 GPU + 模型 + 参数，即时估算推理性能</li>
+        <li><a href="https://tps.bunai.com/ranking">模型排行榜</a>：给定 GPU，查看所有可运行模型的速度排名</li>
+        <li><a href="https://tps.bunai.com/library">支持列表</a>：查询已支持的所有 GPU 和模型的详细参数</li>
+      </ul>
+    </main>
     <div id="app"></div>
     <script type="module" src="/src/main.js"></script>
   </body>
