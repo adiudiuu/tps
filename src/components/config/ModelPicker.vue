@@ -43,16 +43,19 @@ const filteredModels = computed(() => {
   return list
 })
 
-function scrollToSelected(id) {
+function scrollToSelected(id, behavior = 'smooth') {
   nextTick(() => {
-    const el = listRef.value?.querySelector(`[data-model-id="${id}"]`)
-    el?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+    const container = listRef.value
+    if (!container) return
+    const el = container.querySelector(`[data-model-id="${id}"]`)
+    if (!el) return
+    const top = el.offsetTop - container.offsetTop
+    container.scrollTo({ top, behavior })
   })
 }
 
 function selectModel(m) {
   model.value = m
-  scrollToSelected(m.id)
 }
 
 function applyCustom() {
@@ -86,8 +89,13 @@ function fmtRelease(val) {
 const TABS = ['all', 'dense', 'moe', 'custom']
 
 onMounted(() => {
-  if (model.value) scrollToSelected(model.value.id)
+  if (model.value) scrollToSelected(model.value.id, 'instant')
 })
+
+function switchTab(tab) {
+  activeTab.value = tab
+  if (tab !== 'custom' && model.value) scrollToSelected(model.value.id, 'instant')
+}
 </script>
 
 <template>
@@ -95,13 +103,27 @@ onMounted(() => {
     <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wider">{{ t('model.title') }}</h2>
 
     <!-- 搜索框 -->
-    <div>
+    <div class="flex gap-2">
       <input
         v-model="searchQuery"
         type="text"
         :placeholder="t('model.search')"
-        class="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+        class="flex-1 bg-gray-50 border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-emerald-500"
       />
+      <button
+        v-if="model && activeTab !== 'custom'"
+        @click="scrollToSelected(model.id)"
+        class="shrink-0 px-2.5 py-2 bg-gray-100 hover:bg-emerald-50 border border-gray-300 hover:border-emerald-400 rounded-lg text-gray-500 hover:text-emerald-600 transition-colors"
+        title="回到已选模型"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/>
+          <line x1="12" y1="2" x2="12" y2="6"/>
+          <line x1="12" y1="18" x2="12" y2="22"/>
+          <line x1="2" y1="12" x2="6" y2="12"/>
+          <line x1="18" y1="12" x2="22" y2="12"/>
+        </svg>
+      </button>
     </div>
 
     <!-- Tab -->
@@ -109,7 +131,7 @@ onMounted(() => {
       <button
         v-for="tab in TABS"
         :key="tab"
-        @click="activeTab = tab"
+        @click="switchTab(tab)"
         :class="[
           'flex-1 py-1.5 rounded-lg text-xs font-medium border transition-colors',
           activeTab === tab

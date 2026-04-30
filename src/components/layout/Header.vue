@@ -30,6 +30,7 @@ const copied = ref(false)
 function toggleLang() {
   const newLang = locale.value === 'zh' ? 'en' : 'zh'
   locale.value = newLang
+  localStorage.setItem('lang', newLang)
   const url = new URL(window.location.href)
   if (newLang === 'en') {
     url.searchParams.set('lang', 'en')
