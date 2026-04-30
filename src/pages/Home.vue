@@ -32,7 +32,14 @@ const framework      = ref(_url.framework    ?? FRAMEWORK_MAP.find(f => f.id ===
 const flashAttention = ref(_url.flashAttention ?? true)
 const kvCacheQuant   = ref(_url.kvCacheQuant ?? KV_CACHE_MAP[0])
 const prefixCacheHit = ref(_url.prefixCacheHit ?? 0)
-const cpuOffload     = ref(_url.cpuOffload   ?? (model.value?.type === 'moe' && model.value?.active_params ? true : false))
+// 只有 MoE 模型放不下显存时（INT4 权重 > 可用显存）才自动开启 CPU 卸载
+function needsCpuOffload(m, g, n) {
+  if (!m || m.type !== 'moe' || !m.active_params) return false
+  const weightGB = m.params * 0.5  // INT4 bytes per param
+  const totalVram = (g?.vram ?? 0) * (n ?? 1) * (g?.usableRatio ?? 1.0)
+  return weightGB > totalVram
+}
+const cpuOffload     = ref(_url.cpuOffload   ?? needsCpuOffload(model.value, gpu.value, gpuCount.value))
 const pcieBw         = ref(_url.pcieBw       ?? PCIE_BW_OPTIONS[1])
 const speculativeDecoding = ref(_url.speculativeDecoding ?? false)
 const acceptanceRate = ref(_url.acceptanceRate ?? 0.7)
@@ -65,9 +72,9 @@ function unpinResult() {
 
 watch(model, (m, prev) => {
   if (m?.max_ctx) ctx.value = Math.min(m.max_ctx, 16384)
-  // MoE 模型自动开启 CPU 卸载；切换到非 MoE 时自动关闭（开关本就不显示）
+  // MoE 模型：仅在放不下显存时才自动开启 CPU 卸载；能放下则关闭；切换到非 MoE 时关闭
   if (m?.type === 'moe' && m?.active_params) {
-    cpuOffload.value = true
+    cpuOffload.value = needsCpuOffload(m, gpu.value, gpuCount.value)
   } else if (prev?.type === 'moe') {
     cpuOffload.value = false
   }

@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import TopBar from '../components/layout/TopBar.vue'
 import GpuConfig from '../components/config/GpuConfig.vue'
 import { GPU_LIST } from '../data/gpus/index.js'
@@ -9,21 +9,49 @@ import { ALL_MODELS } from '../data/models/index.js'
 import { QUANT_MAP, FRAMEWORK_MAP, INTERCONNECT_MAP } from '../data/constants.js'
 import { calcAll } from '../utils/calc.js'
 import { fmtParams, fmtGB, fmtToks } from '../utils/format.js'
+import { PCIE_BW_OPTIONS } from '../data/runtime.js'
+
+// 与 Home.vue 保持一致：判断 MoE 模型是否需要 CPU 卸载
+function needsCpuOffload(m, g, n) {
+  if (!m || m.type !== 'moe' || !m.active_params) return false
+  const weightGB = m.params * 0.5  // INT4 最差情况
+  const totalVram = (g?.vram ?? 0) * (n ?? 1) * (g?.usableRatio ?? 1.0)
+  return weightGB > totalVram
+}
+const defaultPcieBw = PCIE_BW_OPTIONS[1] // PCIe 4.0
 
 const { t } = useI18n()
 const router = useRouter()
+const route = useRoute()
 
-const gpu = ref(GPU_LIST.find(g => g.id === 'h100_sxm') ?? GPU_LIST[0])
-const gpuCount = ref(1)
-const interconnect = ref(INTERCONNECT_MAP[0])
-const ctx = ref(16384)
-const batch = ref(1)
-const framework = ref(FRAMEWORK_MAP.find(f => f.id === 'theory'))
+// 从 URL 读取初始值
+const _p = route.query
+const gpu = ref(GPU_LIST.find(g => g.id === _p.gpu) ?? GPU_LIST.find(g => g.id === 'h100_sxm') ?? GPU_LIST[0])
+const gpuCount = ref(_p.n ? Math.max(1, Number(_p.n)) : 1)
+const interconnect = ref(INTERCONNECT_MAP.find(i => i.id === _p.ic) ?? INTERCONNECT_MAP[0])
+const ctx = ref(_p.ctx ? Math.max(512, Number(_p.ctx)) : 16384)
+const batch = ref(_p.b ? Math.max(1, Number(_p.b)) : 1)
+const framework = ref(FRAMEWORK_MAP.find(f => f.id === _p.fw) ?? FRAMEWORK_MAP.find(f => f.id === 'theory'))
 
 const isCalculating = ref(false)
-const sortBy = ref('speed') // 'speed' | 'vram' | 'params'
-const filterType = ref('all') // 'all' | 'dense' | 'moe'
-const showOnlyRunnable = ref(true)
+const sortBy = ref(['speed','vram','params'].includes(_p.sort) ? _p.sort : 'speed')
+const filterType = ref(['all','dense','moe'].includes(_p.type) ? _p.type : 'all')
+const showOnlyRunnable = ref(_p.runnable === '0' ? false : true)
+
+// 状态变化时同步到 URL
+watch([gpu, gpuCount, interconnect, ctx, batch, framework, sortBy, filterType, showOnlyRunnable], ([g, n, ic, c, b, fw, sort, type, runnable]) => {
+  const query = {}
+  if (g?.id) query.gpu = g.id
+  if (n !== 1) query.n = n
+  if (ic?.id) query.ic = ic.id
+  if (c !== 16384) query.ctx = c
+  if (b !== 1) query.b = b
+  if (fw?.id && fw.id !== 'theory') query.fw = fw.id
+  if (sort !== 'speed') query.sort = sort
+  if (type !== 'all') query.type = type
+  if (!runnable) query.runnable = '0'
+  router.replace({ query })
+})
 
 const modelResults = computed(() => {
   if (!gpu.value || !framework.value) return []
@@ -39,7 +67,8 @@ const modelResults = computed(() => {
 
     for (const quant of QUANT_MAP) {
       try {
-        const result = calcAll({
+        const useCpuOffload = needsCpuOffload(model, gpu.value, gpuCount.value)
+        const commonArgs = {
           gpu: gpu.value,
           gpuCount: gpuCount.value,
           interconnect: interconnect.value,
@@ -53,12 +82,17 @@ const modelResults = computed(() => {
           flashAttention: true,
           kvCacheQuant: null,
           prefixCacheHit: 0,
-          cpuOffload: false,
-          pcieBw: null,
           speculativeDecoding: false,
           acceptanceRate: 0.7,
           draftLen: 4,
-        })
+        }
+        let result = calcAll({ ...commonArgs, cpuOffload: false, pcieBw: null })
+
+        // MoE 放不下时，尝试开启 CPU 卸载
+        if (!result.vramOk && model.type === 'moe' && model.active_params) {
+          const offloadResult = calcAll({ ...commonArgs, cpuOffload: true, pcieBw: defaultPcieBw })
+          if (offloadResult.vramOk) result = offloadResult
+        }
 
         if (result.vramOk) {
           // 优先选择更高精度的量化
@@ -78,6 +112,7 @@ const modelResults = computed(() => {
         quant: bestQuant,
         result: bestResult,
         canRun: !!bestResult,
+        cpuOffload: bestResult?.cpuOffload ?? false,
       })
     }
   }
@@ -87,7 +122,7 @@ const modelResults = computed(() => {
     if (sortBy.value === 'speed') {
       if (!a.result) return 1
       if (!b.result) return -1
-      return b.result.decodeToks - a.result.decodeToks
+      return b.result.singleToks - a.result.singleToks
     } else if (sortBy.value === 'vram') {
       if (!a.result) return 1
       if (!b.result) return -1
@@ -112,6 +147,8 @@ function useThisModel(modelData) {
     fw:    framework.value.id,
     ctx:   ctx.value,
     b:     batch.value !== 1 ? batch.value : undefined,
+    co:    modelData.cpuOffload ? '1' : undefined,
+    pcie:  modelData.cpuOffload ? defaultPcieBw.id : undefined,
   }
   router.push({ path: '/', query })
 }
@@ -215,7 +252,7 @@ function useThisModel(modelData) {
                   <span v-else class="text-sm text-gray-400">—</span>
                 </td>
                 <td class="px-4 py-3 text-right">
-                  <span v-if="item.result" class="text-sm font-medium text-gray-900">{{ fmtToks(item.result.decodeToks) }}</span>
+                  <span v-if="item.result" class="text-sm font-medium text-gray-900">{{ fmtToks(item.result.singleToks) }}</span>
                   <span v-else class="text-sm text-gray-400">—</span>
                 </td>
                 <td class="px-4 py-3 text-center">
@@ -305,7 +342,7 @@ function useThisModel(modelData) {
           <!-- 速度显示 -->
           <div v-if="item.result" class="bg-gradient-to-r from-emerald-50 to-blue-50 rounded-lg p-2.5 mb-3">
             <div class="text-xs text-gray-600 mb-0.5">{{ t('ranking.table_speed') }}</div>
-            <div class="text-lg font-bold text-emerald-700">{{ fmtToks(item.result.decodeToks) }}</div>
+            <div class="text-lg font-bold text-emerald-700">{{ fmtToks(item.result.singleToks) }}</div>
           </div>
 
           <!-- 操作按钮 -->
