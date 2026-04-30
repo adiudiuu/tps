@@ -14,6 +14,14 @@ export default {
     supported: 'Model Library',
     supported_short: 'Library',
   },
+  notice: {
+    theoretical_value: '💡 Theoretical estimates — for reference only',
+    for_reference_only: '📊 Data for reference — validate with testing',
+    actual_may_vary: '⚠️ Actual performance may vary by environment',
+    estimate_based_on_theory: '🔬 Based on theoretical models — may differ in practice',
+    results_approximate: '📐 Approximate results for quick evaluation',
+    close: 'Close',
+  },
   supported: {
     models: 'Models',
     gpus: 'GPUs',

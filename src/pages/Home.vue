@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import TopBar from '../components/layout/TopBar.vue'
 import TwoColumn from '../components/layout/TwoColumn.vue'
+import ScrollingNotice from '../components/ui/ScrollingNotice.vue'
 import GpuConfig from '../components/config/GpuConfig.vue'
 import ModelPicker from '../components/config/ModelPicker.vue'
 import RunConfig from '../components/config/RunConfig.vue'
@@ -162,6 +163,7 @@ const pinnedQuantMatrix = computed(() => {
       :flash-attention="flashAttention" :kv-cache-quant="kvCacheQuant"
       :prefix-cache-hit="prefixCacheHit" :cpu-offload="cpuOffload" :pcie-bw="pcieBw"
     />
+    <ScrollingNotice />
     <TwoColumn>
       <template #config>
         <GpuConfig v-model:gpu="gpu" v-model:gpuCount="gpuCount" v-model:interconnect="interconnect" />

@@ -14,6 +14,14 @@ export default {
     supported: '模型库',
     supported_short: '模型库',
   },
+  notice: {
+    theoretical_value: '💡 计算结果为理论值，仅供参考',
+    for_reference_only: '📊 数据仅供参考，建议结合实际测试',
+    actual_may_vary: '⚠️ 实际性能可能因环境而异，请以实际为准',
+    estimate_based_on_theory: '🔬 基于理论模型估算，实际可能有偏差',
+    results_approximate: '📐 结果为近似值，用于快速评估',
+    close: '关闭',
+  },
   supported: {
     models: '支持模型',
     gpus: '支持 GPU',
