@@ -5,6 +5,8 @@ export default {
   type: 'moe',
   params: 671,
   active_params: 37,
+  experts: 256,
+  experts_per_token: 8,
   mla_ratio: 0.18,
   layers: 61,
   kv_heads: 128,

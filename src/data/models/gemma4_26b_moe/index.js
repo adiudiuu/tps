@@ -9,6 +9,8 @@ export default {
   type: 'moe',
   params: 25.2,
   active_params: 3.8,
+  experts: 128,
+  experts_per_token: 8,
   mla_ratio: null,
   layers: 30,
   kv_heads: 8,           // local (sliding) attention KV heads
