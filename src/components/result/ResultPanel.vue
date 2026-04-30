@@ -8,6 +8,7 @@ import LatencyCard from './LatencyCard.vue'
 import RooflineChart from './RooflineChart.vue'
 import VramPieChart from './VramPieChart.vue'
 import WarningList from './WarningList.vue'
+import BatchSweepChart from './BatchSweepChart.vue'
 
 const { t } = useI18n()
 defineProps({
@@ -19,6 +20,8 @@ defineProps({
   gpuCount: Number,
   compact: Boolean,
   readonly: Boolean,
+  sweepData: Array,
+  currentBatch: Number,
 })
 const framework = defineModel('framework', { required: true })
 const quant = defineModel('quant', { required: true })
@@ -70,5 +73,6 @@ const quant = defineModel('quant', { required: true })
       <RooflineChart :result="result" />
       <VramPieChart :result="result" />
     </div>
+    <BatchSweepChart v-if="sweepData?.length" :sweep-data="sweepData" :current-batch="currentBatch" />
   </div>
 </template>

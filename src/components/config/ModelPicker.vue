@@ -228,10 +228,10 @@ onMounted(() => {
       @click="closeDetails"
     >
       <div
-        class="w-full max-w-2xl rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-teal-50 shadow-2xl"
+        class="w-full max-w-2xl rounded-2xl border border-gray-200 bg-white shadow-2xl"
         @click.stop
       >
-        <div class="flex items-start justify-between gap-4 px-5 py-4 border-b border-emerald-100">
+        <div class="flex items-start justify-between gap-4 px-5 py-4 border-b border-gray-100">
           <div>
             <div class="text-lg font-semibold text-gray-900">{{ detailModel.name }}</div>
             <div class="mt-1 text-sm text-gray-500">{{ t('model.detail.release') }}: {{ fmtRelease(detailModel.released) }}</div>

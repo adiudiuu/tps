@@ -11,6 +11,7 @@ const { t } = useI18n()
 const props = defineProps({
   model: { type: Object, default: null },
   framework: { type: Object, default: null },
+  gpuCount: { type: Number, default: 1 },
 })
 
 const quant = defineModel('quant', { required: true })
@@ -26,8 +27,13 @@ const pcieBw = defineModel('pcieBw', { required: true })
 const speculativeDecoding = defineModel('speculativeDecoding', { required: true })
 const acceptanceRate = defineModel('acceptanceRate', { required: true })
 const draftLen = defineModel('draftLen', { required: true })
+const ppCount = defineModel('ppCount', { required: true })
+const imageCount = defineModel('imageCount', { required: true })
 
-// Speculative Decoding 支持的框架
+// PP 显示条件：至少 2 张卡且模型参数 >= 30B
+const ppSupported = computed(() => props.gpuCount >= 2 && (props.model?.params ?? 0) >= 30)
+// 隐藏 PP 控件时自动重置为 1
+watch(ppSupported, (v) => { if (!v) ppCount.value = 1 })
 const speculativeSupported = computed(() => {
   const supportedFrameworks = ['vllm', 'trtllm']
   return supportedFrameworks.includes(props.framework?.id)
@@ -41,7 +47,7 @@ watch(() => props.framework, (newFramework) => {
 })
 
 const BASE_CTX_OPTIONS = [512, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072, 262144, 524288, 1048576, 2097152, 4194304, 10485760]
-const BATCH_OPTIONS = [1, 2, 4, 8, 16, 32, 64, 128]
+const BATCH_OPTIONS = [1, 2, 4, 8, 16, 32, 64, 128, 256]
 
 const ctxOptions = computed(() => {
   const maxCtx = props.model?.max_ctx
@@ -322,6 +328,57 @@ const ctxOptions = computed(() => {
           </div>
         </template>
       </div>
+    </div>
+
+    <!-- Pipeline Parallel -->
+    <div class="pt-1 border-t border-gray-100">
+      <label class="flex items-center justify-between text-xs text-gray-500 mb-2">
+        <span class="flex items-center gap-1">
+          {{ t('run.pp_count') }}<TipIcon :text="t('run.pp_count_tip')" />
+          <span v-if="!ppSupported" class="text-orange-500 text-[10px] ml-1">({{ t('run.pp_not_applicable') }})</span>
+        </span>
+        <span class="text-emerald-700 font-medium">PP{{ ppCount }}</span>
+      </label>
+      <div class="flex gap-1.5 flex-wrap">
+        <button
+          v-for="n in [1, 2, 4, 8, 16]"
+          :key="n"
+          @click="ppCount = n"
+          :disabled="!ppSupported && n > 1"
+          :class="[
+            'px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors',
+            !ppSupported && n > 1
+              ? 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed'
+              : ppCount === n
+                ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm'
+                : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:border-gray-300'
+          ]"
+        >PP{{ n }}</button>
+      </div>
+    </div>
+
+    <!-- Vision Image Count (only for multimodal models) -->
+    <div v-if="props.model?.vision_seq_tokens" class="pt-1 border-t border-gray-100">
+      <label class="flex items-center justify-between text-xs text-gray-500 mb-2">
+        <span class="flex items-center gap-1">{{ t('run.image_count') }}<TipIcon :text="t('run.image_count_tip')" /></span>
+        <span class="text-emerald-700 font-medium">{{ imageCount }} {{ t('run.images') }}</span>
+      </label>
+      <div class="flex gap-1.5 flex-wrap">
+        <button
+          v-for="n in [0, 1, 2, 4, 8]"
+          :key="n"
+          @click="imageCount = n"
+          :class="[
+            'px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors',
+            imageCount === n
+              ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm'
+              : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:border-gray-300'
+          ]"
+        >{{ n === 0 ? t('run.no_image') : n }}</button>
+      </div>
+      <p v-if="imageCount > 0" class="text-xs text-purple-600 bg-purple-50 rounded px-2 py-1.5 border border-purple-200 mt-2">
+        {{ t('run.vision_patch_info', { tokens: (props.model.vision_seq_tokens * imageCount).toLocaleString(), per: props.model.vision_seq_tokens }) }}
+      </p>
     </div>
   </section>
 </template>

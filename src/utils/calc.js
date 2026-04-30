@@ -26,6 +26,8 @@ export function calcAll({
   flashAttention = true, kvCacheQuant = null, prefixCacheHit = 0,
   cpuOffload = false, pcieBw = null,
   speculativeDecoding = false, acceptanceRate = 0.7, draftLen = 4, draftModelParams = null,
+  ppCount = 1,
+  imageCount = 0,
 }) {
   const totalVram = gpu.vram * gpuCount * (gpu.usableRatio ?? 1.0)
   const totalBw   = gpu.bw   * gpuCount * (gpu.bwUtilization ?? 0.80)
@@ -65,6 +67,14 @@ export function calcAll({
   const weightGB = (cpuOffload && model.type === 'moe')
     ? model.active_params * quant.bytes * 1.5
     : model.params * quant.bytes
+  // Vision encoder：encoder 权重独立于 LLM backbone（如已包含在 params 内则不重复计算）
+  // vision_encoder_params 已从 params 中独立出来的情况：视具体模型而定
+  // 当前约定：vision_encoder_params 已包含在 params 内，无需额外加；
+  //           但需要额外的 KV token 显存（vision_seq_tokens × imageCount）
+  // 额外 vision token 对 KV Cache 的增量在 kvGB 之后加入
+  const visionPatchTokens = (model.vision_seq_tokens && imageCount > 0)
+    ? model.vision_seq_tokens * imageCount
+    : 0
 
   // KV Cache 显存：精度独立于权重量化，通常为 FP16（2 bytes）
   // 公式（混合注意力）：global 层用全上下文，local sliding 层只用窗口大小
@@ -85,6 +95,11 @@ export function calcAll({
   }
   // MLA（Multi-head Latent Attention）压缩 KV Cache，如 DeepSeek V2/V3/R1
   if (model.mla_ratio) kvGB *= model.mla_ratio
+  // Vision patch token 额外 KV Cache：每张图的 patch token 占用同等 KV 显存
+  if (visionPatchTokens > 0) {
+    const kvPatchGB = 2 * model.layers * model.kv_heads * model.head_dim * visionPatchTokens * batch * kvBytesPerElem / 1e9
+    kvGB += kvPatchGB
+  }
 
   // 系统开销（CUDA context、激活值、临时 buffer 等）
   // 动态调整：小模型固定 1GB，大模型按权重 3% 计算，上限 5GB
@@ -92,7 +107,9 @@ export function calcAll({
   // batch × promptLen × hidden_size × 2（FFN intermediate）× 2 bytes（BF16）
   const activationGB = batch * promptLen * (model.hidden_size ?? 4096) * 2 * 2 / 1e9
   const overheadGB  = Math.max(1.0, Math.min(weightGB * 0.03, 5.0)) + activationGB
-  const totalNeeded = weightGB + kvGB + overheadGB
+  // PP：每个 pipeline stage 只持有 1/ppCount 的权重和 KV Cache
+  // totalVram 是单个 PP stage（一个 TP 组）的可用显存
+  const totalNeeded = weightGB / ppCount + kvGB / ppCount + overheadGB
 
   // ─────────────────────────────────────────────
   // Decode 速度（内存带宽瓶颈）
@@ -151,6 +168,17 @@ export function calcAll({
   // - expert FFN 权重在 CPU RAM，每步经 PCIe 读到 GPU
   // - 非专家权重（attention/embed）+ KV Cache 始终在 GPU HBM
   // - 两部分串行：t_total = t_pcie_expert + t_gpu_rest → bwLimit = batch / t_total
+  // PP 流水线气泡效率：pipeline 未填满时的有效吞吐折扣
+  // 对 batch 个请求做 PP 流水，气泡比例 ≈ (ppCount-1)/(batch+ppCount-1)
+  // 有效效率 = batch/(batch+ppCount-1)
+  const ppBubbleEff = ppCount > 1 ? batch / (batch + ppCount - 1) : 1.0
+
+  // PP 阶段间 P2P 通信延迟（每个 decode step，ms）
+  // 跨 stage 传递 hidden_size × batch × 2 bytes（BF16），共 ppCount-1 次
+  const ppP2pMs = (ppCount > 1 && interconnect)
+    ? (ppCount - 1) * (model.hidden_size ?? 4096) * batch * 2 / (interconnect.bw * 1e9) * 1000
+    : 0
+
   let effectiveBw, bwLimit
   if (cpuOffload && model.type === 'moe' && pcieBw != null) {
     let expertIOPerStep
@@ -172,11 +200,13 @@ export function calcAll({
     const pcieBwUnidirectional = pcieBw.bw / 2
     const tExpert = expertIOPerStep / pcieBwUnidirectional  // s/tok，PCIe 瓶颈
     const tGpu    = gpuIOPerStep    / totalBw               // s/tok，GPU HBM 瓶颈
-    bwLimit = (1 / (tExpert + tGpu)) * batch
+    // PP：每 stage 各自做 1/ppCount 的工作，流水满载时吞吐 × ppCount，再乘气泡效率
+    bwLimit = (1 / (tExpert + tGpu)) * batch * ppCount * ppBubbleEff
     effectiveBw = pcieBw.bw  // 仅用于展示
   } else {
     effectiveBw = totalBw
-    bwLimit = (effectiveBw / decodeBytesPerStep) * batch
+    // PP：decodeBytesPerStep / ppCount 是单个 stage 的 IO 量；流水满载再乘气泡效率
+    bwLimit = (effectiveBw / (decodeBytesPerStep / ppCount)) * batch * ppBubbleEff
   }
   let decodeToks = bwLimit * adjustedFramework.decode
   let decodeToksMin = bwLimit * decodeFactorMin
@@ -194,8 +224,8 @@ export function calcAll({
       const draftWeightGB = draftModelParams * quant.bytes
       const draftOverhead = draftWeightGB * draftLen  // draftLen 次 draft 前向
       const totalIOPerVerifyStep = decodeBytesPerStep + draftOverhead
-      // 重新以实际 IO 量计算有效 bwLimit（覆盖上面的 bwLimit）
-      bwLimit = (effectiveBw / totalIOPerVerifyStep) * batch
+      // 重新以实际 IO 量计算有效 bwLimit（覆盖上面的 bwLimit，保留 PP scaling）
+      bwLimit = (effectiveBw / (totalIOPerVerifyStep / ppCount)) * batch * ppBubbleEff
     }
     speculativeSpeedup = 1 + acceptanceRate * draftLen
     decodeToks *= speculativeSpeedup
@@ -230,9 +260,12 @@ export function calcAll({
 
   // 单 token 生成时间（ms），batch=1 时的延迟基准
   // offload 模式：bwLimit 已包含串行 IO，从 bwLimit 反推 tpot 保持一致
-  const tpot = (cpuOffload && model.type === 'moe' && pcieBw != null)
+  // PP 模式：batch / bwLimit 已包含 ppCount 和 ppBubbleEff，反推出每请求 tpot
+  // 再叠加 PP 阶段间 P2P 通信延迟 ppP2pMs
+  const tpotBase = (cpuOffload && model.type === 'moe' && pcieBw != null)
     ? (batch / bwLimit) * 1000 / framework.decode
-    : (decodeBytesPerStep / effectiveBw) * 1000 / framework.decode  // ms/tok
+    : (decodeBytesPerStep / ppCount / effectiveBw / ppBubbleEff) * 1000 / framework.decode  // ms/tok
+  const tpot = tpotBase + ppP2pMs
 
   // ─────────────────────────────────────────────
   // Roofline 分析
@@ -303,6 +336,11 @@ export function calcAll({
     speculativeSpeedup,
     acceptanceRate,
     draftLen,
+    ppCount,
+    ppBubbleEff,
+    ppP2pMs,
+    imageCount,
+    visionPatchTokens,
   }
 }
 
@@ -375,4 +413,63 @@ export function getWarnings(result, t) {
   }
 
   return warnings
+}
+
+/**
+ * Batch sweep 曲线：固定配置下，扫描 batch 1→256 的吞吐/延迟
+ *
+ * @param {object} params  - 与 calcAll 相同的参数对象，其中 batch 字段会被覆盖
+ * @param {number[]} [batches] - 要扫描的 batch 值数组，默认 [1,2,4,8,16,32,64,128,256]
+ * @returns {Array<{batch:number, decodeToks:number, effectiveToks:number, tpot:number, ttft:number, vramOk:boolean, ppBubbleEff:number}>}
+ */
+export function calcBatchSweep(params, batches = [1, 2, 4, 8, 16, 32, 64, 128, 256]) { // keep in sync with BATCH_OPTIONS in RunConfig.vue
+  return batches.map(b => {
+    try {
+      const r = calcAll({ ...params, batch: b })
+      return {
+        batch: b,
+        decodeToks:    r.decodeToks,
+        effectiveToks: r.effectiveToks,
+        singleToks:    r.singleToks,
+        tpot:          r.tpot,
+        ttft:          r.ttft,
+        totalLatency:  r.totalLatency,
+        vramOk:        r.vramOk,
+        ppBubbleEff:   r.ppBubbleEff,
+        bottleneck:    r.bottleneck,
+      }
+    } catch {
+      return { batch: b, error: true }
+    }
+  })
+}
+
+/**
+ * GPU 数量扫描：固定当前配置，枚举 gpuCount，计算每种数量下的显存/性能
+ * 用于直观展示"买几张卡才能跑"
+ *
+ * @param {object} params     - 与 calcAll 相同，gpuCount 字段会被覆盖
+ * @param {number[]} [counts] - 要扫描的 GPU 数量，默认 [1,2,4,8,16,32,64]
+ */
+export function calcGpuSweep(params, counts = [1, 2, 4, 8, 16, 32, 64]) {
+  return counts.map(n => {
+    try {
+      const r = calcAll({ ...params, gpuCount: n })
+      return {
+        gpuCount:      n,
+        decodeToks:    r.decodeToks,
+        effectiveToks: r.effectiveToks,
+        singleToks:    r.singleToks,
+        tpot:          r.tpot,
+        ttft:          r.ttft,
+        totalLatency:  r.totalLatency,
+        vramOk:        r.vramOk,
+        totalNeeded:   r.totalNeeded,
+        vramPct:       r.vramPct,
+        bottleneck:    r.bottleneck,
+      }
+    } catch {
+      return { gpuCount: n, error: true }
+    }
+  })
 }

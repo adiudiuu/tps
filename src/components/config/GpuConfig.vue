@@ -14,6 +14,15 @@ const interconnect = defineModel('interconnect', { required: true })
 
 const GPU_COUNT_OPTIONS = [1, 2, 4, 8, 16]
 
+const customCountInput = ref('')
+const isCustomCount = computed(() => !GPU_COUNT_OPTIONS.includes(gpuCount.value))
+
+function applyCustomCount() {
+  const v = parseInt(customCountInput.value)
+  if (v >= 1 && v <= 512) gpuCount.value = v
+  customCountInput.value = ''
+}
+
 // ── 搜索 combobox 状态 ──────────────────────────────
 const searchQuery = ref('')
 const isOpen = ref(false)
@@ -254,6 +263,7 @@ watch(gpu, (g) => {
     <!-- GPU 数量（Apple Silicon 不支持多卡）-->
     <div v-if="gpu?.vendor !== 'apple'">
       <label class="block text-xs text-gray-500 mb-1">{{ t('gpu.count') }}</label>
+      <!-- 预设按钮 -->
       <div class="flex gap-2">
         <button
           v-for="n in GPU_COUNT_OPTIONS"
@@ -266,6 +276,21 @@ watch(gpu, (g) => {
               : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:border-gray-300'
           ]"
         >{{ n }}</button>
+      </div>
+      <!-- 自定义数量输入（第二行）-->
+      <div class="flex items-center gap-2 mt-2">
+        <span class="text-xs text-gray-400">{{ t('gpu.count_custom') }}</span>
+        <input
+          v-model="customCountInput"
+          type="number" min="1" max="512"
+          :placeholder="isCustomCount ? String(gpuCount) : '32'"
+          @keydown.enter="applyCustomCount"
+          @blur="applyCustomCount"
+          class="w-20 py-1 px-2 rounded-lg text-sm border border-gray-200 bg-gray-50 text-gray-700 focus:outline-none focus:ring-1 focus:ring-emerald-500 text-center"
+        />
+        <span v-if="isCustomCount" class="text-xs text-emerald-600 font-medium">
+          {{ t('gpu.count_current', { n: gpuCount }) }}
+        </span>
       </div>
     </div>
 

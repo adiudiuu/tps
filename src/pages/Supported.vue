@@ -130,31 +130,31 @@ function updateHoverPosition(event) {
   const cardHeight = 500 // 预估卡片高度
   const padding = 12
   const bottomNavHeight = 80 // 底部导航栏高度
-  
+
   let x = rect.right + padding
   let y = rect.top
-  
+
   // 如果右侧空间不够，显示在左侧
   if (x + cardWidth > window.innerWidth) {
     x = rect.left - cardWidth - padding
   }
-  
+
   // 如果左侧也不够，居中显示
   if (x < 0) {
     x = Math.max(padding, (window.innerWidth - cardWidth) / 2)
   }
-  
+
   // 确保不超出底部（留出底部导航栏空间）
   const maxY = window.innerHeight - cardHeight - bottomNavHeight - padding
   if (y > maxY) {
     y = Math.max(padding, maxY)
   }
-  
+
   // 确保不超出顶部
   if (y < padding) {
     y = padding
   }
-  
+
   hoverPosition.value = { x, y }
 }
 
@@ -288,7 +288,7 @@ onMounted(() => {
                       : 'bg-emerald-100 text-emerald-700'"
                     class="text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0"
                   >{{ m.type === 'moe' ? 'MoE' : 'Dense' }}</span>
-                  <span 
+                  <span
                     :class="[
                       'text-sm truncate transition-colors',
                       m.id === currentModelId ? 'text-emerald-700 font-semibold' : 'text-gray-800 group-hover:text-emerald-700'
@@ -361,7 +361,7 @@ onMounted(() => {
                         : 'bg-gray-100 text-gray-600'"
                     class="text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0"
                   >{{ g.vendor === 'apple' ? 'AS' : g.tier === 'datacenter' ? 'DC' : 'CS' }}</span>
-                  <span 
+                  <span
                     :class="[
                       'text-sm truncate transition-colors',
                       g.id === currentGpuId ? 'text-emerald-700 font-semibold' : 'text-gray-800 group-hover:text-emerald-700'
@@ -396,13 +396,13 @@ onMounted(() => {
 
     <!-- 模型悬停卡片 -->
     <Teleport to="body">
+      <Transition name="hover-card">
       <div
         v-if="hoveredModel"
-        class="fixed z-[9999] w-96 max-h-[calc(100vh-100px)] overflow-y-auto border-2 border-emerald-400 rounded-xl shadow-2xl p-4 pointer-events-none"
-        :style="{ 
-          left: hoverPosition.x + 'px', 
-          top: hoverPosition.y + 'px',
-          backgroundColor: 'rgb(209 250 229)'
+        class="fixed z-[9999] w-96 max-h-[calc(100vh-100px)] overflow-y-auto border border-gray-200 rounded-xl shadow-2xl p-4 pointer-events-none bg-white"
+        :style="{
+          left: hoverPosition.x + 'px',
+          top: hoverPosition.y + 'px'
         }"
       >
         <div class="space-y-3">
@@ -421,9 +421,9 @@ onMounted(() => {
 
           <!-- 核心参数 -->
           <div class="grid grid-cols-2 gap-2">
-            <div class="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-lg p-2.5 border border-emerald-200">
+            <div class="bg-gray-50 rounded-lg p-2.5 border border-gray-200">
               <div class="text-xs text-gray-600 mb-0.5">{{ t('supported.parameters') }}</div>
-              <div class="text-lg font-bold text-emerald-700">{{ fmtParams(hoveredModel.params) }}</div>
+              <div class="text-lg font-bold text-gray-800">{{ fmtParams(hoveredModel.params) }}</div>
             </div>
             <div class="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-lg p-2.5 border border-blue-200">
               <div class="text-xs text-gray-600 mb-0.5">{{ t('supported.context') }}</div>
@@ -479,17 +479,18 @@ onMounted(() => {
           </div>
         </div>
       </div>
+      </Transition>
     </Teleport>
 
     <!-- GPU 悬停卡片 -->
     <Teleport to="body">
+      <Transition name="hover-card">
       <div
         v-if="hoveredGpu"
-        class="fixed z-[9999] w-80 max-h-[calc(100vh-100px)] overflow-y-auto border-2 border-emerald-400 rounded-xl shadow-2xl p-4 pointer-events-none"
-        :style="{ 
-          left: hoverPosition.x + 'px', 
-          top: hoverPosition.y + 'px',
-          backgroundColor: 'rgb(209 250 229)'
+        class="fixed z-[9999] w-80 max-h-[calc(100vh-100px)] overflow-y-auto border border-gray-200 rounded-xl shadow-2xl p-4 pointer-events-none bg-white"
+        :style="{
+          left: hoverPosition.x + 'px',
+          top: hoverPosition.y + 'px'
         }"
       >
         <div class="space-y-3">
@@ -506,9 +507,9 @@ onMounted(() => {
 
           <!-- 核心规格 -->
           <div class="grid grid-cols-2 gap-2">
-            <div class="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-lg p-2.5 border border-emerald-200">
+            <div class="bg-gray-50 rounded-lg p-2.5 border border-gray-200">
               <div class="text-xs text-gray-600 mb-0.5">{{ t('supported.vram') }}</div>
-              <div class="text-lg font-bold text-emerald-700">{{ hoveredGpu.vram }} <span class="text-sm">GB</span></div>
+              <div class="text-lg font-bold text-gray-800">{{ hoveredGpu.vram }} <span class="text-sm">GB</span></div>
             </div>
             <div class="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-lg p-2.5 border border-blue-200">
               <div class="text-xs text-gray-600 mb-0.5">{{ t('supported.bandwidth') }}</div>
@@ -544,9 +545,9 @@ onMounted(() => {
           </div>
 
           <!-- 互联信息 -->
-          <div v-if="hoveredGpu.nvlink_bw" class="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-2 border border-green-200">
+          <div v-if="hoveredGpu.nvlink_bw" class="bg-gray-50 rounded-lg p-2 border border-gray-200">
             <div class="text-xs text-gray-600 mb-0.5">{{ t('supported.interconnect') }}</div>
-            <div class="text-sm font-semibold text-green-700">
+            <div class="text-sm font-semibold text-gray-800">
               {{ hoveredGpu.nvlink_bw }} GB/s
             </div>
           </div>
@@ -557,6 +558,7 @@ onMounted(() => {
           </div>
         </div>
       </div>
+      </Transition>
     </Teleport>
 
     <!-- 模型详情弹窗（手机端点击查看）-->
@@ -567,13 +569,12 @@ onMounted(() => {
         @click="closeDetail"
       >
         <div
-          class="w-full max-w-lg border-2 border-emerald-400 rounded-xl shadow-2xl p-4 max-h-[90vh] overflow-y-auto"
-          style="background-color: rgb(209 250 229)"
+          class="w-full max-w-lg border border-gray-200 rounded-xl shadow-2xl p-4 max-h-[90vh] overflow-y-auto bg-white"
           @click.stop
         >
           <div class="space-y-3">
             <!-- 标题 -->
-            <div class="border-b border-emerald-200 pb-2 flex items-start justify-between">
+            <div class="border-b border-gray-100 pb-2 flex items-start justify-between">
               <div class="flex-1">
                 <div class="flex items-center gap-2 mb-1 flex-wrap">
                   <h3 class="text-base font-bold text-gray-900">{{ detailModel.name }}</h3>
@@ -587,7 +588,7 @@ onMounted(() => {
               </div>
               <button
                 @click="closeDetail"
-                class="ml-2 p-1 rounded-lg hover:bg-emerald-100 transition-colors"
+                class="ml-2 p-1 rounded-lg hover:bg-gray-100 transition-colors"
               >
                 <svg class="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -597,9 +598,9 @@ onMounted(() => {
 
             <!-- 核心参数 -->
             <div class="grid grid-cols-2 gap-2">
-              <div class="bg-gradient-to-br from-emerald-100 to-teal-100 rounded-lg p-2.5 border border-emerald-300">
+              <div class="bg-gray-50 rounded-lg p-2.5 border border-gray-200">
                 <div class="text-xs text-gray-700 mb-0.5">{{ t('supported.parameters') }}</div>
-                <div class="text-lg font-bold text-emerald-800">{{ fmtParams(detailModel.params) }}</div>
+                <div class="text-lg font-bold text-gray-800">{{ fmtParams(detailModel.params) }}</div>
               </div>
               <div class="bg-gradient-to-br from-blue-100 to-cyan-100 rounded-lg p-2.5 border border-blue-300">
                 <div class="text-xs text-gray-700 mb-0.5">{{ t('supported.context') }}</div>
@@ -619,19 +620,19 @@ onMounted(() => {
             <div class="space-y-1.5">
               <div class="text-xs font-semibold text-gray-700 uppercase tracking-wide">{{ t('supported.architecture') }}</div>
               <div class="grid grid-cols-2 gap-1.5 text-xs">
-                <div class="bg-white/70 rounded px-2 py-1.5 border border-emerald-200">
+                <div class="bg-gray-50 rounded px-2 py-1.5 border border-gray-200">
                   <div class="text-gray-600 text-[10px]">{{ t('supported.layers') }}</div>
                   <div class="font-semibold text-gray-900">{{ detailModel.layers }}</div>
                 </div>
-                <div class="bg-white/70 rounded px-2 py-1.5 border border-emerald-200">
+                <div class="bg-gray-50 rounded px-2 py-1.5 border border-gray-200">
                   <div class="text-gray-600 text-[10px]">Hidden Size</div>
                   <div class="font-semibold text-gray-900">{{ detailModel.hidden_size }}</div>
                 </div>
-                <div class="bg-white/70 rounded px-2 py-1.5 border border-emerald-200">
+                <div class="bg-gray-50 rounded px-2 py-1.5 border border-gray-200">
                   <div class="text-gray-600 text-[10px]">KV Heads</div>
                   <div class="font-semibold text-gray-900">{{ detailModel.kv_heads }}</div>
                 </div>
-                <div class="bg-white/70 rounded px-2 py-1.5 border border-emerald-200">
+                <div class="bg-gray-50 rounded px-2 py-1.5 border border-gray-200">
                   <div class="text-gray-600 text-[10px]">Head Dim</div>
                   <div class="font-semibold text-gray-900">{{ detailModel.head_dim }}</div>
                 </div>
@@ -655,7 +656,7 @@ onMounted(() => {
             </div>
 
             <!-- 操作按钮 -->
-            <div class="flex gap-2 pt-2 border-t border-emerald-200">
+            <div class="flex gap-2 pt-2 border-t border-gray-100">
               <button
                 @click="selectModel(detailModel)"
                 class="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition-colors"
@@ -676,13 +677,12 @@ onMounted(() => {
         @click="closeDetail"
       >
         <div
-          class="w-full max-w-lg border-2 border-emerald-400 rounded-xl shadow-2xl p-4 max-h-[90vh] overflow-y-auto"
-          style="background-color: rgb(209 250 229)"
+          class="w-full max-w-lg border border-gray-200 rounded-xl shadow-2xl p-4 max-h-[90vh] overflow-y-auto bg-white"
           @click.stop
         >
           <div class="space-y-3">
             <!-- 标题 -->
-            <div class="border-b border-emerald-200 pb-2 flex items-start justify-between">
+            <div class="border-b border-gray-100 pb-2 flex items-start justify-between">
               <div class="flex-1">
                 <div class="flex items-center gap-2 mb-1 flex-wrap">
                   <h3 class="text-base font-bold text-gray-900">{{ detailGpu.name }}</h3>
@@ -694,7 +694,7 @@ onMounted(() => {
               </div>
               <button
                 @click="closeDetail"
-                class="ml-2 p-1 rounded-lg hover:bg-emerald-100 transition-colors"
+                class="ml-2 p-1 rounded-lg hover:bg-gray-100 transition-colors"
               >
                 <svg class="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -704,9 +704,9 @@ onMounted(() => {
 
             <!-- 核心规格 -->
             <div class="grid grid-cols-2 gap-2">
-              <div class="bg-gradient-to-br from-emerald-100 to-teal-100 rounded-lg p-2.5 border border-emerald-300">
+              <div class="bg-gray-50 rounded-lg p-2.5 border border-gray-200">
                 <div class="text-xs text-gray-700 mb-0.5">{{ t('supported.vram') }}</div>
-                <div class="text-lg font-bold text-emerald-800">{{ detailGpu.vram }} <span class="text-sm">GB</span></div>
+                <div class="text-lg font-bold text-gray-800">{{ detailGpu.vram }} <span class="text-sm">GB</span></div>
               </div>
               <div class="bg-gradient-to-br from-blue-100 to-cyan-100 rounded-lg p-2.5 border border-blue-300">
                 <div class="text-xs text-gray-700 mb-0.5">{{ t('supported.bandwidth') }}</div>
@@ -726,15 +726,15 @@ onMounted(() => {
             <div class="space-y-1.5">
               <div class="text-xs font-semibold text-gray-700 uppercase tracking-wide">{{ isZh ? '高级算力' : 'Advanced Compute' }}</div>
               <div class="grid grid-cols-3 gap-1.5 text-xs">
-                <div v-if="detailGpu.fp8" class="bg-white/70 rounded px-2 py-1.5 border border-emerald-200">
+                <div v-if="detailGpu.fp8" class="bg-gray-50 rounded px-2 py-1.5 border border-gray-200">
                   <div class="text-gray-600 text-[10px]">FP8</div>
                   <div class="font-semibold text-gray-900">{{ detailGpu.fp8 }}T</div>
                 </div>
-                <div v-if="detailGpu.int8" class="bg-white/70 rounded px-2 py-1.5 border border-emerald-200">
+                <div v-if="detailGpu.int8" class="bg-gray-50 rounded px-2 py-1.5 border border-gray-200">
                   <div class="text-gray-600 text-[10px]">INT8</div>
                   <div class="font-semibold text-gray-900">{{ detailGpu.int8 }}T</div>
                 </div>
-                <div v-if="detailGpu.int4" class="bg-white/70 rounded px-2 py-1.5 border border-emerald-200">
+                <div v-if="detailGpu.int4" class="bg-gray-50 rounded px-2 py-1.5 border border-gray-200">
                   <div class="text-gray-600 text-[10px]">INT4</div>
                   <div class="font-semibold text-gray-900">{{ detailGpu.int4 }}T</div>
                 </div>
@@ -742,9 +742,9 @@ onMounted(() => {
             </div>
 
             <!-- 互联信息 -->
-            <div v-if="detailGpu.nvlink_bw" class="bg-gradient-to-r from-green-100 to-emerald-100 rounded-lg p-2 border border-green-300">
+            <div v-if="detailGpu.nvlink_bw" class="bg-gray-50 rounded-lg p-2 border border-gray-200">
               <div class="text-xs text-gray-700 mb-0.5">{{ isZh ? '多卡互联' : 'Interconnect' }}</div>
-              <div class="text-sm font-semibold text-green-800">
+              <div class="text-sm font-semibold text-gray-800">
                 {{ detailGpu.nvlink_bw }} GB/s
               </div>
             </div>
@@ -755,7 +755,7 @@ onMounted(() => {
             </div>
 
             <!-- 操作按钮 -->
-            <div class="flex gap-2 pt-2 border-t border-emerald-200">
+            <div class="flex gap-2 pt-2 border-t border-gray-100">
               <button
                 @click="selectGpu(detailGpu)"
                 class="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition-colors"
@@ -769,3 +769,20 @@ onMounted(() => {
     </Teleport>
   </div>
 </template>
+
+<style scoped>
+.hover-card-enter-active {
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+.hover-card-leave-active {
+  transition: opacity 0.1s ease, transform 0.1s ease;
+}
+.hover-card-enter-from {
+  opacity: 0;
+  transform: translateY(6px) scale(0.97);
+}
+.hover-card-leave-to {
+  opacity: 0;
+  transform: translateY(4px) scale(0.98);
+}
+</style>

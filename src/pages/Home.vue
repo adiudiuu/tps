@@ -12,7 +12,7 @@ import { GPU_LIST } from '../data/gpus/index.js'
 import { ALL_MODELS } from '../data/models/index.js'
 import { QUANT_MAP, INTERCONNECT_MAP, FRAMEWORK_MAP } from '../data/constants.js'
 import { KV_CACHE_MAP, PCIE_BW_OPTIONS } from '../data/runtime.js'
-import { calcAll } from '../utils/calc.js'
+import { calcAll, calcBatchSweep } from '../utils/calc.js'
 import { readUrlState, resolveUrlState, watchUrlState } from '../utils/useUrlState.js'
 
 const { t } = useI18n()
@@ -37,6 +37,8 @@ const pcieBw         = ref(_url.pcieBw       ?? PCIE_BW_OPTIONS[1])
 const speculativeDecoding = ref(_url.speculativeDecoding ?? false)
 const acceptanceRate = ref(_url.acceptanceRate ?? 0.7)
 const draftLen       = ref(_url.draftLen       ?? 4)
+const ppCount        = ref(_url.ppCount        ?? 1)
+const imageCount     = ref(_url.imageCount     ?? 0)
 
 // 双列对比模式
 const pinnedResult = ref(null)
@@ -80,7 +82,7 @@ watch(gpu, (g) => {
 
 watchUrlState({ gpu, gpuCount, interconnect, model, quant, ctx, batch,
   promptLen, outputLen, framework, flashAttention, kvCacheQuant,
-  prefixCacheHit, cpuOffload, pcieBw, speculativeDecoding, acceptanceRate, draftLen })
+  prefixCacheHit, cpuOffload, pcieBw, speculativeDecoding, acceptanceRate, draftLen, ppCount, imageCount })
 
 const result = computed(() => {
   if (!gpu.value || !model.value || !quant.value || !framework.value) return null
@@ -92,6 +94,8 @@ const result = computed(() => {
       flashAttention: flashAttention.value, kvCacheQuant: kvCacheQuant.value,
       prefixCacheHit: prefixCacheHit.value, cpuOffload: cpuOffload.value, pcieBw: pcieBw.value,
       speculativeDecoding: speculativeDecoding.value, acceptanceRate: acceptanceRate.value, draftLen: draftLen.value,
+      ppCount: ppCount.value,
+      imageCount: imageCount.value,
     }), quantId: quant.value.id }
   } catch (e) {
     if (import.meta.env.DEV) console.error('[calcAll error]', e)
@@ -110,6 +114,7 @@ const quantMatrix = computed(() => {
         flashAttention: flashAttention.value, kvCacheQuant: kvCacheQuant.value,
         prefixCacheHit: prefixCacheHit.value, cpuOffload: cpuOffload.value, pcieBw: pcieBw.value,
         speculativeDecoding: speculativeDecoding.value, acceptanceRate: acceptanceRate.value, draftLen: draftLen.value,
+        ppCount: ppCount.value,
       })
       // 当前行 OOM 且未开启 CPU 卸载时，额外计算"启用卸载后能否容纳"
       let cpuOffloadFeasible = false
@@ -124,6 +129,7 @@ const quantMatrix = computed(() => {
             flashAttention: flashAttention.value, kvCacheQuant: kvCacheQuant.value,
             prefixCacheHit: prefixCacheHit.value, cpuOffload: true, pcieBw: fallbackPcie,
             speculativeDecoding: speculativeDecoding.value, acceptanceRate: acceptanceRate.value, draftLen: draftLen.value,
+            ppCount: ppCount.value,
           })
           cpuOffloadFeasible = ro.vramOk
           offloadVramGB = ro.totalNeeded
@@ -147,10 +153,52 @@ const pinnedQuantMatrix = computed(() => {
         flashAttention: flashAttention.value, kvCacheQuant: kvCacheQuant.value,
         prefixCacheHit: prefixCacheHit.value, cpuOffload: cpuOffload.value, pcieBw: pcieBw.value,
         speculativeDecoding: speculativeDecoding.value, acceptanceRate: acceptanceRate.value, draftLen: draftLen.value,
+        ppCount: ppCount.value,
       })
       return { quant: q, vramGB: r.totalNeeded, vramOk: r.vramOk, vramPct: r.vramPct, decodeToks: r.decodeToks }
     } catch { return null }
   }).filter(Boolean)
+})
+
+const pinnedBatchSweepData = computed(() => {
+  if (!pinnedConfig.value) return []
+  const c = pinnedConfig.value
+  return calcBatchSweep({
+    gpu: c.gpu, gpuCount: c.gpuCount, model: c.model, quant: c.quant,
+    ctx: c.ctx, batch: c.batch, framework: c.framework,
+    interconnect: interconnect.value,
+    promptLen: promptLen.value, outputLen: outputLen.value,
+    flashAttention: flashAttention.value, kvCacheQuant: kvCacheQuant.value,
+    prefixCacheHit: prefixCacheHit.value, cpuOffload: cpuOffload.value,
+    pcieBw: pcieBw.value, speculativeDecoding: speculativeDecoding.value,
+    acceptanceRate: acceptanceRate.value, draftLen: draftLen.value,
+    ppCount: ppCount.value, imageCount: imageCount.value,
+  })
+})
+
+const batchSweepData = computed(() => {
+  if (!gpu.value || !model.value || !quant.value) return []
+  return calcBatchSweep({
+    gpu: gpu.value,
+    gpuCount: gpuCount.value,
+    interconnect: interconnect.value,
+    model: model.value,
+    quant: quant.value,
+    ctx: ctx.value,
+    promptLen: promptLen.value,
+    outputLen: outputLen.value,
+    framework: framework.value,
+    flashAttention: flashAttention.value,
+    kvCacheQuant: kvCacheQuant.value,
+    prefixCacheHit: prefixCacheHit.value,
+    cpuOffload: cpuOffload.value,
+    pcieBw: pcieBw.value,
+    speculativeDecoding: speculativeDecoding.value,
+    acceptanceRate: acceptanceRate.value,
+    draftLen: draftLen.value,
+    ppCount: ppCount.value,
+    imageCount: imageCount.value,
+  })
 })
 </script>
 
@@ -173,9 +221,10 @@ const pinnedQuantMatrix = computed(() => {
           v-model:promptLen="promptLen" v-model:outputLen="outputLen"
           v-model:flashAttention="flashAttention" v-model:kvCacheQuant="kvCacheQuant"
           v-model:prefixCacheHit="prefixCacheHit" v-model:cpuOffload="cpuOffload"
-          v-model:pcieBw="pcieBw" :model="model" :framework="framework"
+          v-model:pcieBw="pcieBw" :model="model" :framework="framework" :gpuCount="gpuCount"
           v-model:speculativeDecoding="speculativeDecoding"
           v-model:acceptanceRate="acceptanceRate" v-model:draftLen="draftLen"
+          v-model:ppCount="ppCount" v-model:imageCount="imageCount"
         />
       </template>
       <template #result>
@@ -217,6 +266,8 @@ const pinnedQuantMatrix = computed(() => {
                   :gpu-vendor="pinnedConfig.gpu.vendor"
                   :gpu="pinnedConfig.gpu"
                   :gpu-count="pinnedConfig.gpuCount"
+                  :sweep-data="pinnedBatchSweepData"
+                  :current-batch="pinnedConfig.batch"
                   v-model:framework="pinnedConfig.framework"
                   v-model:quant="pinnedConfig.quant"
                 />
@@ -239,6 +290,8 @@ const pinnedQuantMatrix = computed(() => {
                   :gpu-vendor="gpu?.vendor"
                   :gpu="gpu"
                   :gpu-count="gpuCount"
+                  :sweep-data="batchSweepData"
+                  :current-batch="batch"
                   v-model:framework="framework"
                   v-model:quant="quant"
                 />
@@ -266,6 +319,8 @@ const pinnedQuantMatrix = computed(() => {
             :gpu-vendor="gpu?.vendor"
             :gpu="gpu"
             :gpu-count="gpuCount"
+            :sweep-data="batchSweepData"
+            :current-batch="batch"
             v-model:framework="framework"
             v-model:quant="quant"
           />

@@ -81,7 +81,7 @@ function exportMarkdown() {
           </div>
           <div class="flex flex-col">
             <span class="text-sm sm:text-base font-semibold text-gray-900 tracking-tight leading-tight">{{ t('nav.title') }}</span>
-            <span class="text-[10px] text-gray-400 leading-tight whitespace-nowrap">{{ t('nav.updated') }} 2026/04/29 17:00</span>
+            <span class="text-[10px] text-gray-400 leading-tight whitespace-nowrap">{{ t('nav.updated') }} 2026/04/30 15:00</span>
           </div>
         </RouterLink>
       </div>

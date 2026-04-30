@@ -52,7 +52,7 @@ function fmtFrameworkRange(min, max) {
       </div>
       <div class="flex flex-col items-end flex-shrink-0">
         <div class="text-2xl font-black leading-none text-red-300 line-through tabular-nums">
-          {{ result.singleToksMax.toFixed(0) }}
+          {{ result.singleToks.toFixed(1) }}
         </div>
         <div class="text-xs font-semibold text-red-300 mt-0.5">tok/s</div>
       </div>
@@ -161,7 +161,7 @@ function fmtFrameworkRange(min, max) {
       <!-- 速度值 -->
       <div class="flex flex-col items-end justify-center px-4 py-3 flex-shrink-0">
         <div class="text-2xl font-black leading-none tabular-nums" :style="{ color: speedRating.c1 }">
-          {{ result.singleToksMax.toFixed(0) }}
+          {{ result.singleToks.toFixed(1) }}
         </div>
         <div class="text-xs font-semibold mt-0.5" :style="{ color: speedRating.c2 }">tok/s</div>
       </div>
