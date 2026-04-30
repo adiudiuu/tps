@@ -25,7 +25,7 @@ export function calcAll({
   gpu, gpuCount, interconnect, model, quant, ctx, batch, promptLen, outputLen, framework,
   flashAttention = true, kvCacheQuant = null, prefixCacheHit = 0,
   cpuOffload = false, pcieBw = null,
-  speculativeDecoding = false, acceptanceRate = 0.7, draftLen = 4,
+  speculativeDecoding = false, acceptanceRate = 0.7, draftLen = 4, draftModelParams = null,
 }) {
   const totalVram = gpu.vram * gpuCount * (gpu.usableRatio ?? 1.0)
   const totalBw   = gpu.bw   * gpuCount * (gpu.bwUtilization ?? 0.80)
@@ -88,8 +88,9 @@ export function calcAll({
 
   // 系统开销（CUDA context、激活值、临时 buffer 等）
   // 动态调整：小模型固定 1GB，大模型按权重 3% 计算，上限 5GB
-  // 激活值显存：batch × promptLen × hidden_size × layers × 2 bytes（BF16）
-  const activationGB = batch * promptLen * (model.hidden_size ?? 4096) * model.layers * 2 / 1e9
+  // 激活值显存：纯推理无需保存所有层激活，峰值仅为当前层 hidden + FFN 中间值
+  // batch × promptLen × hidden_size × 2（FFN intermediate）× 2 bytes（BF16）
+  const activationGB = batch * promptLen * (model.hidden_size ?? 4096) * 2 * 2 / 1e9
   const overheadGB  = Math.max(1.0, Math.min(weightGB * 0.03, 5.0)) + activationGB
   const totalNeeded = weightGB + kvGB + overheadGB
 
@@ -116,8 +117,21 @@ export function calcAll({
   const decodeFactorMax = adjustedFramework.decodeMax ?? adjustedFramework.decode
   const prefillFactorMin = adjustedFramework.prefillMin ?? adjustedFramework.prefill
   const prefillFactorMax = adjustedFramework.prefillMax ?? adjustedFramework.prefill
-  const flashRange = getFlashAttentionBoostRange({ enabled: flashAttention, promptLen: effectivePromptLen, headDim: model.head_dim ?? 128 })
-  const flashFactor = flashRange.mid
+  const flashRange = getFlashAttentionBoostRange({ enabled: flashAttention, promptLen: promptLen, headDim: model.head_dim ?? 128 })
+  // linear attention 层（如 GatedDeltaNet）不支持 FA，按实际 FA 层占比缩减 boost
+  // 优先用 linear_attention_layers 字段（Qwen3.5 MoE 系列）
+  // 次级推导：local_layers + sliding_window===0 约定为线性 attention（Qwen3.6 系列 hack）
+  const linearAttnLayers = model.linear_attention_layers
+    ?? (model.local_layers != null && model.sliding_window === 0 ? model.local_layers : null)
+  const faLayerRatio = linearAttnLayers != null
+    ? (model.layers - linearAttnLayers) / model.layers
+    : 1
+  const scaledFlashRange = {
+    min: 1 + (flashRange.min - 1) * faLayerRatio,
+    mid: 1 + (flashRange.mid - 1) * faLayerRatio,
+    max: 1 + (flashRange.max - 1) * faLayerRatio,
+  }
+  const flashFactor = scaledFlashRange.mid
   let kvReadGB
   if (model.sliding_window != null && model.local_layers != null) {
     const globalLayers  = model.layers - model.local_layers
@@ -153,8 +167,8 @@ export function calcAll({
     }
     const nonExpertIOPerStep = model.active_params * quant.bytes - expertIOPerStep
     const gpuIOPerStep = nonExpertIOPerStep + kvReadGB
-    // PCIe 常量存储的是双向聚合带宽（如 PCIe 4.0 x16 = 64 GB/s 双向）
-    // CPU→GPU DMA 传输为单向，实际可用带宽 = bw / 2
+    // pcieBw.bw = PCIe x16 单向理论峰值（见 runtime.js）
+    // 台式机 GPU 通常走 x8 插槽（如 RTX 4060），实际单向带宽 = bw / 2
     const pcieBwUnidirectional = pcieBw.bw / 2
     const tExpert = expertIOPerStep / pcieBwUnidirectional  // s/tok，PCIe 瓶颈
     const tGpu    = gpuIOPerStep    / totalBw               // s/tok，GPU HBM 瓶颈
@@ -171,8 +185,18 @@ export function calcAll({
   // Speculative Decoding 加速：每步尝试验证 draftLen 个 token，接受率为 acceptanceRate
   // 有效加速比 = 1 + acceptanceRate × draftLen
   // 例如：acceptanceRate=0.7, draftLen=4 → 加速 1 + 0.7×4 = 3.8x
+  // draftModelParams（可选）：draft model 每步也需读一次权重，从 bwLimit 中扣除开销
+  //   有效 bwLimit = totalBw / (target权重 + draft权重) × batch
   let speculativeSpeedup = 1.0
   if (speculativeDecoding && acceptanceRate > 0 && draftLen > 0) {
+    if (draftModelParams != null && draftModelParams > 0) {
+      // draft model 读 draftLen 次权重，target model 读 1 次，共用同一 HBM 带宽
+      const draftWeightGB = draftModelParams * quant.bytes
+      const draftOverhead = draftWeightGB * draftLen  // draftLen 次 draft 前向
+      const totalIOPerVerifyStep = decodeBytesPerStep + draftOverhead
+      // 重新以实际 IO 量计算有效 bwLimit（覆盖上面的 bwLimit）
+      bwLimit = (effectiveBw / totalIOPerVerifyStep) * batch
+    }
     speculativeSpeedup = 1 + acceptanceRate * draftLen
     decodeToks *= speculativeSpeedup
     decodeToksMin *= speculativeSpeedup
@@ -195,8 +219,8 @@ export function calcAll({
   const computeBaseLimit = (tflops * 1e12) / (2 * activeParams * 1e9)
   const computeLimit = computeBaseLimit * prefillAttentionFactor * flashFactor
   const prefillToks  = computeLimit * framework.prefill
-  const prefillToksMin = computeBaseLimit * prefillFactorMin * prefillAttentionFactor * flashRange.min
-  const prefillToksMax = computeBaseLimit * prefillFactorMax * prefillAttentionFactor * flashRange.max
+  const prefillToksMin = computeBaseLimit * prefillFactorMin * prefillAttentionFactor * scaledFlashRange.min
+  const prefillToksMax = computeBaseLimit * prefillFactorMax * prefillAttentionFactor * scaledFlashRange.max
 
   // 首 token 延迟（ms）：纯 prefill 计算时间
   // continuous batching 模式（vLLM/TRT-LLM/TGI）下请求并发处理，TTFT 不随 batch 线性增加
@@ -263,8 +287,8 @@ export function calcAll({
     roofline, bottleneck, tpEfficiency,
     totalPower,
     flashAttention,
-    flashFactorMin: flashRange.min,
-    flashFactorMax: flashRange.max,
+    flashFactorMin: scaledFlashRange.min,
+    flashFactorMax: scaledFlashRange.max,
     flashFactor,
     prefixCacheHit: Math.round(prefixHitRatio * 100),
     effectivePromptLen,
@@ -304,7 +328,7 @@ function getFlashAttentionBoostRange({ enabled, promptLen, headDim = 128 }) {
   if (promptLen >= 32768) base = { min: 3, mid: 4, max: 5 }  // 序列越长，HBM IO 节省越显著
   else if (promptLen >= 8192)  base = { min: 2, mid: 2.5, max: 3 }
   else if (promptLen >= 2048)  base = { min: 1.5, mid: 1.75, max: 2 }
-  else return { min: 1, mid: 1, max: 1.1 }  // < 2048 tokens，FlashAttention 收益极小
+  else return { min: 1.1, mid: 1.3, max: 1.8 }  // < 2048 tokens，FA2 paper 实测 seq=1024 仍有 1.5-2x 加速
 
   return {
     min: Math.max(1, base.min * hdScale),

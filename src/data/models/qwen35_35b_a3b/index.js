@@ -1,4 +1,4 @@
-// Qwen3.5-35B-A3B: MoE, 40 layers, 256 experts / 8 active, hybrid attention, 256K ctx
+// Qwen3.5-35B-A3B: MoE, 40 layers (30 GatedDeltaNet linear + 10 full attention), 256 experts / 8 active, hybrid attention, 256K ctx
 // Source: https://huggingface.co/Qwen/Qwen3.5-35B-A3B/blob/main/config.json
 export default {
   id: 'qwen35_35b_a3b',
@@ -10,6 +10,7 @@ export default {
   experts: 256,
   experts_per_token: 8,
   layers: 40,
+  linear_attention_layers: 30,  // GatedDeltaNet，不支持 Flash Attention
   kv_heads: 2,
   head_dim: 256,
   hidden_size: 2048,
