@@ -82,7 +82,9 @@ export function calcAll({
 
   // 系统开销（CUDA context、激活值、临时 buffer 等）
   // 动态调整：小模型固定 1GB，大模型按权重 3% 计算，上限 5GB
-  const overheadGB  = Math.max(1.0, Math.min(weightGB * 0.03, 5.0))
+  // 激活值显存：batch × promptLen × hidden_size × layers × 2 bytes（BF16）
+  const activationGB = batch * promptLen * (model.hidden_size ?? 4096) * model.layers * 2 / 1e9
+  const overheadGB  = Math.max(1.0, Math.min(weightGB * 0.03, 5.0)) + activationGB
   const totalNeeded = weightGB + kvGB + overheadGB
 
   // ─────────────────────────────────────────────
@@ -108,7 +110,7 @@ export function calcAll({
   const decodeFactorMax = adjustedFramework.decodeMax ?? adjustedFramework.decode
   const prefillFactorMin = adjustedFramework.prefillMin ?? adjustedFramework.prefill
   const prefillFactorMax = adjustedFramework.prefillMax ?? adjustedFramework.prefill
-  const flashRange = getFlashAttentionBoostRange({ enabled: flashAttention, promptLen: effectivePromptLen })
+  const flashRange = getFlashAttentionBoostRange({ enabled: flashAttention, promptLen: effectivePromptLen, headDim: model.head_dim ?? 128 })
   const flashFactor = flashRange.mid
   let kvReadGB
   if (model.sliding_window != null && model.local_layers != null) {
@@ -116,7 +118,7 @@ export function calcAll({
     const globalKvHeads = model.global_kv_heads ?? model.kv_heads
     const globalHeadDim = model.global_head_dim ?? model.head_dim
     kvReadGB = 2 * batch * kvBytesPerElem * (
-      globalLayers * globalKvHeads * globalHeadDim * avgDecodeSeqLen +
+      globalLayers * globalKvHeads * globalHeadDim * Math.min(avgDecodeSeqLen, ctx) +
       model.local_layers * model.kv_heads * model.head_dim * Math.min(avgDecodeSeqLen, model.sliding_window)
     ) / 1e9
   } else {
@@ -166,8 +168,11 @@ export function calcAll({
   const prefillToksMin = computeBaseLimit * prefillFactorMin * prefillAttentionFactor * flashRange.min
   const prefillToksMax = computeBaseLimit * prefillFactorMax * prefillAttentionFactor * flashRange.max
 
-  // 首 token 延迟（ms）：纯 prefill 计算时间，多并发时实际排队延迟更高
-  const ttft = (effectivePromptLen * 2 * activeParams * 1e9) / (tflops * 1e12) * 1000 / (prefillAttentionFactor * flashFactor * framework.prefill) * Math.max(1, batch)
+  // 首 token 延迟（ms）：纯 prefill 计算时间
+  // continuous batching 模式（vLLM/TRT-LLM/TGI）下请求并发处理，TTFT 不随 batch 线性增加
+  // serial 模式（llama.cpp）下请求串行排队，TTFT × batch
+  const isContinuousBatching = (framework.schedulingMode ?? 'continuous') === 'continuous'
+  const ttft = (effectivePromptLen * 2 * activeParams * 1e9) / (tflops * 1e12) * 1000 / (prefillAttentionFactor * flashFactor * framework.prefill) * (isContinuousBatching ? 1 : Math.max(1, batch))
 
   // 单 token 生成时间（ms），batch=1 时的延迟基准，同步除以 fw.decode 保持一致性
   const tpot = (decodeBytesPerStep / effectiveBw) * 1000 / framework.decode  // ms/tok
@@ -211,7 +216,7 @@ export function calcAll({
 
   return {
     // 显存
-    weightGB, kvGB, overheadGB, totalNeeded, totalVram,
+    weightGB, kvGB, overheadGB, activationGB, totalNeeded, totalVram,
     vramOk:  totalNeeded <= totalVram,
     vramPct: totalNeeded / totalVram * 100,
     // 速度
@@ -245,18 +250,34 @@ export function calcAll({
 }
 
 function getPrefillAttentionFactor({ totalHeads, kvHeads, attentionType }) {
-  // GQA/MQA 的 Q/KV head 比例已经体现在 active_params 的主干 FLOPs 里
-  // 不应再作为吞吐倍数乘入，否则 MQA 模型（如 Llama 3 70B kvHeads=1）会被放大 64x
+  // GQA/MQA 减少注意力 FLOPs：注意力占总 FLOPs 约 20%
+  // 节省比例 = (1 - kv_heads/total_heads) × attn_flops_fraction
+  // 例：Llama3 70B（8/64 heads）→ factor = 1 - (1 - 8/64) × 0.20 ≈ 0.886（减少约 11%）
+  const attnFlopsFraction = 0.20
+  if (kvHeads != null && totalHeads > 0 && kvHeads < totalHeads) {
+    return 1 - (1 - kvHeads / totalHeads) * attnFlopsFraction
+  }
   return 1
 }
 
-function getFlashAttentionBoostRange({ enabled, promptLen }) {
+function getFlashAttentionBoostRange({ enabled, promptLen, headDim = 128 }) {
   if (!enabled) return { min: 1, mid: 1, max: 1 }
 
-  if (promptLen >= 32768) return { min: 3, mid: 4, max: 5 }  // 序列越长，HBM IO 节省越显著，加速倍数单调递增
-  if (promptLen >= 8192)  return { min: 2, mid: 2.5, max: 3 }
-  if (promptLen >= 2048)  return { min: 1.5, mid: 1.75, max: 2 }
-  return { min: 1, mid: 1, max: 1.1 }  // < 2048 tokens，FlashAttention 收益极小
+  // Flash Attention 加速比 ∝ head_dim（每计算块节省的 HBM IO ∝ head_dim）
+  // 基于 head_dim=128 的基准值，线性缩放，范围限制在 [0.5, 2.0] 内
+  const hdScale = Math.min(2.0, Math.max(0.5, headDim / 128))
+
+  let base
+  if (promptLen >= 32768) base = { min: 3, mid: 4, max: 5 }  // 序列越长，HBM IO 节省越显著
+  else if (promptLen >= 8192)  base = { min: 2, mid: 2.5, max: 3 }
+  else if (promptLen >= 2048)  base = { min: 1.5, mid: 1.75, max: 2 }
+  else return { min: 1, mid: 1, max: 1.1 }  // < 2048 tokens，FlashAttention 收益极小
+
+  return {
+    min: Math.max(1, base.min * hdScale),
+    mid: Math.max(1, base.mid * hdScale),
+    max: Math.max(1, base.max * hdScale),
+  }
 }
 
 /**
@@ -264,7 +285,7 @@ function getFlashAttentionBoostRange({ enabled, promptLen }) {
  */
 export function getWarnings(result, t) {
   const warnings = []
-  const { vramOk, vramPct, totalNeeded, totalVram, tpEfficiency, singleToks, singleToksMin, roofline, totalPower } = result
+  const { vramOk, vramPct, totalNeeded, totalVram, tpEfficiency, singleToks, singleToksMin, roofline, totalPower, activationGB } = result
 
   if (!vramOk) {
     warnings.push({
@@ -274,6 +295,10 @@ export function getWarnings(result, t) {
     })
   } else if (vramPct > 95) {
     warnings.push({ level: 'warn', key: 'vram_high' })
+  }
+
+  if (activationGB > 2) {
+    warnings.push({ level: 'warn', key: 'activation_oom', gb: activationGB.toFixed(1) })
   }
 
   if (tpEfficiency < 0.7) {

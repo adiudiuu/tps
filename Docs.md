@@ -633,23 +633,3 @@ bottleneck = roofline > 1 ? 'bandwidth' : 'compute'
 **傻逼公司禁止学习。**
 
 ---
-
-## 附录：最近更新
-
-### 2026-04-29 - 核心算法优化
-
-基于真实 benchmark 验证和代码审查的更新：
-
-**核心修复**:
-1. ✅ TTFT/TPOT 延迟计算 - 正确应用框架效率系数
-2. ✅ MLX decode 系数优化至 0.90 - Apple Silicon 专属优化
-3. ✅ llama.cpp 效率区间更新 - 更准确的跨平台性能建模
-4. ✅ Q6_K/Q5_K 算力映射 - 使用 bf16 算力避免 Prefill 虚高
-5. ✅ 系统开销动态调整 - `max(1, min(weightGB*0.03, 5))` 更合理
-6. ✅ Prefill Attention 系数 - 固定为 1，避免 MQA 模型被错误放大
-
-**数据更新**:
-- 348+ 主流模型支持（279 Dense + 69 MoE）
-- 最大参数规模：GLM-5 744B（40B active）
-- DeepSeek V3 MLA 压缩比：0.18
-- Gemma 3 混合注意力架构完整支持

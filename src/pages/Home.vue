@@ -27,7 +27,7 @@ const ctx            = ref(_url.ctx          ?? Math.min(model.value?.max_ctx ??
 const batch          = ref(_url.batch        ?? 1)
 const promptLen      = ref(_url.promptLen    ?? 1024)
 const outputLen      = ref(_url.outputLen    ?? 1024)
-const framework      = ref(_url.framework    ?? FRAMEWORK_MAP.find(f => f.id === 'vllm'))
+const framework      = ref(_url.framework    ?? FRAMEWORK_MAP.find(f => f.id === 'theory'))
 const flashAttention = ref(_url.flashAttention ?? true)
 const kvCacheQuant   = ref(_url.kvCacheQuant ?? KV_CACHE_MAP[0])
 const prefixCacheHit = ref(_url.prefixCacheHit ?? 0)

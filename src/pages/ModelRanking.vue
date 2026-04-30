@@ -18,7 +18,7 @@ const gpuCount = ref(1)
 const interconnect = ref(INTERCONNECT_MAP[0])
 const ctx = ref(16384)
 const batch = ref(1)
-const framework = ref(FRAMEWORK_MAP.find(f => f.id === 'vllm'))
+const framework = ref(FRAMEWORK_MAP.find(f => f.id === 'theory'))
 
 const isCalculating = ref(false)
 const sortBy = ref('speed') // 'speed' | 'vram' | 'params'

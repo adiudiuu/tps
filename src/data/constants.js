@@ -28,21 +28,32 @@ export const INTERCONNECT_MAP = [
 
 export const FRAMEWORK_MAP = [
   // vendors: null = 全平台通用
-  { id: 'theory',        labelKey: 'framework.theory',        decode: 1.00, prefill: 1.00, decodeMin: 1.00, decodeMax: 1.00, prefillMin: 1.00, prefillMax: 1.00, vendors: null },
-  { id: 'trtllm',        labelKey: 'framework.trtllm',        decode: 0.65, prefill: 0.75, decodeMin: 0.75, decodeMax: 0.85, prefillMin: 0.80, prefillMax: 0.90, vendors: ['nvidia'] },
+  { id: 'theory',        labelKey: 'framework.theory',        decode: 1.00, prefill: 1.00, decodeMin: 1.00, decodeMax: 1.00, prefillMin: 1.00, prefillMax: 1.00, vendors: null,                    schedulingMode: 'serial'     },
+  { id: 'trtllm',        labelKey: 'framework.trtllm',        decode: 0.80, prefill: 0.75, decodeMin: 0.75, decodeMax: 0.85, prefillMin: 0.80, prefillMax: 0.90, vendors: ['nvidia'],             schedulingMode: 'continuous' },
+  // SGLang vs vLLM v0.6.0（sgl-project/sglang benchmark_vllm_060 实测）
+  // Llama 3.1 8B A100 offline: SGLang 4281 vs vLLM 4132 tok/s (+3.6%)
+  // Llama 3.1 70B 4×H100 online rate=8: SGLang 4064 vs vLLM 3752 tok/s (+8.3%)
+  // 早期 29% 差距来自对比旧版 vLLM 0.5.x，vLLM 0.6+ 已基本持平
+  { id: 'sglang',        labelKey: 'framework.sglang',        decode: 0.68, prefill: 0.72, decodeMin: 0.65, decodeMax: 0.75, prefillMin: 0.65, prefillMax: 0.80, vendors: ['nvidia', 'amd'],       schedulingMode: 'continuous' },
   // vLLM 已默认支持 Speculative Decoding（需配置 draft model），可带来 1.5-3x 加速
   // 当前效率系数未包含 Speculative Decoding 增益，实际部署时可能更快
-  { id: 'vllm',          labelKey: 'framework.vllm',          decode: 0.60, prefill: 0.68, decodeMin: 0.55, decodeMax: 0.75, prefillMin: 0.60, prefillMax: 0.80, vendors: ['nvidia', 'amd'] },
-  { id: 'tgi',           labelKey: 'framework.tgi',           decode: 0.40, prefill: 0.55, decodeMin: 0.40, decodeMax: 0.55, prefillMin: 0.50, prefillMax: 0.65, vendors: ['nvidia', 'amd'] },
+  { id: 'vllm',          labelKey: 'framework.vllm',          decode: 0.65, prefill: 0.68, decodeMin: 0.55, decodeMax: 0.75, prefillMin: 0.60, prefillMax: 0.80, vendors: ['nvidia', 'amd'],       schedulingMode: 'continuous' },
+  // LMDeploy 效率与 SGLang 接近，支持 TurboMind 引擎
+  { id: 'lmdeploy',      labelKey: 'framework.lmdeploy',      decode: 0.76, prefill: 0.70, decodeMin: 0.73, decodeMax: 0.80, prefillMin: 0.62, prefillMax: 0.78, vendors: ['nvidia'],             schedulingMode: 'continuous' },
+  // TGI decode 假设取 0.40-0.55 中间值，待实测校准
+  { id: 'tgi',           labelKey: 'framework.tgi',           decode: 0.47, prefill: 0.55, decodeMin: 0.40, decodeMax: 0.55, prefillMin: 0.50, prefillMax: 0.65, vendors: ['nvidia', 'amd'],       schedulingMode: 'continuous' },
+  // ExLlamaV2 针对消费级显卡（RTX 系列）优化，CUDA 核高度定制
+  { id: 'exllamav2',     labelKey: 'framework.exllamav2',     decode: 0.70, prefill: 0.55, decodeMin: 0.65, decodeMax: 0.75, prefillMin: 0.48, prefillMax: 0.62, vendors: ['nvidia'],             schedulingMode: 'serial'     },
   // Apple 专属框架
-  { id: 'mlx',           labelKey: 'framework.mlx',           decode: 0.90, prefill: 0.65, decodeMin: 0.80, decodeMax: 0.95, prefillMin: 0.55, prefillMax: 0.75, vendors: ['apple'], recommended: 'apple' },
-  { 
+  { id: 'mlx',           labelKey: 'framework.mlx',           decode: 0.90, prefill: 0.65, decodeMin: 0.80, decodeMax: 0.95, prefillMin: 0.55, prefillMax: 0.75, vendors: ['apple'], recommended: 'apple', schedulingMode: 'continuous' },
+  {
     id: 'llamacpp_metal',
     labelKey: 'framework.llamacpp_metal',
     decode: 0.62, prefill: 0.50,
     decodeMin: 0.52, decodeMax: 0.70,
     prefillMin: 0.42, prefillMax: 0.58,
     vendors: ['apple'],
+    schedulingMode: 'serial',
     // 模型规模效率缩放系数（Apple Metal 后端相比 CUDA 略高）
     modelSizeScaling: [
       { maxParams: 14, decode: 0.57, decodeMin: 0.52, decodeMax: 0.62 },  // <14B
@@ -56,13 +67,14 @@ export const FRAMEWORK_MAP = [
   // - 中模型 (14-30B): 过渡区间 0.545
   // - 大模型 (>30B): 实测约 0.57
   // 分三档可将误差从 8% 压到 5% 以内
-  { 
+  {
     id: 'llamacpp',
     labelKey: 'framework.llamacpp',
     decode: 0.55, prefill: 0.35,
     decodeMin: 0.48, decodeMax: 0.65,
     prefillMin: 0.30, prefillMax: 0.40,
     vendors: null,
+    schedulingMode: 'serial',
     // 模型规模效率缩放系数（同时调整 decode/decodeMin/decodeMax）
     modelSizeScaling: [
       { maxParams: 14, decode: 0.52, decodeMin: 0.48, decodeMax: 0.56 },  // <14B: 实测约 0.52
