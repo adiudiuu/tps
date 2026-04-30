@@ -3,6 +3,7 @@ export default [
   // 桌面
   { id: 'rx7900xtx',    name: 'RX 7900 XTX',    vendor: 'amd', tier: 'consumer', released: '2022-12', vram: 24, bw: 960, bwUtilization: 0.80, bf16: 123, int8: null, int4: null, nvlink_bw: null, tdp: 355 },
   { id: 'rx7900xt',     name: 'RX 7900 XT',     vendor: 'amd', tier: 'consumer', released: '2022-12', vram: 20, bw: 800, bwUtilization: 0.80, bf16: 103, int8: null, int4: null, nvlink_bw: null, tdp: 315 },
+  { id: 'rx7900gre',    name: 'RX 7900 GRE',    vendor: 'amd', tier: 'consumer', released: '2023-08', vram: 16, bw: 576, bwUtilization: 0.80, bf16: 46,  int8: null, int4: null, nvlink_bw: null, tdp: 260 },
   { id: 'rx7800xt',     name: 'RX 7800 XT',     vendor: 'amd', tier: 'consumer', released: '2023-09', vram: 16, bw: 624, bwUtilization: 0.80, bf16: 38,  int8: null, int4: null, nvlink_bw: null, tdp: 263 },
   { id: 'rx7700xt',     name: 'RX 7700 XT',     vendor: 'amd', tier: 'consumer', released: '2023-09', vram: 12, bw: 432, bwUtilization: 0.80, bf16: 35,  int8: null, int4: null, nvlink_bw: null, tdp: 245 },
   { id: 'rx7600xt',     name: 'RX 7600 XT',     vendor: 'amd', tier: 'consumer', released: '2024-01', vram: 16, bw: 288, bwUtilization: 0.80, bf16: 22,  int8: null, int4: null, nvlink_bw: null, tdp: 190 },
