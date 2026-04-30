@@ -190,23 +190,25 @@ function fmtMs(v) { return v == null ? '—' : v.toFixed(1) }
       <table class="w-full text-xs border-collapse">
         <thead>
           <tr class="bg-gray-50 text-gray-500">
-            <th class="px-2 py-1.5 text-left font-medium border-b border-gray-200 whitespace-nowrap">Batch</th>
-            <th class="px-2 py-1.5 text-right font-medium border-b border-gray-200 whitespace-nowrap">
-              {{ t('result.sweep_throughput') }} (tok/s)
+            <th class="px-1.5 sm:px-2 py-1.5 text-left font-medium border-b border-gray-200 whitespace-nowrap">Batch</th>
+            <th class="px-1.5 sm:px-2 py-1.5 text-right font-medium border-b border-gray-200 whitespace-nowrap">
+              <span class="hidden sm:inline">{{ t('result.sweep_throughput') }} (tok/s)</span>
+              <span class="sm:hidden">Tput</span>
             </th>
-            <th class="px-2 py-1.5 text-right font-medium border-b border-gray-200 whitespace-nowrap">
-              {{ t('result.sweep_single') }} (tok/s/req)
+            <th class="px-1.5 sm:px-2 py-1.5 text-right font-medium border-b border-gray-200 whitespace-nowrap">
+              <span class="hidden sm:inline">{{ t('result.sweep_single') }} (tok/s/req)</span>
+              <span class="sm:hidden">Single</span>
             </th>
-            <th class="px-2 py-1.5 text-right font-medium border-b border-gray-200 whitespace-nowrap">
-              TPOT (ms/tok)
+            <th class="px-1.5 sm:px-2 py-1.5 text-right font-medium border-b border-gray-200 whitespace-nowrap">
+              TPOT
             </th>
-            <th class="px-2 py-1.5 text-right font-medium border-b border-gray-200 whitespace-nowrap">
+            <th class="hidden sm:table-cell px-2 py-1.5 text-right font-medium border-b border-gray-200 whitespace-nowrap">
               {{ t('result.sweep_latency_total') }} (s)
             </th>
-            <th class="px-2 py-1.5 text-center font-medium border-b border-gray-200 whitespace-nowrap">
+            <th class="hidden sm:table-cell px-2 py-1.5 text-center font-medium border-b border-gray-200 whitespace-nowrap">
               {{ t('result.bottleneck') }}
             </th>
-            <th class="px-2 py-1.5 text-center font-medium border-b border-gray-200 whitespace-nowrap">VRAM</th>
+            <th class="px-1.5 sm:px-2 py-1.5 text-center font-medium border-b border-gray-200 whitespace-nowrap">VRAM</th>
           </tr>
         </thead>
         <tbody>
@@ -218,33 +220,33 @@ function fmtMs(v) { return v == null ? '—' : v.toFixed(1) }
               !d.vramOk ? 'bg-red-50 text-red-400' : d.batch === currentBatch ? 'bg-emerald-50' : 'hover:bg-gray-50'
             ]"
           >
-            <td class="px-2 py-1.5 font-mono font-semibold" :class="d.batch === currentBatch ? 'text-emerald-700' : ''">
+            <td class="px-1.5 sm:px-2 py-1.5 font-mono font-semibold" :class="d.batch === currentBatch ? 'text-emerald-700' : ''">
               {{ d.batch }}
               <span v-if="d.batch === currentBatch" class="ml-1 text-[9px] text-emerald-600 font-normal">▶</span>
             </td>
-            <td class="px-2 py-1.5 text-right font-mono">
+            <td class="px-1.5 sm:px-2 py-1.5 text-right font-mono">
               <span v-if="d.vramOk" class="text-emerald-700 font-medium">{{ fmtToks(d.effectiveToks) }}</span>
               <span v-else class="text-red-400 line-through">OOM</span>
             </td>
-            <td class="px-2 py-1.5 text-right font-mono text-gray-600">
+            <td class="px-1.5 sm:px-2 py-1.5 text-right font-mono text-gray-600">
               <span v-if="d.vramOk">{{ fmtToks(d.singleToks) }}</span>
               <span v-else>—</span>
             </td>
-            <td class="px-2 py-1.5 text-right font-mono text-orange-600">
+            <td class="px-1.5 sm:px-2 py-1.5 text-right font-mono text-orange-600">
               <span v-if="d.vramOk">{{ fmtMs(d.tpot) }}</span>
               <span v-else>—</span>
             </td>
-            <td class="px-2 py-1.5 text-right font-mono text-gray-600">
+            <td class="hidden sm:table-cell px-2 py-1.5 text-right font-mono text-gray-600">
               <span v-if="d.vramOk">{{ d.totalLatency != null ? (d.totalLatency / 1000).toFixed(1) : '—' }}</span>
               <span v-else>—</span>
             </td>
-            <td class="px-2 py-1.5 text-center">
+            <td class="hidden sm:table-cell px-2 py-1.5 text-center">
               <span v-if="d.vramOk" :class="d.bottleneck === 'bandwidth' ? 'text-blue-500' : 'text-purple-500'">
                 {{ d.bottleneck === 'bandwidth' ? t('result.bandwidth') : t('result.compute') }}
               </span>
               <span v-else>—</span>
             </td>
-            <td class="px-2 py-1.5 text-center">
+            <td class="px-1.5 sm:px-2 py-1.5 text-center">
               <span v-if="d.vramOk" class="text-emerald-600">✓</span>
               <span v-else class="text-red-500 font-medium">OOM</span>
             </td>

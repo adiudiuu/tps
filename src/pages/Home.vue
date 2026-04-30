@@ -32,7 +32,7 @@ const framework      = ref(_url.framework    ?? FRAMEWORK_MAP.find(f => f.id ===
 const flashAttention = ref(_url.flashAttention ?? true)
 const kvCacheQuant   = ref(_url.kvCacheQuant ?? KV_CACHE_MAP[0])
 const prefixCacheHit = ref(_url.prefixCacheHit ?? 0)
-const cpuOffload     = ref(_url.cpuOffload   ?? false)
+const cpuOffload     = ref(_url.cpuOffload   ?? (model.value?.type === 'moe' && model.value?.active_params ? true : false))
 const pcieBw         = ref(_url.pcieBw       ?? PCIE_BW_OPTIONS[1])
 const speculativeDecoding = ref(_url.speculativeDecoding ?? false)
 const acceptanceRate = ref(_url.acceptanceRate ?? 0.7)
