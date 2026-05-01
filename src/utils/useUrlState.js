@@ -3,7 +3,7 @@ import { watch } from 'vue'
 import { GPU_LIST } from '../data/gpus/index.js'
 import { ALL_MODELS } from '../data/models/index.js'
 import { QUANT_MAP, INTERCONNECT_MAP, FRAMEWORK_MAP } from '../data/constants.js'
-import { KV_CACHE_MAP, PCIE_BW_OPTIONS } from '../data/runtime.js'
+import { KV_CACHE_MAP, PCIE_BW_OPTIONS, CPU_MEM_BW_OPTIONS } from '../data/runtime.js'
 
 const SESSION_KEY = 'tps_calc_query'
 
@@ -34,8 +34,9 @@ export function readUrlState() {
   }
   const p = new URLSearchParams(search)
   return {
-    gpuId:          p.get('gpu'),
-    gpuCount:       p.has('n')    ? Number(p.get('n'))    : null,
+    gpuSlots:       p.get('gpus') ?? null,          // "id1:n1,id2:n2"
+    gpuId:          p.get('gpu'),                    // legacy fallback
+    gpuCount:       p.has('n')    ? Number(p.get('n'))    : null,  // legacy fallback
     interconnectId: p.get('ic'),
     modelId:        p.get('model'),
     quantId:        p.get('quant'),
@@ -49,15 +50,29 @@ export function readUrlState() {
     prefixCacheHit: p.has('pc')   ? Number(p.get('pc'))  : null,
     cpuOffload:     p.has('co')   ? p.get('co') === '1'  : null,
     pcieBwId:       p.get('pcie'),
+    pureCpu:        p.has('pcpu') ? p.get('pcpu') === '1' : null,
+    cpuMemBwId:     p.get('cmb'),
     sharedVram:     p.has('sv')   ? Math.max(1, Math.min(512, Number(p.get('sv')))) : null,
   }
 }
 
 /** 解析初始值到对应对象 */
 export function resolveUrlState(init) {
+  // gpuSlots 优先；无则回退旧 gpu+gpuCount 参数
+  let gpuSlots = null
+  if (init.gpuSlots) {
+    const parsed = init.gpuSlots.split(',').map(s => {
+      const [id, count] = s.split(':')
+      return { gpu: GPU_LIST.find(g => g.id === id) ?? null, count: Number(count) || 1 }
+    }).filter(s => s.gpu)
+    if (parsed.length) gpuSlots = parsed
+  }
+  if (!gpuSlots && init.gpuId) {
+    const gpu = GPU_LIST.find(g => g.id === init.gpuId)
+    if (gpu) gpuSlots = [{ gpu, count: init.gpuCount ?? 1 }]
+  }
   return {
-    gpu:          GPU_LIST.find(g => g.id === init.gpuId) ?? null,
-    gpuCount:     init.gpuCount,
+    gpuSlots,
     interconnect: INTERCONNECT_MAP.find(i => i.id === init.interconnectId) ?? null,
     model:        ALL_MODELS.find(m => m.id === init.modelId) ?? null,
     quant:        QUANT_MAP.find(q => q.id === init.quantId) ?? null,
@@ -71,24 +86,27 @@ export function resolveUrlState(init) {
     prefixCacheHit: init.prefixCacheHit,
     cpuOffload:   init.cpuOffload,
     pcieBw:       PCIE_BW_OPTIONS.find(p => p.id === init.pcieBwId) ?? null,
+    pureCpu:      init.pureCpu,
+    cpuMemBw:     CPU_MEM_BW_OPTIONS.find(p => p.id === init.cpuMemBwId) ?? null,
     sharedVram:   init.sharedVram,
   }
 }
 
 /** 监听所有 ref，变化时同步写入 URL 和 sessionStorage */
 export function watchUrlState({
-  gpu, gpuCount, interconnect, model, quant, ctx, batch,
+  gpuSlots, interconnect, model, quant, ctx, batch,
   promptLen, outputLen, framework, flashAttention,
-  kvCacheQuant, prefixCacheHit, cpuOffload, pcieBw, sharedVram,
+  kvCacheQuant, prefixCacheHit, cpuOffload, pcieBw, pureCpu, cpuMemBw, sharedVram,
 }) {
   watch(
-    [gpu, gpuCount, interconnect, model, quant, ctx, batch,
+    [gpuSlots, interconnect, model, quant, ctx, batch,
      promptLen, outputLen, framework, flashAttention,
-     kvCacheQuant, prefixCacheHit, cpuOffload, pcieBw, sharedVram],
-    ([g, n, ic, m, q, c, b, pl, ol, fw, fa, kv, pc, co, pb, sv]) => {
+     kvCacheQuant, prefixCacheHit, cpuOffload, pcieBw, pureCpu, cpuMemBw, sharedVram],
+    ([slots, ic, m, q, c, b, pl, ol, fw, fa, kv, pc, co, pb, pcpu, cmb, sv]) => {
       setParams({
-        gpu:   g?.id   ?? null,
-        n:     n !== 1 ? n : null,
+        gpus:  slots?.length ? slots.map(s => `${s.gpu.id}:${s.count}`).join(',') : null,
+        gpu:   null,
+        n:     null,
         ic:    ic?.id  ?? null,
         model: m?.id   ?? null,
         quant: q?.id   ?? null,
@@ -102,9 +120,11 @@ export function watchUrlState({
         pc:    pc > 0 ? pc : null,
         co:    co ? '1' : null,
         pcie:  pb?.id  ?? null,
+        pcpu:  pcpu ? '1' : null,
+        cmb:   pcpu ? (cmb?.id ?? null) : null,
         sv:    sv != null && sv !== 16 ? sv : null,
       })
     },
-    { immediate: true }
+    { immediate: true, deep: true }
   )
 }

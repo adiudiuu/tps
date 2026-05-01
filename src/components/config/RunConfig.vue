@@ -2,7 +2,7 @@
 import { computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { QUANT_MAP } from '../../data/constants.js'
-import { KV_CACHE_MAP, PREFIX_CACHE_OPTIONS, PCIE_BW_OPTIONS } from '../../data/runtime.js'
+import { KV_CACHE_MAP, PREFIX_CACHE_OPTIONS, PCIE_BW_OPTIONS, CPU_MEM_BW_OPTIONS } from '../../data/runtime.js'
 import { fmtCtx } from '../../utils/format.js'
 import TipIcon from '../ui/TipIcon.vue'
 
@@ -24,6 +24,8 @@ const kvCacheQuant = defineModel('kvCacheQuant', { required: true })
 const prefixCacheHit = defineModel('prefixCacheHit', { required: true })
 const cpuOffload = defineModel('cpuOffload', { required: true })
 const pcieBw = defineModel('pcieBw', { required: true })
+const pureCpu = defineModel('pureCpu', { required: true })
+const cpuMemBw = defineModel('cpuMemBw', { required: true })
 const speculativeDecoding = defineModel('speculativeDecoding', { required: true })
 const acceptanceRate = defineModel('acceptanceRate', { required: true })
 const draftLen = defineModel('draftLen', { required: true })
@@ -215,33 +217,50 @@ const ctxOptions = computed(() => {
         </div>
       </div>
 
-      <!-- MoE CPU Offload -->
-      <div v-if="props.model?.type === 'moe'">
+      <!-- 计算模式：GPU / GPU+CPU Offload / 纯 CPU -->
+      <div>
         <label class="flex items-center gap-1 text-xs text-gray-500 mb-2">
-          {{ t('run.cpu_offload') }}<TipIcon :text="t('run.cpu_offload_tip')" />
+          {{ t('run.compute_mode') }}
+          <TipIcon v-if="cpuOffload" :text="t('run.cpu_offload_tip')" />
+          <TipIcon v-else-if="pureCpu" :text="t('run.cpu_mem_bw_tip')" />
         </label>
-        <div class="grid grid-cols-2 gap-1.5 mb-2">
+        <div class="flex gap-1.5 flex-wrap">
+          <!-- GPU -->
           <button
-            @click="cpuOffload = true"
+            @click="cpuOffload = false; pureCpu = false"
             :class="[
               'px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors',
-              cpuOffload
+              !cpuOffload && !pureCpu
                 ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm'
                 : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:border-gray-300'
             ]"
-          >{{ t('run.enabled') }}</button>
+          >{{ t('run.compute_mode_gpu') }}</button>
+          <!-- GPU + CPU Offload（仅 MoE 模型显示）-->
           <button
-            @click="cpuOffload = false"
+            v-if="props.model?.type === 'moe'"
+            @click="cpuOffload = true; pureCpu = false"
             :class="[
               'px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors',
-              !cpuOffload
+              cpuOffload && !pureCpu
                 ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm'
                 : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:border-gray-300'
             ]"
-          >{{ t('run.disabled') }}</button>
+          >{{ t('run.compute_mode_offload') }}</button>
+          <!-- 纯 CPU -->
+          <button
+            @click="cpuOffload = false; pureCpu = true"
+            :class="[
+              'px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors',
+              pureCpu
+                ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm'
+                : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:border-gray-300'
+            ]"
+          >{{ t('run.compute_mode_cpu') }}</button>
         </div>
-        <template v-if="cpuOffload">
-          <label class="flex items-center gap-1 text-xs text-gray-500 mb-2">{{ t('run.pcie_bw') }}<TipIcon :text="t('run.pcie_bw_tip')" /></label>
+
+        <!-- GPU + CPU Offload：PCIe 带宽选择 -->
+        <template v-if="cpuOffload && !pureCpu">
+          <label class="flex items-center gap-1 text-xs text-gray-500 mt-2 mb-1.5">{{ t('run.pcie_bw') }}<TipIcon :text="t('run.pcie_bw_tip')" /></label>
           <div class="flex gap-1.5 flex-wrap">
             <button
               v-for="option in PCIE_BW_OPTIONS"
@@ -257,6 +276,29 @@ const ctxOptions = computed(() => {
               {{ option.label }} <span class="opacity-70">({{ option.bw }} GB/s)</span>
             </button>
           </div>
+        </template>
+
+        <!-- 纯 CPU：DDR 内存带宽选择 -->
+        <template v-if="pureCpu">
+          <label class="flex items-center gap-1 text-xs text-gray-500 mt-2 mb-1.5">{{ t('run.cpu_mem_bw') }}<TipIcon :text="t('run.cpu_mem_bw_tip')" /></label>
+          <div class="flex gap-1.5 flex-wrap">
+            <button
+              v-for="option in CPU_MEM_BW_OPTIONS"
+              :key="option.id"
+              @click="cpuMemBw = option"
+              :class="[
+                'px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors',
+                cpuMemBw.id === option.id
+                  ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm'
+                  : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:border-gray-300'
+              ]"
+            >
+              {{ option.label }} <span class="opacity-70">({{ option.bw }} GB/s)</span>
+            </button>
+          </div>
+          <p class="mt-1.5 text-xs text-slate-500 bg-slate-50 rounded px-2 py-1.5 border border-slate-200">
+            ℹ️ {{ t('run.cpu_prefill_note') }}
+          </p>
         </template>
       </div>
 

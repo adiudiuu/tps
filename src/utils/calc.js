@@ -25,6 +25,7 @@ export function calcAll({
   gpu, gpuCount, interconnect, model, quant, ctx, batch, promptLen, outputLen, framework,
   flashAttention = true, kvCacheQuant = null, prefixCacheHit = 0,
   cpuOffload = false, pcieBw = null,
+  pureCpu = false, cpuMemBw = null,
   speculativeDecoding = false, acceptanceRate = 0.7, draftLen = 4, draftModelParams = null,
   ppCount = 1,
   imageCount = 0,
@@ -180,7 +181,14 @@ export function calcAll({
     : 0
 
   let effectiveBw, bwLimit
-  if (cpuOffload && model.type === 'moe' && pcieBw != null) {
+  if (pureCpu && cpuMemBw != null) {
+    // ── 纯 CPU 路径 ──────────────────────────────────────────────────────────
+    // 所有权重和 KV Cache 都从 DDR 读取，瓶颈是内存带宽
+    // llama.cpp CPU backend 实测带宽利用率约 0.65（已通过 framework.decode 系数体现）
+    // PP / ppBubbleEff 在纯 CPU 场景无意义，不参与计算
+    effectiveBw = cpuMemBw.bw
+    bwLimit = (effectiveBw / decodeBytesPerStep) * batch
+  } else if (cpuOffload && model.type === 'moe' && pcieBw != null) {
     let expertIOPerStep
     if (model.experts && model.experts_per_token) {
       // 有字段时精确计算：代数推导非专家参数量
@@ -260,9 +268,11 @@ export function calcAll({
   // offload 模式：bwLimit 已包含串行 IO，从 bwLimit 反推 tpot 保持一致
   // PP 模式：batch / bwLimit 已包含 ppCount 和 ppBubbleEff，反推出每请求 tpot
   // 再叠加 PP 阶段间 P2P 通信延迟 ppP2pMs
-  const tpotBase = (cpuOffload && model.type === 'moe' && pcieBw != null)
-    ? (batch / bwLimit) * 1000 / framework.decode
-    : (decodeBytesPerStep / ppCount / effectiveBw / ppBubbleEff) * 1000 / framework.decode  // ms/tok
+  const tpotBase = pureCpu && cpuMemBw != null
+    ? (decodeBytesPerStep / effectiveBw) * 1000 / framework.decode  // ms/tok，纯 DDR 带宽
+    : (cpuOffload && model.type === 'moe' && pcieBw != null)
+      ? (batch / bwLimit) * 1000 / framework.decode
+      : (decodeBytesPerStep / ppCount / effectiveBw / ppBubbleEff) * 1000 / framework.decode
   const tpot = tpotBase + ppP2pMs
 
   // ─────────────────────────────────────────────
@@ -330,6 +340,8 @@ export function calcAll({
     kvCacheLabel: kvCacheQuant?.label ?? 'Auto',
     cpuOffload: cpuOffload && model.type === 'moe',
     pcieBwLabel: (cpuOffload && model.type === 'moe' && pcieBw) ? pcieBw.label : null,
+    pureCpu,
+    cpuMemBwLabel: (pureCpu && cpuMemBw) ? cpuMemBw.label : null,
     speculativeDecoding,
     speculativeSpeedup,
     acceptanceRate,
@@ -391,7 +403,7 @@ export function getWarnings(result, t) {
   }
 
   if (activationGB > 2) {
-    warnings.push({ level: 'warn', key: 'activation_oom', gb: activationGB.toFixed(1) })
+    warnings.push({ level: 'info', key: 'activation_high', gb: activationGB.toFixed(1) })
   }
 
   if (tpEfficiency < 0.7) {
@@ -440,5 +452,49 @@ export function calcBatchSweep(params, batches = [1, 2, 4, 8, 16, 32, 64, 128, 2
       return { batch: b, error: true }
     }
   })
+}
+
+/**
+ * 聚合多卡配置为 calcAll 所需的单一 gpu 对象
+ * 单卡时直接返回原对象；多卡时线性叠加带宽/算力，VRAM 取短板
+ *
+ * @param {Array<{gpu: object, count: number}>} slots
+ */
+export function aggregateGpuSlots(slots) {
+  if (!slots || slots.length === 0) return null
+  if (slots.length === 1) return slots[0].gpu
+
+  const totalCount = slots.reduce((s, g) => s + g.count, 0)
+
+  // 聚合后的对象代表"等效单卡"，配合 gpuCount=totalCount 传入 calcAll
+  // calcAll 内部会再 × gpuCount，所以这里存的是单卡等效值
+  // bw：各卡实际带宽（已乘 bwUtilization）之和 ÷ totalCount = 等效单卡带宽
+  // 然后 calcAll 里 totalBw = bw * gpuCount * bwUtilization(=1.0) 还原回总带宽
+  const totalBw   = slots.reduce((s, g) => s + g.gpu.bw * g.count * (g.gpu.bwUtilization ?? 0.80), 0)
+  const totalBf16 = slots.reduce((s, g) => s + (g.gpu.bf16 ?? 0) * g.count, 0)
+  const totalInt8 = slots.reduce((s, g) => s + (g.gpu.int8 ?? g.gpu.bf16 ?? 0) * g.count, 0)
+  const totalInt4 = slots.reduce((s, g) => s + (g.gpu.int4 ?? g.gpu.bf16 ?? 0) * g.count, 0)
+  const totalTdp  = slots.reduce((s, g) => s + g.gpu.tdp * g.count, 0)
+
+  return {
+    // VRAM：TP 下每卡存等量权重，短板决定上限（单卡值，calcAll 会 × gpuCount）
+    vram: Math.min(...slots.map(g => g.gpu.vram ?? 0)),
+    // 等效单卡值 = 总值 ÷ totalCount，calcAll 内 × gpuCount 还原
+    bw:   totalBw   / totalCount,
+    bf16: totalBf16 / totalCount,
+    int8: totalInt8 / totalCount,
+    int4: totalInt4 / totalCount,
+    tdp:  totalTdp  / totalCount,
+    // bwUtilization 已内联到 bw 里，usableRatio 保持 1.0（vram 已是单卡最小值）
+    bwUtilization: 1.0,
+    usableRatio:   1.0,
+    // 混合卡不保证 NVLink
+    nvlink_bw: null,
+    // 展示字段取主卡
+    vendor: slots[0].gpu.vendor,
+    tier:   slots[0].gpu.tier,
+    id:     'mixed',
+    name:   slots.map(g => `${g.gpu.name} ×${g.count}`).join(' + '),
+  }
 }
 
