@@ -208,10 +208,6 @@ export function calcAll({
     // PP：decodeBytesPerStep / ppCount 是单个 stage 的 IO 量；流水满载再乘气泡效率
     bwLimit = (effectiveBw / (decodeBytesPerStep / ppCount)) * batch * ppBubbleEff
   }
-  let decodeToks = bwLimit * adjustedFramework.decode
-  let decodeToksMin = bwLimit * decodeFactorMin
-  let decodeToksMax = bwLimit * decodeFactorMax
-
   // Speculative Decoding 加速：每步尝试验证 draftLen 个 token，接受率为 acceptanceRate
   // 有效加速比 = 1 + acceptanceRate × draftLen
   // 例如：acceptanceRate=0.7, draftLen=4 → 加速 1 + 0.7×4 = 3.8x
@@ -228,10 +224,12 @@ export function calcAll({
       bwLimit = (effectiveBw / (totalIOPerVerifyStep / ppCount)) * batch * ppBubbleEff
     }
     speculativeSpeedup = 1 + acceptanceRate * draftLen
-    decodeToks *= speculativeSpeedup
-    decodeToksMin *= speculativeSpeedup
-    decodeToksMax *= speculativeSpeedup
   }
+
+  // decodeToks 在 bwLimit 最终确定后统一计算
+  let decodeToks = bwLimit * adjustedFramework.decode * speculativeSpeedup
+  let decodeToksMin = bwLimit * decodeFactorMin * speculativeSpeedup
+  let decodeToksMax = bwLimit * decodeFactorMax * speculativeSpeedup
 
   // ─────────────────────────────────────────────
   // Prefill 速度（算力瓶颈）
@@ -302,7 +300,7 @@ export function calcAll({
   // 总延迟 = TTFT + 输出 token 数 × 单 token 时间
   const totalLatency  = ttft + outputLen * tpot  // ms
 
-  const totalPower = gpu.tdp * gpuCount / 1000  // kW
+  const totalPower = gpu.tdp * gpuCount * ppCount / 1000  // kW，总卡数 = TP × PP
 
   return {
     // 显存
@@ -444,32 +442,3 @@ export function calcBatchSweep(params, batches = [1, 2, 4, 8, 16, 32, 64, 128, 2
   })
 }
 
-/**
- * GPU 数量扫描：固定当前配置，枚举 gpuCount，计算每种数量下的显存/性能
- * 用于直观展示"买几张卡才能跑"
- *
- * @param {object} params     - 与 calcAll 相同，gpuCount 字段会被覆盖
- * @param {number[]} [counts] - 要扫描的 GPU 数量，默认 [1,2,4,8,16,32,64]
- */
-export function calcGpuSweep(params, counts = [1, 2, 4, 8, 16, 32, 64]) {
-  return counts.map(n => {
-    try {
-      const r = calcAll({ ...params, gpuCount: n })
-      return {
-        gpuCount:      n,
-        decodeToks:    r.decodeToks,
-        effectiveToks: r.effectiveToks,
-        singleToks:    r.singleToks,
-        tpot:          r.tpot,
-        ttft:          r.ttft,
-        totalLatency:  r.totalLatency,
-        vramOk:        r.vramOk,
-        totalNeeded:   r.totalNeeded,
-        vramPct:       r.vramPct,
-        bottleneck:    r.bottleneck,
-      }
-    } catch {
-      return { gpuCount: n, error: true }
-    }
-  })
-}
