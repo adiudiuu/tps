@@ -14,12 +14,13 @@ function extractHfModel(model) {
 /**
  * 将参数数组格式化为命令字符串
  * ≤3 个参数时单行，超过 3 个用 \ + 换行分隔
+ * notes 数组中的注释行单独追加在命令末尾，不混入参数列表
  */
-function formatCmd(parts) {
-  if (parts.length <= 3) {
-    return parts.join(' ')
-  }
-  return parts.join(' \\\n  ')
+function formatCmd(parts, notes = []) {
+  const cmd = parts.length <= 3
+    ? parts.join(' ')
+    : parts.join(' \\\n  ')
+  return notes.length ? cmd + '\n' + notes.join('\n') : cmd
 }
 
 /**
@@ -42,6 +43,7 @@ function calcNgl(model, cpuOffload, pureCpu) {
 function genVllm(hfModel, config) {
   const { gpuCount, ppCount, ctx, batch, quant, kvCacheQuant, prefixCacheHit, speculativeDecoding, draftLen } = config
   const parts = [`vllm serve ${hfModel}`]
+  const notes = []
 
   if (gpuCount > 1) parts.push(`--tensor-parallel-size ${gpuCount}`)
   if (ppCount > 1)  parts.push(`--pipeline-parallel-size ${ppCount}`)
@@ -55,23 +57,25 @@ function genVllm(hfModel, config) {
   } else if (quant.id === 'int8') {
     parts.push(`--quantization bitsandbytes --load-in-8bit`)
   } else if (quant.id === 'int4') {
-    parts.push(`--quantization awq  # or --quantization gptq depending on model format`)
+    parts.push(`--quantization awq`)
+    notes.push(`# Note: use --quantization gptq if the model is in GPTQ format instead of AWQ`)
   }
 
   // KV Cache：vLLM 只支持 fp8
   if (kvCacheQuant.id === 'fp8') {
     parts.push(`--kv-cache-dtype fp8`)
   } else if (kvCacheQuant.id !== 'auto' && kvCacheQuant.id !== 'fp16') {
-    parts.push(`# --kv-cache-dtype ...  # vLLM KV cache only supports fp8`)
+    notes.push(`# Note: vLLM KV cache quantization only supports fp8; current selection ignored`)
   }
 
   if (prefixCacheHit > 0) parts.push(`--enable-prefix-caching`)
 
   if (speculativeDecoding) {
-    parts.push(`--speculative-model <DRAFT_MODEL> --num-speculative-tokens ${draftLen}`)
+    parts.push(`--speculative-model <DRAFT_MODEL>`)
+    parts.push(`--num-speculative-tokens ${draftLen}`)
   }
 
-  return formatCmd(parts)
+  return formatCmd(parts, notes)
 }
 
 /**
@@ -80,10 +84,11 @@ function genVllm(hfModel, config) {
 function genSglang(hfModel, config) {
   const { gpuCount, ppCount, ctx, batch, quant, kvCacheQuant, prefixCacheHit, speculativeDecoding, draftLen } = config
   const parts = [`python -m sglang.launch_server`]
+  const notes = []
 
   parts.push(`--model-path ${hfModel}`)
-  parts.push(`--tp ${gpuCount}`)
-  if (ppCount > 1) parts.push(`--pp ${ppCount}`)
+  if (gpuCount > 1) parts.push(`--tp ${gpuCount}`)
+  if (ppCount > 1)  parts.push(`--pp ${ppCount}`)
   parts.push(`--context-length ${ctx}`)
   parts.push(`--max-running-requests ${batch}`)
 
@@ -100,12 +105,14 @@ function genSglang(hfModel, config) {
   if (prefixCacheHit > 0) parts.push(`--enable-prefix-caching`)
 
   if (speculativeDecoding) {
-    parts.push(`--speculative-algorithm EAGLE --speculative-draft-model-path <DRAFT_MODEL> --speculative-num-steps ${draftLen}`)
+    parts.push(`--speculative-algorithm EAGLE`)
+    parts.push(`--speculative-draft-model-path <DRAFT_MODEL>`)
+    parts.push(`--speculative-num-steps ${draftLen}`)
   }
 
   parts.push(`--host 0.0.0.0 --port 30000`)
 
-  return formatCmd(parts)
+  return formatCmd(parts, notes)
 }
 
 /**
@@ -115,7 +122,7 @@ function genLmdeploy(hfModel, config) {
   const { gpuCount, ctx, batch, quant, kvCacheQuant, prefixCacheHit } = config
   const parts = [`lmdeploy serve api_server ${hfModel}`]
 
-  parts.push(`--tp ${gpuCount}`)
+  if (gpuCount > 1) parts.push(`--tp ${gpuCount}`)
   parts.push(`--session-len ${ctx}`)
   parts.push(`--max-batch-size ${batch}`)
 
@@ -172,6 +179,7 @@ function genTgi(hfModel, config) {
 function genExllamav2(hfModel, config) {
   const { gpuCount, ctx, batch, quant } = config
   const parts = [`python -m exllamav2.server`]
+  const notes = []
 
   parts.push(`--model-dir ${hfModel}`)
   parts.push(`--max-seq-len ${ctx}`)
@@ -182,9 +190,9 @@ function genExllamav2(hfModel, config) {
   if (gpuCount > 1) parts.push(`--gpu-split <GPU_SPLIT e.g. 24,24>`)
 
   parts.push(`--port 5000`)
-  parts.push(`# Note: EXL2 format is recommended over GPTQ. Adjust if using EXL2 quantized models.`)
+  notes.push(`# Note: EXL2 format is recommended over GPTQ. Adjust if using EXL2 quantized models.`)
 
-  return formatCmd(parts)
+  return formatCmd(parts, notes)
 }
 
 /**
@@ -217,16 +225,16 @@ function genLlamacpp(config) {
 
   const ngl = calcNgl(model, cpuOffload, pureCpu)
   const parts = [`llama-server`]
+  const notes = []
 
   parts.push(`--model ${modelPath}`)
   parts.push(`--ctx-size ${ctx}`)
   parts.push(`--parallel ${batch}`)
 
   if (ngl != null) {
+    parts.push(`--n-gpu-layers ${ngl}`)
     if (cpuOffload && model.type === 'moe') {
-      parts.push(`--n-gpu-layers ${ngl}  # adjust based on available VRAM`)
-    } else {
-      parts.push(`--n-gpu-layers ${ngl}`)
+      notes.push(`# Note: --n-gpu-layers set to ${ngl} for MoE CPU offload; adjust based on available VRAM`)
     }
   }
 
@@ -234,19 +242,12 @@ function genLlamacpp(config) {
 
   parts.push(`--host 0.0.0.0 --port 8080`)
 
-  let cmd = formatCmd(parts)
-
-  // FP8 不支持注释
-  if (ggufInfo.note) {
-    cmd += `\n${ggufInfo.note}`
-  }
-
-  // GGUF 变体提示
+  if (ggufInfo.note) notes.push(ggufInfo.note)
   if (quant.id === 'int4') {
-    cmd += `\n# Note: Q4_K_M is the default. Adjust to Q4_K_S, Q4_0, etc. based on your actual .gguf file.`
+    notes.push(`# Note: Q4_K_M is the default. Adjust to Q4_K_S, Q4_0, etc. based on your actual .gguf file.`)
   }
 
-  return cmd
+  return formatCmd(parts, notes)
 }
 
 /**
@@ -255,6 +256,7 @@ function genLlamacpp(config) {
 function genMlx(hfModel, config) {
   const { ctx, quant } = config
   const parts = [`mlx_lm.server`]
+  const notes = []
 
   parts.push(`--model ${hfModel}`)
   parts.push(`--max-tokens ${ctx}`)
@@ -267,11 +269,10 @@ function genMlx(hfModel, config) {
 
   parts.push(`--port 8080`)
 
-  let cmd = formatCmd(parts)
-  cmd += `\n# Note: MLX models usually require mlx-community converted versions`
-  cmd += `\n# e.g. mlx-community/${hfModel.split('/').pop()}-4bit`
+  notes.push(`# Note: MLX models usually require mlx-community converted versions`)
+  notes.push(`# e.g. mlx-community/${hfModel.split('/').pop()}-4bit`)
 
-  return cmd
+  return formatCmd(parts, notes)
 }
 
 /**
