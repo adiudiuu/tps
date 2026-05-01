@@ -74,8 +74,22 @@ function pinCurrentResult() {
     model: model.value,
     quant: quant.value,
     framework: framework.value,
+    // 快照所有运行参数，固定列不再引用实时 ref
     ctx: ctx.value,
     batch: batch.value,
+    interconnect: interconnect.value,
+    cpuOffload: cpuOffload.value,
+    pcieBw: pcieBw.value,
+    flashAttention: flashAttention.value,
+    kvCacheQuant: kvCacheQuant.value,
+    prefixCacheHit: prefixCacheHit.value,
+    speculativeDecoding: speculativeDecoding.value,
+    acceptanceRate: acceptanceRate.value,
+    draftLen: draftLen.value,
+    ppCount: ppCount.value,
+    imageCount: imageCount.value,
+    promptLen: promptLen.value,
+    outputLen: outputLen.value,
   }
 }
 
@@ -168,19 +182,38 @@ const quantMatrix = computed(() => {
 // 固定列的量化对比矩阵
 const pinnedQuantMatrix = computed(() => {
   if (!pinnedConfig.value) return []
-  const config = pinnedConfig.value
+  const c = pinnedConfig.value
   return QUANT_MAP.map(q => {
     try {
       const r = calcAll({
-        gpu: config.gpu, gpuCount: config.gpuCount, interconnect: interconnect.value,
-        model: config.model, quant: q, ctx: ctx.value, batch: batch.value,
-        promptLen: promptLen.value, outputLen: outputLen.value, framework: config.framework,
-        flashAttention: flashAttention.value, kvCacheQuant: kvCacheQuant.value,
-        prefixCacheHit: prefixCacheHit.value, cpuOffload: cpuOffload.value, pcieBw: pcieBw.value,
-        speculativeDecoding: speculativeDecoding.value, acceptanceRate: acceptanceRate.value, draftLen: draftLen.value,
-        ppCount: ppCount.value,
+        gpu: c.gpu, gpuCount: c.gpuCount, interconnect: c.interconnect,
+        model: c.model, quant: q, ctx: c.ctx, batch: c.batch,
+        promptLen: c.promptLen, outputLen: c.outputLen, framework: c.framework,
+        flashAttention: c.flashAttention, kvCacheQuant: c.kvCacheQuant,
+        prefixCacheHit: c.prefixCacheHit, cpuOffload: c.cpuOffload, pcieBw: c.pcieBw,
+        speculativeDecoding: c.speculativeDecoding, acceptanceRate: c.acceptanceRate, draftLen: c.draftLen,
+        ppCount: c.ppCount,
       })
-      return { quant: q, vramGB: r.totalNeeded, vramOk: r.vramOk, vramPct: r.vramPct, decodeToks: r.decodeToks }
+      // 当前行 OOM 且未开启 CPU 卸载时，额外计算"启用卸载后能否容纳"
+      let cpuOffloadFeasible = false
+      let offloadVramGB = null
+      if (!r.vramOk && !c.cpuOffload && c.model?.type === 'moe' && c.model?.active_params) {
+        try {
+          const ro = calcAll({
+            gpu: c.gpu, gpuCount: c.gpuCount, interconnect: c.interconnect,
+            model: c.model, quant: q, ctx: c.ctx, batch: c.batch,
+            promptLen: c.promptLen, outputLen: c.outputLen, framework: c.framework,
+            flashAttention: c.flashAttention, kvCacheQuant: c.kvCacheQuant,
+            prefixCacheHit: c.prefixCacheHit, cpuOffload: true, pcieBw: c.pcieBw,
+            pureCpu: false, cpuMemBw: null,
+            speculativeDecoding: c.speculativeDecoding, acceptanceRate: c.acceptanceRate, draftLen: c.draftLen,
+            ppCount: c.ppCount,
+          })
+          cpuOffloadFeasible = ro.vramOk
+          offloadVramGB = ro.totalNeeded
+        } catch { /* ignore */ }
+      }
+      return { quant: q, vramGB: r.totalNeeded, vramOk: r.vramOk, vramPct: r.vramPct, decodeToks: r.decodeToks, cpuOffloadFeasible, offloadVramGB }
     } catch { return null }
   }).filter(Boolean)
 })
@@ -191,13 +224,13 @@ const pinnedBatchSweepData = computed(() => {
   return calcBatchSweep({
     gpu: c.gpu, gpuCount: c.gpuCount, model: c.model, quant: c.quant,
     ctx: c.ctx, batch: c.batch, framework: c.framework,
-    interconnect: interconnect.value,
-    promptLen: promptLen.value, outputLen: outputLen.value,
-    flashAttention: flashAttention.value, kvCacheQuant: kvCacheQuant.value,
-    prefixCacheHit: prefixCacheHit.value, cpuOffload: cpuOffload.value,
-    pcieBw: pcieBw.value, speculativeDecoding: speculativeDecoding.value,
-    acceptanceRate: acceptanceRate.value, draftLen: draftLen.value,
-    ppCount: ppCount.value, imageCount: imageCount.value,
+    interconnect: c.interconnect,
+    promptLen: c.promptLen, outputLen: c.outputLen,
+    flashAttention: c.flashAttention, kvCacheQuant: c.kvCacheQuant,
+    prefixCacheHit: c.prefixCacheHit, cpuOffload: c.cpuOffload,
+    pcieBw: c.pcieBw, speculativeDecoding: c.speculativeDecoding,
+    acceptanceRate: c.acceptanceRate, draftLen: c.draftLen,
+    ppCount: c.ppCount, imageCount: c.imageCount,
   })
 })
 
@@ -275,7 +308,7 @@ const batchSweepData = computed(() => {
               {{ t('result.unpin') }}
             </button>
           </div>
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div class="grid grid-cols-2 gap-4">
             <!-- 固定列 (ref) -->
             <div class="rounded-xl border-2 border-blue-300 overflow-hidden">
               <div class="bg-blue-500 px-3 py-1.5 text-xs font-semibold text-white flex items-center gap-1.5">
@@ -346,17 +379,20 @@ const batchSweepData = computed(() => {
           </div>
         </div>
         <div v-else class="space-y-4">
-          <!-- 单列模式 + 固定按钮（仅桌面端显示） -->
-          <div v-if="result" class="hidden sm:flex justify-end">
+          <!-- 单列模式 + 固定按钮（仅桌面端显示）/ 移动端显示提示 -->
+          <div v-if="result" class="flex justify-end items-center">
+            <!-- 桌面端：pin 按钮 -->
             <button
               @click="pinCurrentResult"
-              class="text-xs px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm transition-colors flex items-center gap-1.5"
+              class="hidden sm:flex text-xs px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm transition-colors items-center gap-1.5"
             >
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
               </svg>
               {{ t('result.pin_current') }}
             </button>
+            <!-- 移动端：提示文字 -->
+            <p class="sm:hidden text-xs text-gray-400">{{ t('result.compare_desktop_only') }}</p>
           </div>
           <ResultPanel
             :result="result"

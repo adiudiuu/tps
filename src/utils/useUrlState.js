@@ -53,6 +53,11 @@ export function readUrlState() {
     pureCpu:        p.has('pcpu') ? p.get('pcpu') === '1' : null,
     cpuMemBwId:     p.get('cmb'),
     sharedVram:     p.has('sv')   ? Math.max(1, Math.min(512, Number(p.get('sv')))) : null,
+    speculativeDecoding: p.has('sd')  ? p.get('sd') === '1' : null,
+    acceptanceRate:      p.has('ar')  ? Number(p.get('ar')) : null,
+    draftLen:            p.has('dl')  ? Math.max(1, Math.min(32, Number(p.get('dl')))) : null,
+    ppCount:             p.has('pp')  ? Math.max(1, Number(p.get('pp'))) : null,
+    imageCount:          p.has('img') ? Math.max(0, Number(p.get('img'))) : null,
   }
 }
 
@@ -89,6 +94,11 @@ export function resolveUrlState(init) {
     pureCpu:      init.pureCpu,
     cpuMemBw:     CPU_MEM_BW_OPTIONS.find(p => p.id === init.cpuMemBwId) ?? null,
     sharedVram:   init.sharedVram,
+    speculativeDecoding: init.speculativeDecoding,
+    acceptanceRate:      init.acceptanceRate,
+    draftLen:            init.draftLen,
+    ppCount:             init.ppCount,
+    imageCount:          init.imageCount,
   }
 }
 
@@ -97,12 +107,14 @@ export function watchUrlState({
   gpuSlots, interconnect, model, quant, ctx, batch,
   promptLen, outputLen, framework, flashAttention,
   kvCacheQuant, prefixCacheHit, cpuOffload, pcieBw, pureCpu, cpuMemBw, sharedVram,
+  speculativeDecoding, acceptanceRate, draftLen, ppCount, imageCount,
 }) {
   watch(
     [gpuSlots, interconnect, model, quant, ctx, batch,
      promptLen, outputLen, framework, flashAttention,
-     kvCacheQuant, prefixCacheHit, cpuOffload, pcieBw, pureCpu, cpuMemBw, sharedVram],
-    ([slots, ic, m, q, c, b, pl, ol, fw, fa, kv, pc, co, pb, pcpu, cmb, sv]) => {
+     kvCacheQuant, prefixCacheHit, cpuOffload, pcieBw, pureCpu, cpuMemBw, sharedVram,
+     speculativeDecoding, acceptanceRate, draftLen, ppCount, imageCount],
+    ([slots, ic, m, q, c, b, pl, ol, fw, fa, kv, pc, co, pb, pcpu, cmb, sv, sd, ar, dl, pp, img]) => {
       setParams({
         gpus:  slots?.length ? slots.map(s => `${s.gpu.id}:${s.count}`).join(',') : null,
         gpu:   null,
@@ -123,6 +135,11 @@ export function watchUrlState({
         pcpu:  pcpu ? '1' : null,
         cmb:   pcpu ? (cmb?.id ?? null) : null,
         sv:    sv != null && sv !== 16 ? sv : null,
+        sd:    sd ? '1' : null,
+        ar:    sd && ar != null && ar !== 0.7 ? ar : null,
+        dl:    sd && dl != null && dl !== 4   ? dl : null,
+        pp:    pp != null && pp !== 1 ? pp : null,
+        img:   img != null && img !== 0 ? img : null,
       })
     },
     { immediate: true, deep: true }

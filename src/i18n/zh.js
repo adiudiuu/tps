@@ -185,6 +185,7 @@ export default {
     vram_ok: '显存充足',
     vram_oom: '显存不足',
     pin_current: '固定当前结果',
+    compare_desktop_only: '对比模式请在电脑端使用',
     unpin: '取消固定',
     compare_mode_active: '对比模式已启用',
     compare_mode_hint: '左侧为已固定的参考配置，调整右侧参数即可实时对比差异。',

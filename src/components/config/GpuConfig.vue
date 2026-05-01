@@ -143,12 +143,18 @@ function handleClickOutside(e) {
 }
 
 onMounted(() => document.addEventListener('mousedown', handleClickOutside))
-onBeforeUnmount(() => document.removeEventListener('mousedown', handleClickOutside))
+onBeforeUnmount(() => {
+  document.removeEventListener('mousedown', handleClickOutside)
+  if (_detectTimer) clearTimeout(_detectTimer)
+})
 
 // ── 手动检测 ────────────────────────────────────────
 const detectState = ref('')  // '' | 'loading' | 'matched' | 'no_match'
 
+let _detectTimer = null
+
 async function manualDetect() {
+  if (_detectTimer) clearTimeout(_detectTimer)
   detectState.value = 'loading'
   const { gpu: matched, rawName } = await detectLocalGpu()
   if (matched) {
@@ -159,6 +165,8 @@ async function manualDetect() {
   } else {
     detectState.value = 'no_match'
   }
+  // 5 秒后自动淡出提示
+  _detectTimer = setTimeout(() => { detectState.value = '' }, 5000)
 }
 
 // ── 选 GPU 时自动匹配互联方式（主卡）──────────────────

@@ -185,6 +185,7 @@ export default {
     vram_ok: 'VRAM Sufficient',
     vram_oom: 'VRAM Insufficient',
     pin_current: 'Pin Current Result',
+    compare_desktop_only: 'Compare mode is available on desktop',
     unpin: 'Unpin',
     compare_mode_active: 'Compare Mode Active',
     compare_mode_hint: 'Left panel shows the pinned reference. Adjust parameters on the right to compare in real time.',

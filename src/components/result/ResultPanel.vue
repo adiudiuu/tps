@@ -100,6 +100,6 @@ const quant = defineModel('quant', { required: true })
       <RooflineChart :result="result" />
       <VramPieChart :result="result" />
     </div>
-    <BatchSweepChart v-if="sweepData?.length" :sweep-data="sweepData" :current-batch="currentBatch" />
+    <BatchSweepChart v-if="sweepData?.length" :sweep-data="sweepData" :current-batch="currentBatch" :compact="compact" />
   </div>
 </template>

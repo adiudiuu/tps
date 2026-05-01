@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { fmtGB, fmtPct } from '../../utils/format.js'
 
 const { t } = useI18n()
-const props = defineProps({ result: Object, quantMatrix: Array, currentQuantId: String })
+const props = defineProps({ result: Object, quantMatrix: Array, currentQuantId: String, readonly: Boolean })
 const emit = defineEmits(['selectQuant'])
 const showMatrix = ref(true) // 默认展开
 
@@ -108,9 +108,13 @@ const pieData = computed(() => {
         </div>
         <div
           v-for="row in quantMatrix" :key="row.quant.id"
-          @click="emit('selectQuant', row.quant)"
-          class="grid grid-cols-4 text-xs px-2 py-1.5 rounded items-center cursor-pointer transition-colors"
-          :class="row.quant.id === currentQuantId ? 'bg-emerald-600 text-white' : 'hover:bg-gray-100'"
+          @click="!props.readonly && emit('selectQuant', row.quant)"
+          class="grid grid-cols-4 text-xs px-2 py-1.5 rounded items-center transition-colors"
+          :class="[
+            row.quant.id === currentQuantId ? 'bg-emerald-600 text-white' : '',
+            !props.readonly && row.quant.id !== currentQuantId ? 'cursor-pointer hover:bg-gray-100' : '',
+            props.readonly ? 'cursor-default' : '',
+          ]"
         >
           <span class="font-medium" :class="row.quant.id === currentQuantId ? 'text-white' : 'text-gray-700'">{{ row.quant.label }}</span>
           <span class="text-right" :class="row.quant.id === currentQuantId ? 'text-white' : 'text-gray-600'">{{ fmtGB(row.vramGB) }}</span>

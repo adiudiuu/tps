@@ -15,6 +15,15 @@ const activeTab = ref('all')
 const detailModel = ref(null)
 const listRef = ref(null)
 
+// 虚拟滚动状态
+const ITEM_HEIGHT = 112  // 每行估算高度（px），含 padding
+const OVERSCAN = 5       // 上下各多渲染几行，避免滚动白屏
+const scrollTop = ref(0)
+
+function onScroll(e) {
+  scrollTop.value = e.target.scrollTop
+}
+
 // 自定义模型状态
 const customModel = ref({
   id: 'custom',
@@ -43,14 +52,23 @@ const filteredModels = computed(() => {
   return list
 })
 
+// 虚拟滚动：只渲染可见窗口内的模型
+const LIST_HEIGHT = 320  // max-h-80 = 320px
+const visibleModels = computed(() => {
+  const list = filteredModels.value
+  const start = Math.max(0, Math.floor(scrollTop.value / ITEM_HEIGHT) - OVERSCAN)
+  const end = Math.min(list.length, Math.ceil((scrollTop.value + LIST_HEIGHT) / ITEM_HEIGHT) + OVERSCAN)
+  return { items: list.slice(start, end), startIdx: start, totalHeight: list.length * ITEM_HEIGHT }
+})
+
 function scrollToSelected(id, behavior = 'smooth') {
   nextTick(() => {
     const container = listRef.value
     if (!container) return
-    const el = container.querySelector(`[data-model-id="${id}"]`)
-    if (!el) return
-    const top = el.offsetTop - container.offsetTop
-    container.scrollTo({ top, behavior })
+    const idx = filteredModels.value.findIndex(m => m.id === id)
+    if (idx < 0) return
+    const targetTop = idx * ITEM_HEIGHT
+    container.scrollTo({ top: targetTop, behavior })
   })
 }
 
@@ -94,6 +112,8 @@ onMounted(() => {
 
 function switchTab(tab) {
   activeTab.value = tab
+  scrollTop.value = 0
+  if (listRef.value) listRef.value.scrollTop = 0
   if (tab !== 'custom' && model.value) scrollToSelected(model.value.id, 'instant')
 }
 </script>
@@ -178,67 +198,77 @@ function switchTab(tab) {
 
     <!-- 模型列表 -->
     <template v-else>
-      <div ref="listRef" class="space-y-1 max-h-80 overflow-y-auto pr-1 scrollbar-thin">
+      <div
+        ref="listRef"
+        class="max-h-80 overflow-y-auto pr-1 scrollbar-thin"
+        @scroll="onScroll"
+      >
         <div v-if="filteredModels.length === 0" class="text-center text-xs text-gray-400 py-4">{{ t('model.no_result') }}</div>
-        <div
-          v-for="m in filteredModels"
-          :key="m.id"
-          :data-model-id="m.id"
-          @click="selectModel(m)"
-          :class="[
-            'relative rounded-lg p-3 cursor-pointer border-2 transition-colors',
-            model?.id === m.id
-              ? 'bg-emerald-50 border-emerald-500'
-              : 'bg-white border-gray-200 hover:bg-gray-50 hover:border-gray-300'
-          ]"
-        >
-          <!-- 标题行 - 包含模型名称和参数信息 -->
-          <div class="flex items-start justify-between gap-3 mb-2">
-            <div class="flex items-center gap-2 flex-1 min-w-0">
-              <span v-if="m.type === 'moe'" class="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded-md font-semibold shrink-0">MoE</span>
-              <span v-else class="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-md font-semibold shrink-0">Dense</span>
-              <button
-                @click.stop="openDetails(m)"
-                class="text-base font-semibold text-gray-900 hover:text-blue-700 transition-colors truncate"
-                :title="t('model.detail.open')"
-              >
-                {{ m.name }}
-              </button>
-            </div>
-            <div class="flex items-center gap-2 shrink-0">
-              <span class="text-sm font-normal text-gray-400">{{ fmtParams(m.params) }}</span>
-              <span class="text-sm font-normal text-gray-400">{{ fmtCtx(m.max_ctx) }}</span>
-              <span v-if="isNew(m.released)" class="inline-block w-2 h-2 rounded-full bg-red-500"></span>
-            </div>
-          </div>
+        <!-- 虚拟滚动容器：总高度撑开滚动条 -->
+        <div v-else :style="{ height: visibleModels.totalHeight + 'px', position: 'relative' }">
+          <div :style="{ position: 'absolute', top: visibleModels.startIdx * ITEM_HEIGHT + 'px', left: 0, right: 0 }">
+            <div
+              v-for="m in visibleModels.items"
+              :key="m.id"
+              :data-model-id="m.id"
+              @click="selectModel(m)"
+              :style="{ height: ITEM_HEIGHT + 'px' }"
+              :class="[
+                'relative rounded-lg p-3 cursor-pointer border-2 transition-colors mb-1',
+                model?.id === m.id
+                  ? 'bg-emerald-50 border-emerald-500'
+                  : 'bg-white border-gray-200 hover:bg-gray-50 hover:border-gray-300'
+              ]"
+            >
+              <!-- 标题行 - 包含模型名称和参数信息 -->
+              <div class="flex items-start justify-between gap-3 mb-2">
+                <div class="flex items-center gap-2 flex-1 min-w-0">
+                  <span v-if="m.type === 'moe'" class="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded-md font-semibold shrink-0">MoE</span>
+                  <span v-else class="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-md font-semibold shrink-0">Dense</span>
+                  <button
+                    @click.stop="openDetails(m)"
+                    class="text-base font-semibold text-gray-900 hover:text-blue-700 transition-colors truncate"
+                    :title="t('model.detail.open')"
+                  >
+                    {{ m.name }}
+                  </button>
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                  <span class="text-sm font-normal text-gray-400">{{ fmtParams(m.params) }}</span>
+                  <span class="text-sm font-normal text-gray-400">{{ fmtCtx(m.max_ctx) }}</span>
+                  <span v-if="isNew(m.released)" class="inline-block w-2 h-2 rounded-full bg-red-500"></span>
+                </div>
+              </div>
 
-          <!-- Attention 信息 -->
-          <div class="text-xs text-gray-400 mb-3 font-light">
-            Attention: {{ getAttentionSummary(m) }}
-          </div>
+              <!-- Attention 信息 -->
+              <div class="text-xs text-gray-400 mb-3 font-light">
+                Attention: {{ getAttentionSummary(m) }}
+              </div>
 
-          <!-- 下载链接 -->
-          <div class="flex gap-2" @click.stop>
-            <button
-              v-if="m.links?.ollama"
-              @click="copyOllama(m.links.ollama)"
-              class="flex-1 text-xs px-3 py-1.5 rounded-lg bg-white hover:bg-gray-50 text-gray-600 hover:text-gray-900 transition-colors font-normal border border-gray-200"
-              title="点击复制命令"
-            >Ollama</button>
-            <a
-              v-if="m.links?.hf"
-              :href="m.links.hf"
-              target="_blank"
-              rel="noopener"
-              class="flex-1 text-center text-xs px-3 py-1.5 rounded-lg bg-white hover:bg-gray-50 text-gray-600 hover:text-gray-900 transition-colors font-normal border border-gray-200"
-            >HuggingFace</a>
-            <a
-              v-if="m.links?.ms"
-              :href="m.links.ms"
-              target="_blank"
-              rel="noopener"
-              class="flex-1 text-center text-xs px-3 py-1.5 rounded-lg bg-white hover:bg-gray-50 text-gray-600 hover:text-gray-900 transition-colors font-normal border border-gray-200"
-            >ModelScope</a>
+              <!-- 下载链接 -->
+              <div class="flex gap-2" @click.stop>
+                <button
+                  v-if="m.links?.ollama"
+                  @click="copyOllama(m.links.ollama)"
+                  class="flex-1 text-xs px-3 py-1.5 rounded-lg bg-white hover:bg-gray-50 text-gray-600 hover:text-gray-900 transition-colors font-normal border border-gray-200"
+                  title="点击复制命令"
+                >Ollama</button>
+                <a
+                  v-if="m.links?.hf"
+                  :href="m.links.hf"
+                  target="_blank"
+                  rel="noopener"
+                  class="flex-1 text-center text-xs px-3 py-1.5 rounded-lg bg-white hover:bg-gray-50 text-gray-600 hover:text-gray-900 transition-colors font-normal border border-gray-200"
+                >HuggingFace</a>
+                <a
+                  v-if="m.links?.ms"
+                  :href="m.links.ms"
+                  target="_blank"
+                  rel="noopener"
+                  class="flex-1 text-center text-xs px-3 py-1.5 rounded-lg bg-white hover:bg-gray-50 text-gray-600 hover:text-gray-900 transition-colors font-normal border border-gray-200"
+                >ModelScope</a>
+              </div>
+            </div>
           </div>
         </div>
       </div>
