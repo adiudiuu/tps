@@ -26,6 +26,7 @@ export function calcAll({
   flashAttention = true, kvCacheQuant = null, prefixCacheHit = 0,
   cpuOffload = false, pcieBw = null,
   pureCpu = false, cpuMemBw = null,
+  nglCount = null,
   speculativeDecoding = false, acceptanceRate = 0.7, draftLen = 4, draftModelParams = null,
   ppCount = 1,
   imageCount = 0,
@@ -65,7 +66,7 @@ export function calcAll({
   // 估算：active_params × quant.bytes × 1.5
   //   active_params × quant.bytes ≈ 当前激活 expert 权重
   //   × 1.5 覆盖 attention / embedding / normalization 等始终驻留 GPU 的非 MoE 层
-  const weightGB = (cpuOffload && model.type === 'moe')
+  const weightGB = (cpuOffload && model.type === 'moe' && framework?.id !== 'llamacpp')
     ? model.active_params * quant.bytes * 1.5
     : model.params * quant.bytes
   // Vision encoder：encoder 权重独立于 LLM backbone（如已包含在 params 内则不重复计算）
@@ -108,9 +109,13 @@ export function calcAll({
   // batch × promptLen × hidden_size × 2（FFN intermediate）× 2 bytes（BF16）
   const activationGB = batch * promptLen * (model.hidden_size ?? 4096) * 2 * 2 / 1e9
   const overheadGB  = Math.max(1.0, Math.min(weightGB * 0.03, 5.0)) + activationGB
+  // llama.cpp 混合推理：GPU 只持有前 nglCount 层的权重和 KV Cache
+  const isLlamaCppHybrid = cpuOffload && framework?.id === 'llamacpp'
+  const _effectiveNgl = isLlamaCppHybrid ? (nglCount ?? Math.floor(model.layers / 2)) : model.layers
+  const gpuLayerRatio = isLlamaCppHybrid ? Math.min(1, Math.max(0, _effectiveNgl / Math.max(model.layers, 1))) : 1.0
   // PP：每个 pipeline stage 只持有 1/ppCount 的权重和 KV Cache
   // totalVram 是单个 PP stage（一个 TP 组）的可用显存
-  const totalNeeded = weightGB / ppCount + kvGB / ppCount + overheadGB
+  const totalNeeded = weightGB * gpuLayerRatio / ppCount + kvGB * gpuLayerRatio / ppCount + overheadGB
 
   // ─────────────────────────────────────────────
   // Decode 速度（内存带宽瓶颈）
@@ -188,6 +193,13 @@ export function calcAll({
     // PP / ppBubbleEff 在纯 CPU 场景无意义，不参与计算
     effectiveBw = cpuMemBw.bw
     bwLimit = (effectiveBw / decodeBytesPerStep) * batch
+  } else if (isLlamaCppHybrid && cpuMemBw != null) {
+    // ── llama.cpp 混合推理：GPU 层走 HBM，CPU 层走 DDR，串行执行
+    // t_gpu = GPU 层权重读取时间，t_cpu = CPU 层权重读取时间
+    const t_gpu = gpuLayerRatio > 0 ? gpuLayerRatio * decodeBytesPerStep / totalBw : 0
+    const t_cpu = (1 - gpuLayerRatio) > 0 ? (1 - gpuLayerRatio) * decodeBytesPerStep / cpuMemBw.bw : 0
+    bwLimit = batch / Math.max(t_gpu + t_cpu, 1e-9)
+    effectiveBw = cpuMemBw.bw
   } else if (cpuOffload && model.type === 'moe' && pcieBw != null) {
     let expertIOPerStep
     if (model.experts && model.experts_per_token) {
@@ -268,11 +280,13 @@ export function calcAll({
   // offload 模式：bwLimit 已包含串行 IO，从 bwLimit 反推 tpot 保持一致
   // PP 模式：batch / bwLimit 已包含 ppCount 和 ppBubbleEff，反推出每请求 tpot
   // 再叠加 PP 阶段间 P2P 通信延迟 ppP2pMs
-  const tpotBase = pureCpu && cpuMemBw != null
+  const tpotBase = (pureCpu && cpuMemBw != null)
     ? (decodeBytesPerStep / effectiveBw) * 1000 / framework.decode  // ms/tok，纯 DDR 带宽
-    : (cpuOffload && model.type === 'moe' && pcieBw != null)
+    : (isLlamaCppHybrid && cpuMemBw != null)
       ? (batch / bwLimit) * 1000 / framework.decode
-      : (decodeBytesPerStep / ppCount / effectiveBw / ppBubbleEff) * 1000 / framework.decode
+      : (cpuOffload && model.type === 'moe' && pcieBw != null)
+        ? (batch / bwLimit) * 1000 / framework.decode
+        : (decodeBytesPerStep / ppCount / effectiveBw / ppBubbleEff) * 1000 / framework.decode
   const tpot = tpotBase + ppP2pMs
 
   // ─────────────────────────────────────────────

@@ -173,6 +173,10 @@ export default {
     copy_cmd_failed: 'Copy failed',
     copy_cmd_hint: 'Generated from your current config — treat it as a starting point. There\'s a lot more you can tune, so give the official docs a quick read before going live.',
     copy_cmd_docs: 'Official docs',
+    ngl_count: 'GPU Layers (--n-gpu-layers)',
+    ngl_count_tip: 'Number of Transformer layers offloaded to GPU, corresponding to llama.cpp --n-gpu-layers. More layers = faster but requires more VRAM. Remaining layers run on CPU, bottlenecked by DDR memory bandwidth.',
+    llamacpp_hybrid_note: 'Prefill speed in hybrid mode is approximate — actual performance depends on CPU core count and AVX instruction support.',
+    layers: 'layers',
   },
   result: {
     title: 'Results',

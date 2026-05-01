@@ -31,6 +31,7 @@ const acceptanceRate = defineModel('acceptanceRate', { required: true })
 const draftLen = defineModel('draftLen', { required: true })
 const ppCount = defineModel('ppCount', { required: true })
 const imageCount = defineModel('imageCount', { required: true })
+const nglCount = defineModel('nglCount', { default: null })
 
 // PP 显示条件：至少 2 张卡且模型参数 >= 30B
 const ppSupported = computed(() => props.gpuCount >= 2 && (props.model?.params ?? 0) >= 30)
@@ -47,6 +48,9 @@ watch(() => props.framework, (newFramework) => {
     speculativeDecoding.value = false
   }
 })
+
+const isLlamaCppFramework = computed(() => props.framework?.id === 'llamacpp')
+const effectiveNgl = computed(() => nglCount.value ?? Math.floor((props.model?.layers ?? 32) / 2))
 
 const BASE_CTX_OPTIONS = [512, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072, 262144, 524288, 1048576, 2097152, 4194304, 10485760]
 const BATCH_OPTIONS = [1, 2, 4, 8, 16, 32, 64, 128, 256]
@@ -235,9 +239,9 @@ const ctxOptions = computed(() => {
                 : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:border-gray-300'
             ]"
           >{{ t('run.compute_mode_gpu') }}</button>
-          <!-- GPU + CPU Offload（仅 MoE 模型显示）-->
+          <!-- GPU + CPU Offload（MoE 模型或 llama.cpp 框架显示）-->
           <button
-            v-if="props.model?.type === 'moe'"
+            v-if="props.model?.type === 'moe' || isLlamaCppFramework"
             @click="cpuOffload = true; pureCpu = false"
             :class="[
               'px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors',
@@ -258,8 +262,44 @@ const ctxOptions = computed(() => {
           >{{ t('run.compute_mode_cpu') }}</button>
         </div>
 
-        <!-- GPU + CPU Offload：PCIe 带宽选择 -->
-        <template v-if="cpuOffload && !pureCpu">
+        <!-- llama.cpp 混合推理：GPU 层数 + DDR 带宽 -->
+        <template v-if="cpuOffload && !pureCpu && isLlamaCppFramework">
+          <label class="flex items-center justify-between text-xs text-gray-500 mt-2 mb-1.5">
+            <span class="flex items-center gap-1">{{ t('run.ngl_count') }}<TipIcon :text="t('run.ngl_count_tip')" /></span>
+            <span class="text-emerald-700 font-medium">{{ effectiveNgl }} / {{ props.model?.layers ?? '?' }} {{ t('run.layers') }}</span>
+          </label>
+          <input
+            type="range"
+            :value="effectiveNgl"
+            @input="nglCount = Number($event.target.value)"
+            min="0"
+            :max="props.model?.layers ?? 64"
+            step="1"
+            class="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+          />
+          <label class="flex items-center gap-1 text-xs text-gray-500 mt-2 mb-1.5">{{ t('run.cpu_mem_bw') }}<TipIcon :text="t('run.cpu_mem_bw_tip')" /></label>
+          <div class="flex gap-1.5 flex-wrap">
+            <button
+              v-for="option in CPU_MEM_BW_OPTIONS"
+              :key="option.id"
+              @click="cpuMemBw = option"
+              :class="[
+                'px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors',
+                cpuMemBw.id === option.id
+                  ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm'
+                  : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:border-gray-300'
+              ]"
+            >
+              {{ option.label }} <span class="opacity-70">({{ option.bw }} GB/s)</span>
+            </button>
+          </div>
+          <p class="mt-1.5 text-xs text-slate-500 bg-slate-50 rounded px-2 py-1.5 border border-slate-200">
+            ℹ️ {{ t('run.llamacpp_hybrid_note') }}
+          </p>
+        </template>
+
+        <!-- 非 llama.cpp：MoE CPU Offload PCIe 带宽选择 -->
+        <template v-if="cpuOffload && !pureCpu && !isLlamaCppFramework">
           <label class="flex items-center gap-1 text-xs text-gray-500 mt-2 mb-1.5">{{ t('run.pcie_bw') }}<TipIcon :text="t('run.pcie_bw_tip')" /></label>
           <div class="flex gap-1.5 flex-wrap">
             <button

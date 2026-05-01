@@ -60,6 +60,7 @@ const acceptanceRate = ref(_url.acceptanceRate ?? 0.7)
 const draftLen       = ref(_url.draftLen       ?? 4)
 const ppCount        = ref(_url.ppCount        ?? 1)
 const imageCount     = ref(_url.imageCount     ?? 0)
+const nglCount       = ref(_url.nglCount       ?? null)
 
 // 双列对比模式
 const pinnedResult = ref(null)
@@ -90,6 +91,7 @@ function pinCurrentResult() {
     imageCount: imageCount.value,
     promptLen: promptLen.value,
     outputLen: outputLen.value,
+    nglCount: nglCount.value,
   }
 }
 
@@ -115,10 +117,15 @@ watch(() => gpuSlots.value[0]?.gpu, (g) => {
   }
 })
 
+// llama.cpp hybrid 模式失效时重置 nglCount
+watch([cpuOffload, framework], ([co, fw]) => {
+  if (!(co && fw?.id === 'llamacpp')) nglCount.value = null
+})
+
 watchUrlState({ gpuSlots, interconnect, model, quant, ctx, batch,
   promptLen, outputLen, framework, flashAttention, kvCacheQuant,
   prefixCacheHit, cpuOffload, pcieBw, pureCpu, cpuMemBw,
-  speculativeDecoding, acceptanceRate, draftLen, ppCount, imageCount, sharedVram })
+  speculativeDecoding, acceptanceRate, draftLen, ppCount, imageCount, sharedVram, nglCount })
 
 const result = computed(() => {
   if (!effectiveGpu.value || !model.value || !quant.value || !framework.value) return null
@@ -133,6 +140,7 @@ const result = computed(() => {
       speculativeDecoding: speculativeDecoding.value, acceptanceRate: acceptanceRate.value, draftLen: draftLen.value,
       ppCount: ppCount.value,
       imageCount: imageCount.value,
+      nglCount: nglCount.value,
     }), quantId: quant.value.id }
   } catch (e) {
     if (import.meta.env.DEV) console.error('[calcAll error]', e)
@@ -152,8 +160,7 @@ const quantMatrix = computed(() => {
         prefixCacheHit: prefixCacheHit.value, cpuOffload: cpuOffload.value, pcieBw: pcieBw.value,
         pureCpu: pureCpu.value, cpuMemBw: cpuMemBw.value,
         speculativeDecoding: speculativeDecoding.value, acceptanceRate: acceptanceRate.value, draftLen: draftLen.value,
-        ppCount: ppCount.value,
-      })
+        ppCount: ppCount.value,        nglCount: nglCount.value,      })
       // 当前行 OOM 且未开启 CPU 卸载时，额外计算"启用卸载后能否容纳"
       let cpuOffloadFeasible = false
       let offloadVramGB = null
@@ -192,8 +199,7 @@ const pinnedQuantMatrix = computed(() => {
         flashAttention: c.flashAttention, kvCacheQuant: c.kvCacheQuant,
         prefixCacheHit: c.prefixCacheHit, cpuOffload: c.cpuOffload, pcieBw: c.pcieBw,
         speculativeDecoding: c.speculativeDecoding, acceptanceRate: c.acceptanceRate, draftLen: c.draftLen,
-        ppCount: c.ppCount,
-      })
+        ppCount: c.ppCount,        nglCount: c.nglCount,      })
       // 当前行 OOM 且未开启 CPU 卸载时，额外计算"启用卸载后能否容纳"
       let cpuOffloadFeasible = false
       let offloadVramGB = null
@@ -231,6 +237,7 @@ const pinnedBatchSweepData = computed(() => {
     pcieBw: c.pcieBw, speculativeDecoding: c.speculativeDecoding,
     acceptanceRate: c.acceptanceRate, draftLen: c.draftLen,
     ppCount: c.ppCount, imageCount: c.imageCount,
+    nglCount: c.nglCount,
   })
 })
 
@@ -258,6 +265,7 @@ const batchSweepData = computed(() => {
     draftLen: draftLen.value,
     ppCount: ppCount.value,
     imageCount: imageCount.value,
+    nglCount: nglCount.value,
   })
 })
 </script>
@@ -286,6 +294,7 @@ const batchSweepData = computed(() => {
           v-model:speculativeDecoding="speculativeDecoding"
           v-model:acceptanceRate="acceptanceRate" v-model:draftLen="draftLen"
           v-model:ppCount="ppCount" v-model:imageCount="imageCount"
+          v-model:nglCount="nglCount"
         />
       </template>
       <template #result>

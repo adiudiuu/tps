@@ -173,6 +173,10 @@ export default {
     copy_cmd_failed: '复制失败',
     copy_cmd_hint: '命令按当前配置生成，参数仅供起步参考——框架选项远不止这些，部署前建议过一遍官方文档。',
     copy_cmd_docs: '官方文档',
+    ngl_count: 'GPU 层数 (--n-gpu-layers)',
+    ngl_count_tip: '分配到 GPU 的 Transformer 层数，对应 llama.cpp 的 --n-gpu-layers。层数越多速度越快，但需要更多显存；剩余层由 CPU 处理，速度受 DDR 内存带宽限制。',
+    llamacpp_hybrid_note: 'Prefill 速度在混合模式下仅供参考，实际受 CPU 核心数和 AVX 指令集支持情况影响。',
+    layers: '层',
   },
   result: {
     title: '计算结果',
