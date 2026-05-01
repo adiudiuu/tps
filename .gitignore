@@ -34,3 +34,5 @@ pnpm-debug.log*
 .cache/
 .parcel-cache/
 package-lock.json
+
+.kiro

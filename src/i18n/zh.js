@@ -168,6 +168,11 @@ export default {
     images: '张',
     no_image: '不含图片',
     vision_patch_info: '额外 KV Token：{tokens} （每张 {per} patch token）',
+    copy_cmd: '复制命令',
+    copy_cmd_copied: '✓ 已复制！',
+    copy_cmd_failed: '复制失败',
+    copy_cmd_hint: '命令按当前配置生成，参数仅供起步参考——框架选项远不止这些，部署前建议过一遍官方文档。',
+    copy_cmd_docs: '官方文档',
   },
   result: {
     title: '计算结果',

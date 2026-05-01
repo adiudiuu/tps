@@ -1,12 +1,30 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { fmtToks, fmtToksRange, fmtPct, fmtGB } from '../../utils/format.js'
 import { FRAMEWORK_MAP } from '../../data/constants.js'
 import TipIcon from '../ui/TipIcon.vue'
+import { generateCmd, getFrameworkDocsUrl } from '../../utils/cmdGen.js'
 
 const { t } = useI18n()
-const props = defineProps({ result: Object, gpuVendor: String, readonly: Boolean })
+const props = defineProps({
+  result: Object,
+  gpuVendor: String,
+  readonly: Boolean,
+  // 命令生成新增
+  model:               Object,
+  gpuCount:            Number,
+  ppCount:             { type: Number, default: 1 },
+  ctx:                 Number,
+  batch:               Number,
+  quant:               Object,
+  kvCacheQuant:        Object,
+  prefixCacheHit:      { type: Number, default: 0 },
+  speculativeDecoding: { type: Boolean, default: false },
+  draftLen:            { type: Number, default: 4 },
+  cpuOffload:          { type: Boolean, default: false },
+  pureCpu:             { type: Boolean, default: false },
+})
 const framework = defineModel('framework', { required: true })
 
 const speedRating = computed(() => {
@@ -33,6 +51,47 @@ function fmtFrameworkRange(min, max) {
   const lo = (min * 100).toFixed(0)
   const hi = (max * 100).toFixed(0)
   return lo === hi ? `${lo}%` : `${lo}-${hi}%`
+}
+
+const generatedCmd = computed(() =>
+  generateCmd(framework.value, {
+    model: props.model,
+    gpuCount: props.gpuCount,
+    ppCount: props.ppCount,
+    ctx: props.ctx,
+    batch: props.batch,
+    quant: props.quant,
+    kvCacheQuant: props.kvCacheQuant,
+    prefixCacheHit: props.prefixCacheHit,
+    speculativeDecoding: props.speculativeDecoding,
+    draftLen: props.draftLen,
+    cpuOffload: props.cpuOffload,
+    pureCpu: props.pureCpu,
+  })
+)
+
+const docsUrl = computed(() => getFrameworkDocsUrl(framework.value?.id))
+
+const copyState = ref('idle') // 'idle' | 'copied' | 'error'
+
+async function copyCmd() {
+  try {
+    if (navigator.clipboard) {
+      await navigator.clipboard.writeText(generatedCmd.value)
+    } else {
+      // 降级方案（非 HTTPS / 旧浏览器）
+      const el = document.createElement('textarea')
+      el.value = generatedCmd.value
+      document.body.appendChild(el)
+      el.select()
+      document.execCommand('copy')
+      document.body.removeChild(el)
+    }
+    copyState.value = 'copied'
+  } catch {
+    copyState.value = 'error'
+  }
+  setTimeout(() => copyState.value = 'idle', 2000)
 }
 </script>
 
@@ -197,7 +256,34 @@ function fmtFrameworkRange(min, max) {
       </div>
     </div>
 
-    <!-- Decode / Prefill -->
+    <!-- 启动命令生成 -->
+    <template v-if="generatedCmd">
+      <div class="relative mt-3 rounded-lg bg-gray-950 text-xs font-mono text-emerald-400 leading-relaxed">
+        <button
+          @click="copyCmd"
+          class="absolute top-2 right-2 z-10 text-xs px-2.5 py-1 rounded border transition-colors"
+          :class="{
+            'border-gray-600 text-gray-400 hover:bg-gray-800 hover:text-gray-200': copyState === 'idle',
+            'border-emerald-500 text-emerald-400 bg-emerald-950': copyState === 'copied',
+            'border-red-500 text-red-400': copyState === 'error',
+          }"
+        >
+          {{ copyState === 'copied' ? t('run.copy_cmd_copied') : copyState === 'error' ? t('run.copy_cmd_failed') : t('run.copy_cmd') }}
+        </button>
+        <pre class="p-3 pt-8 overflow-x-auto whitespace-pre-wrap break-all">{{ generatedCmd }}</pre>
+      </div>
+      <p class="mt-1.5 text-[11px] text-gray-400 leading-snug">
+        {{ t('run.copy_cmd_hint') }}
+        <a
+          v-if="docsUrl"
+          :href="docsUrl"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="ml-1 text-blue-500 hover:text-blue-600 hover:underline"
+        >{{ t('run.copy_cmd_docs') }} ↗</a>
+      </p>
+    </template>
+
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 border-t border-gray-100">
       <!-- Decode -->
       <div class="space-y-2">

@@ -168,6 +168,11 @@ export default {
     images: 'images',
     no_image: 'None',
     vision_patch_info: '+{tokens} KV tokens total ({per} patch tokens/image)',
+    copy_cmd: 'Copy Command',
+    copy_cmd_copied: '✓ Copied!',
+    copy_cmd_failed: 'Copy failed',
+    copy_cmd_hint: 'Generated from your current config — treat it as a starting point. There\'s a lot more you can tune, so give the official docs a quick read before going live.',
+    copy_cmd_docs: 'Official docs',
   },
   result: {
     title: 'Results',

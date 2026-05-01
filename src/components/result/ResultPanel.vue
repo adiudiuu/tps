@@ -11,17 +11,27 @@ import WarningList from './WarningList.vue'
 import BatchSweepChart from './BatchSweepChart.vue'
 
 const { t } = useI18n()
-defineProps({
+const props = defineProps({
   result: Object,
   model: Object,
   quantMatrix: Array,
   gpuVendor: String,
   gpu: Object,
   gpuCount: Number,
+  ppCount: { type: Number, default: 1 },
   compact: Boolean,
   readonly: Boolean,
   sweepData: Array,
   currentBatch: Number,
+  // 命令生成相关
+  ctx:                 Number,
+  batch:               Number,
+  kvCacheQuant:        Object,
+  prefixCacheHit:      { type: Number, default: 0 },
+  speculativeDecoding: { type: Boolean, default: false },
+  draftLen:            { type: Number, default: 4 },
+  cpuOffload:          { type: Boolean, default: false },
+  pureCpu:             { type: Boolean, default: false },
 })
 const framework = defineModel('framework', { required: true })
 const quant = defineModel('quant', { required: true })
@@ -67,7 +77,24 @@ const quant = defineModel('quant', { required: true })
     </div>
     <WarningList :result="result" />
     <VramCard :result="result" :quant-matrix="quantMatrix" :current-quant-id="result?.quantId" @select-quant="quant = $event" />
-    <SpeedCard :result="result" :gpu-vendor="gpuVendor" :readonly="readonly" v-model:framework="framework" />
+    <SpeedCard
+      :result="result"
+      :gpu-vendor="gpuVendor"
+      :readonly="readonly"
+      v-model:framework="framework"
+      :model="props.model"
+      :gpu-count="gpuCount"
+      :pp-count="ppCount"
+      :ctx="ctx"
+      :batch="batch"
+      :quant="quant"
+      :kv-cache-quant="kvCacheQuant"
+      :prefix-cache-hit="prefixCacheHit"
+      :speculative-decoding="speculativeDecoding"
+      :draft-len="draftLen"
+      :cpu-offload="cpuOffload"
+      :pure-cpu="pureCpu"
+    />
     <LatencyCard :result="result" />
     <div :class="compact ? 'grid grid-cols-1 gap-4' : 'grid grid-cols-1 lg:grid-cols-2 gap-4'">
       <RooflineChart :result="result" />

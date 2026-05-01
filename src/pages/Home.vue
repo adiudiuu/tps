@@ -298,6 +298,15 @@ const batchSweepData = computed(() => {
                   :current-batch="pinnedConfig.batch"
                   v-model:framework="pinnedConfig.framework"
                   v-model:quant="pinnedConfig.quant"
+                  :ctx="ctx"
+                  :batch="pinnedConfig.batch"
+                  :pp-count="ppCount"
+                  :kv-cache-quant="kvCacheQuant"
+                  :prefix-cache-hit="prefixCacheHit"
+                  :speculative-decoding="speculativeDecoding"
+                  :draft-len="draftLen"
+                  :cpu-offload="cpuOffload"
+                  :pure-cpu="pureCpu"
                 />
               </div>
             </div>
@@ -322,6 +331,15 @@ const batchSweepData = computed(() => {
                   :current-batch="batch"
                   v-model:framework="framework"
                   v-model:quant="quant"
+                  :ctx="ctx"
+                  :batch="batch"
+                  :pp-count="ppCount"
+                  :kv-cache-quant="kvCacheQuant"
+                  :prefix-cache-hit="prefixCacheHit"
+                  :speculative-decoding="speculativeDecoding"
+                  :draft-len="draftLen"
+                  :cpu-offload="cpuOffload"
+                  :pure-cpu="pureCpu"
                 />
               </div>
             </div>
@@ -351,6 +369,15 @@ const batchSweepData = computed(() => {
             :current-batch="batch"
             v-model:framework="framework"
             v-model:quant="quant"
+            :ctx="ctx"
+            :batch="batch"
+            :pp-count="ppCount"
+            :kv-cache-quant="kvCacheQuant"
+            :prefix-cache-hit="prefixCacheHit"
+            :speculative-decoding="speculativeDecoding"
+            :draft-len="draftLen"
+            :cpu-offload="cpuOffload"
+            :pure-cpu="pureCpu"
           />
         </div>
       </template>
