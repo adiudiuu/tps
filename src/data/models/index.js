@@ -6,6 +6,19 @@ import nemotron_cascade_8b from './nemotron_cascade_8b/index.js'
 import nemotron_cascade_14b from './nemotron_cascade_14b/index.js'
 import gpt_oss_120b from './gpt_oss_120b/index.js'
 import gpt_oss_20b from './gpt_oss_20b/index.js'
+import phi4_reasoning_14b from './phi4_reasoning_14b/index.js'
+import mistral_small_3_1_24b from './mistral_small_3_1_24b/index.js'
+import command_r7b from './command_r7b/index.js'
+import qwen25_vl_3b from './qwen25_vl_3b/index.js'
+import qwen25_vl_7b from './qwen25_vl_7b/index.js'
+import qwen25_vl_72b from './qwen25_vl_72b/index.js'
+import internvl2_8b from './internvl2_8b/index.js'
+import internvl2_26b from './internvl2_26b/index.js'
+import falcon3_10b from './falcon3_10b/index.js'
+import yi_1_5_34b from './yi_1_5_34b/index.js'
+import llama3_2_vision_11b_instruct from './llama3_2_vision_11b/index.js'
+import exaone_deep_7_8b from './exaone_deep_7_8b/index.js'
+import exaone_deep_32b from './exaone_deep_32b/index.js'
 import glm5_1 from './glm5_1/index.js'
 import glm5 from './glm5/index.js'
 import glm4_7 from './glm4_7/index.js'
@@ -368,6 +381,11 @@ export const DENSE_MODELS = [
   ministral_3_8b,
   ministral_3_3b,
   // 2025
+  phi4_reasoning_14b,
+  mistral_small_3_1_24b,
+  qwen25_vl_3b,
+  qwen25_vl_7b,
+  qwen25_vl_72b,
   phi4_mini,
   internlm3_8b,
   deepseek_r1_distill_qwen_1_5b,
@@ -398,6 +416,12 @@ export const DENSE_MODELS = [
   glm_edge_1_5b,
   codegeex4_9b,
   cogvlm2_19b,
+  internvl2_8b,
+  internvl2_26b,
+  yi_1_5_34b,
+  exaone_deep_7_8b,
+  exaone_deep_32b,
+  command_r7b,
   yi_9b,
   yi_vl_34b,
   yi_vl_6b,
@@ -448,6 +472,7 @@ export const DENSE_MODELS = [
   codellama_13b,
   llama3_2_11b,
   falcon_11b,
+  falcon3_10b,
   olmo2_7b,
   yi_1_5_9b,
   granite_code_8b,

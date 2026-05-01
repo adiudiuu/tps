@@ -1,5 +1,11 @@
-// Intel Arc 独立显卡（Alchemist，2022-2023）
+// Intel Arc 独立显卡（Alchemist 2022-2023 / Battlemage 2024）
 export default [
+  // ── Battlemage（2024）──────────────────────────────
+  // 桌面
+  { id: 'arc_b770',  name: 'Arc B770',  vendor: 'intel', tier: 'consumer', released: '2025-03', vram: 16, bw: 672, bwUtilization: 0.80, bf16: 47, int8: 94, int4: null, nvlink_bw: null, tdp: 225 },
+  { id: 'arc_b580',  name: 'Arc B580',  vendor: 'intel', tier: 'consumer', released: '2024-12', vram: 12, bw: 456, bwUtilization: 0.80, bf16: 35, int8: 70, int4: null, nvlink_bw: null, tdp: 190 },
+  { id: 'arc_b570',  name: 'Arc B570',  vendor: 'intel', tier: 'consumer', released: '2025-01', vram: 10, bw: 380, bwUtilization: 0.80, bf16: 28, int8: 56, int4: null, nvlink_bw: null, tdp: 150 },
+  // ── Alchemist（2022-2023）─────────────────────────
   // 桌面
   { id: 'arc_a770',  name: 'Arc A770',  vendor: 'intel', tier: 'consumer', released: '2022-10', vram: 16, bw: 560, bwUtilization: 0.80, bf16: 35, int8: 70, int4: null, nvlink_bw: null, tdp: 225 },
   { id: 'arc_a750',  name: 'Arc A750',  vendor: 'intel', tier: 'consumer', released: '2022-10', vram: 8,  bw: 512, bwUtilization: 0.80, bf16: 29, int8: 59, int4: null, nvlink_bw: null, tdp: 225 },
