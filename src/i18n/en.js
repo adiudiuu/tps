@@ -284,13 +284,6 @@ export default {
     quant_matrix_ppl: 'PPL Δ',
     energy_efficiency: 'Energy Efficiency',
     energy_efficiency_tip: 'tok/J = decode throughput (tok/s) ÷ total power (W). Higher is better. Useful for comparing datacenter hardware efficiency.',
-    little_title: 'Continuous Batching Estimate',
-    little_tip: "Little's Law (L = λW): given a request arrival rate (QPS), the average in-flight batch size = QPS × total latency. Helps size your deployment for a target load.",
-    little_max_qps: 'Max QPS (current batch saturated)',
-    little_target_qps: 'Target QPS',
-    little_batch_unit: 'concurrent reqs',
-    little_utilization: 'GPU Utilization',
-    little_overloaded: 'overloaded — reduce QPS or add GPUs',
   },
   warning: {
     vram_oom: 'VRAM insufficient by {diff} GB — add more GPUs or lower quantization',

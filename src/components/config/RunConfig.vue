@@ -137,6 +137,7 @@ const ctxOptions = computed(() => {
         <span class="flex items-center gap-1">{{ t('run.batch') }}<TipIcon :text="t('run.batch_tip')" /></span>
         <span class="text-emerald-700 font-medium">{{ batch }}</span>
       </label>
+
       <div class="flex gap-1.5 flex-wrap">
         <button
           v-for="n in BATCH_OPTIONS"
