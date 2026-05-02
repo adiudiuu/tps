@@ -277,6 +277,9 @@ export default {
     quant_matrix_status: 'Status',
     quant_matrix_speed: 'Est. Speed',
     quant_matrix_offloadable_tip: '⚡ Fits with CPU offload enabled (MoE experts offloaded to RAM) — shows GPU VRAM after offload',
+    quant_matrix_ppl: 'PPL Δ',
+    energy_efficiency: 'Energy Efficiency',
+    energy_efficiency_tip: 'tok/J = decode throughput (tok/s) ÷ total power (W). Higher is better. Useful for comparing datacenter hardware efficiency.',
   },
   warning: {
     vram_oom: 'VRAM insufficient by {diff} GB — add more GPUs or lower quantization',
@@ -333,5 +336,6 @@ export default {
     filter_hide_offload: 'Hide CPU offload models',
     filter_reset: 'Reset',
     active_filters: 'Filtered',
+    loading_more: 'Showing {shown} of {total} models — scroll to load more',
   },
 }

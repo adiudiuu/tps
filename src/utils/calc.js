@@ -97,6 +97,9 @@ export function calcAll({
   }
   // MLA（Multi-head Latent Attention）压缩 KV Cache，如 DeepSeek V2/V3/R1
   if (model.mla_ratio) kvGB *= model.mla_ratio
+  // Mamba 混合架构（Jamba 系列）：只有 Transformer 层有 KV Cache，Mamba 层无 KV Cache
+  // mamba_ratio = attention 层占总层数的比例（如 Jamba 1/4 Transformer → mamba_ratio=0.25）
+  if (model.mamba_ratio) kvGB *= model.mamba_ratio
   // Vision patch token 额外 KV Cache：每张图的 patch token 占用同等 KV 显存
   if (visionPatchTokens > 0) {
     const kvPatchGB = 2 * model.layers * model.kv_heads * model.head_dim * visionPatchTokens * batch * kvBytesPerElem / 1e9
@@ -105,9 +108,10 @@ export function calcAll({
 
   // 系统开销（CUDA context、激活值、临时 buffer 等）
   // 动态调整：小模型固定 1GB，大模型按权重 3% 计算，上限 5GB
-  // 激活值显存：纯推理无需保存所有层激活，峰值仅为当前层 hidden + FFN 中间值
-  // batch × promptLen × hidden_size × 2（FFN intermediate）× 2 bytes（BF16）
-  const activationGB = batch * promptLen * (model.hidden_size ?? 4096) * 2 * 2 / 1e9
+  // 激活值显存：纯推理不保留中间层激活，峰值仅为当前层 hidden + FFN 中间值
+  // 改为单层估算：batch × hidden_size × 4（FFN 中间层约 4× hidden）× 2 bytes（BF16）× 4（安全系数）
+  // 上限 2GB，避免小模型大 batch 时虚高
+  const activationGB = Math.min(batch * (model.hidden_size ?? 4096) * 4 * 2 / 1e9 * 4, 2.0)
   const overheadGB  = Math.max(1.0, Math.min(weightGB * 0.03, 5.0)) + activationGB
   // llama.cpp 混合推理：GPU 只持有前 nglCount 层的权重和 KV Cache
   const isLlamaCppHybrid = cpuOffload && framework?.id === 'llamacpp'
@@ -168,6 +172,7 @@ export function calcAll({
     kvReadGB = 2 * model.layers * model.kv_heads * model.head_dim * avgDecodeSeqLen * batch * kvBytesPerElem / 1e9
   }
   if (model.mla_ratio) kvReadGB *= model.mla_ratio
+  if (model.mamba_ratio) kvReadGB *= model.mamba_ratio
   const decodeBytesPerStep = activeWeight + kvReadGB
 
   // MoE CPU Offload：精细 IO 分拆 + 串行时序模型
@@ -229,12 +234,19 @@ export function calcAll({
     bwLimit = (effectiveBw / (decodeBytesPerStep / ppCount)) * batch * ppBubbleEff
   }
   // Speculative Decoding 加速：每步尝试验证 draftLen 个 token，接受率为 acceptanceRate
-  // 有效加速比 = 1 + acceptanceRate × draftLen
-  // 例如：acceptanceRate=0.7, draftLen=4 → 加速 1 + 0.7×4 = 3.8x
+  // 更准确的期望接受 token 数：mean_accepted = (1 - α^(γ+1)) / (1 - α)
+  // 其中 α = acceptanceRate，γ = draftLen
+  // 这比简化公式 1 + α×γ 更准确，特别是高接受率时
+  // 例：α=0.7, γ=4 → mean_accepted = (1 - 0.7^5) / (1 - 0.7) ≈ 2.83（简化公式 = 3.8）
   // draftModelParams（可选）：draft model 每步也需读一次权重，从 bwLimit 中扣除开销
   //   有效 bwLimit = totalBw / (target权重 + draft权重) × batch
   let speculativeSpeedup = 1.0
   if (speculativeDecoding && acceptanceRate > 0 && draftLen > 0) {
+    // 期望每步接受的 token 数（含 target model 强制接受的最后一个 token）
+    const alpha = Math.min(0.999, acceptanceRate)
+    const meanAccepted = (1 - Math.pow(alpha, draftLen + 1)) / (1 - alpha)
+    speculativeSpeedup = meanAccepted  // ≤ draftLen + 1
+
     if (draftModelParams != null && draftModelParams > 0) {
       // draft model 读 draftLen 次权重，target model 读 1 次，共用同一 HBM 带宽
       const draftWeightGB = draftModelParams * quant.bytes
@@ -243,7 +255,6 @@ export function calcAll({
       // 重新以实际 IO 量计算有效 bwLimit（覆盖上面的 bwLimit，保留 PP scaling）
       bwLimit = (effectiveBw / (totalIOPerVerifyStep / ppCount)) * batch * ppBubbleEff
     }
-    speculativeSpeedup = 1 + acceptanceRate * draftLen
   }
 
   // decodeToks 在 bwLimit 最终确定后统一计算
@@ -259,22 +270,35 @@ export function calcAll({
   const activeParams = model.type === 'moe'
     ? (model.active_params ?? model.params)
     : model.params
-  const prefillAttentionFactor = getPrefillAttentionFactor({ totalHeads, kvHeads: model.kv_heads, attentionType })
 
-  // tok/s：prefill FLOPs/tok = 2 × activeParams × 1e9，promptLen 在分子分母消去
-  // 推导：prefill_speed = promptLen / (2 × activeParams × 1e9 × promptLen / tflops × 1e12)
-  //                     = tflops × 1e12 / (2 × activeParams × 1e9)
+  // 动态注意力 FLOPs 因子：综合考虑 seq_len、GQA/MQA、线性 attention 层
+  // factor > 1 表示 attention 增加了额外 FLOPs，需要在 computeBaseLimit 中除以它
+  const prefillAttentionFactor = getPrefillAttentionFactor({
+    totalHeads,
+    kvHeads:    model.kv_heads,
+    headDim:    model.head_dim,
+    layers:     model.layers,
+    promptLen:  effectivePromptLen,
+    activeParams,
+    linearAttnLayers,
+    hiddenSize: model.hidden_size,
+  })
+
+  // tok/s：prefill FLOPs/tok = 2 × activeParams × 1e9（FFN 部分）
+  // 加上 attention FLOPs 后，实际总 FLOPs/tok = prefillAttentionFactor × 2 × activeParams × 1e9
+  // 推导：prefill_speed = tflops × 1e12 / (prefillAttentionFactor × 2 × activeParams × 1e9)
   const computeBaseLimit = (tflops * 1e12) / (2 * activeParams * 1e9)
-  const computeLimit = computeBaseLimit * prefillAttentionFactor * flashFactor
+  const computeLimit = (computeBaseLimit / prefillAttentionFactor) * flashFactor
   const prefillToks  = computeLimit * framework.prefill
-  const prefillToksMin = computeBaseLimit * prefillFactorMin * prefillAttentionFactor * scaledFlashRange.min
-  const prefillToksMax = computeBaseLimit * prefillFactorMax * prefillAttentionFactor * scaledFlashRange.max
+  const prefillToksMin = (computeBaseLimit / prefillAttentionFactor) * prefillFactorMin * scaledFlashRange.min
+  const prefillToksMax = (computeBaseLimit / prefillAttentionFactor) * prefillFactorMax * scaledFlashRange.max
 
   // 首 token 延迟（ms）：纯 prefill 计算时间
   // continuous batching 模式（vLLM/TRT-LLM/TGI）下请求并发处理，TTFT 不随 batch 线性增加
   // serial 模式（llama.cpp）下请求串行排队，TTFT × batch
+  // 实际 FLOPs/token = prefillAttentionFactor × 2 × activeParams × 1e9
   const isContinuousBatching = (framework.schedulingMode ?? 'continuous') === 'continuous'
-  const ttft = (effectivePromptLen * 2 * activeParams * 1e9) / (tflops * 1e12) * 1000 / (prefillAttentionFactor * flashFactor * framework.prefill) * (isContinuousBatching ? 1 : Math.max(1, batch))
+  const ttft = (effectivePromptLen * prefillAttentionFactor * 2 * activeParams * 1e9) / (tflops * 1e12) * 1000 / (flashFactor * framework.prefill) * (isContinuousBatching ? 1 : Math.max(1, batch))
 
   // 单 token 生成时间（ms），batch=1 时的延迟基准
   // offload 模式：bwLimit 已包含串行 IO，从 bwLimit 反推 tpot 保持一致
@@ -303,12 +327,15 @@ export function calcAll({
   // ─────────────────────────────────────────────
   // 每层 all-reduce 通信量 ≈ 2 × hidden_size × batch × 2 bytes（BF16）
   // 通信时间 vs 计算时间的比值决定效率
+  // 跨节点互联（InfiniBand）延迟比节点内 NVLink 高 1-2 个数量级，需额外惩罚
   let tpEfficiency = 1.0
   if (gpuCount > 1 && interconnect) {
     const commBytesPerLayer   = 2 * model.hidden_size * batch * 2 * (gpuCount - 1) / gpuCount  // bytes，BF16，all-reduce 实际系数 2*(N-1)/N
     const commLatencyPerLayer = commBytesPerLayer / (interconnect.bw * 1e9) * 1000  // ms
+    // 跨节点互联（IB）额外加入固定延迟（RTT ≈ 2-5 μs per hop）
+    const interNodeLatencyMs = (interconnect.scope === 'inter') ? 0.005 * (gpuCount - 1) : 0
     const computePerLayer     = tpot / model.layers  // ms
-    tpEfficiency = computePerLayer / (computePerLayer + commLatencyPerLayer)
+    tpEfficiency = computePerLayer / (computePerLayer + commLatencyPerLayer + interNodeLatencyMs)
     tpEfficiency = Math.min(1.0, Math.max(0.01, tpEfficiency))
   }
 
@@ -325,6 +352,9 @@ export function calcAll({
   const totalLatency  = ttft + outputLen * tpot  // ms
 
   const totalPower = gpu.tdp * gpuCount * ppCount / 1000  // kW，总卡数 = TP × PP
+  // 能效比：tok/J = decode吞吐(tok/s) / 总功耗(W)
+  // 方便数据中心选型比较能效
+  const tokPerJoule = totalPower > 0 ? effectiveToks / (totalPower * 1000) : null
 
   return {
     // 显存
@@ -341,6 +371,7 @@ export function calcAll({
     // 综合
     roofline, bottleneck, tpEfficiency,
     totalPower,
+    tokPerJoule,
     flashAttention,
     flashFactorMin: scaledFlashRange.min,
     flashFactorMax: scaledFlashRange.max,
@@ -368,15 +399,60 @@ export function calcAll({
   }
 }
 
-function getPrefillAttentionFactor({ totalHeads, kvHeads, attentionType }) {
-  // GQA/MQA 减少注意力 FLOPs：注意力占总 FLOPs 约 20%
-  // 节省比例 = (1 - kv_heads/total_heads) × attn_flops_fraction
-  // 例：Llama3 70B（8/64 heads）→ factor = 1 - (1 - 8/64) × 0.20 ≈ 0.886（减少约 11%）
-  const attnFlopsFraction = 0.20
-  if (kvHeads != null && totalHeads > 0 && kvHeads < totalHeads) {
-    return 1 - (1 - kvHeads / totalHeads) * attnFlopsFraction
-  }
-  return 1
+/**
+ * 动态计算 prefill 注意力 FLOPs 占比，并返回综合修正因子
+ *
+ * 旧方案：注意力占总 FLOPs 固定 20%，长上下文时严重低估 attention 开销
+ * 新方案：动态计算 attention FLOPs vs FFN FLOPs 的比值
+ *
+ * attention FLOPs/token ≈ 2 × kv_heads × head_dim × seq_len × layers（QK^T + AV）
+ * FFN FLOPs/token       ≈ 2 × active_params × 1e9（已有）
+ *
+ * GQA/MQA 修正：attention FLOPs 中 Q 侧用 total_heads，KV 侧用 kv_heads
+ * 实际 attention FLOPs/token ≈ 2 × total_heads × head_dim × seq_len × layers（Q 投影）
+ *                             + 2 × kv_heads × head_dim × seq_len × layers（KV 投影）
+ * 简化：≈ 2 × (total_heads + kv_heads) × head_dim × seq_len × layers / 2
+ *       = (total_heads + kv_heads) × head_dim × seq_len × layers
+ *
+ * 线性 attention 层（GatedDeltaNet）：FLOPs ≈ 2 × hidden_size² per token（O(n)，不含 seq_len）
+ * 这部分 FLOPs 远低于 softmax attention 的 O(n²)，但仍需计入总 FLOPs
+ *
+ * @param {object} params
+ * @param {number} params.totalHeads   - Q 头数
+ * @param {number} params.kvHeads      - KV 头数
+ * @param {number} params.headDim      - 每头维度
+ * @param {number} params.layers       - 层数
+ * @param {number} params.promptLen    - prompt 长度（tokens）
+ * @param {number} params.activeParams - 激活参数量（B）
+ * @param {number} [params.linearAttnLayers] - 线性注意力层数（GatedDeltaNet 等）
+ * @param {number} [params.hiddenSize] - 隐藏层维度（用于线性 attention FLOPs 估算）
+ */
+function getPrefillAttentionFactor({ totalHeads, kvHeads, headDim, layers, promptLen, activeParams, linearAttnLayers, hiddenSize }) {
+  // 有效 softmax attention 层数（线性 attention 层 FLOPs 远低于 softmax，分开计算）
+  const linLayers = linearAttnLayers ?? 0
+  const softmaxLayers = Math.max(0, (layers ?? 1) - linLayers)
+
+  const qHeads = totalHeads ?? kvHeads ?? 1
+  const kHeads = kvHeads ?? qHeads
+  const hDim   = headDim ?? 128
+  const seqLen = promptLen ?? 512
+
+  // softmax attention FLOPs/token：QK^T + AV，GQA 下 Q 侧和 KV 侧分开
+  // ≈ 2 × (total_heads + kv_heads) × head_dim × seq_len × softmaxLayers
+  const softmaxAttnFlops = 2 * (qHeads + kHeads) * hDim * seqLen * softmaxLayers
+
+  // 线性 attention FLOPs/token（GatedDeltaNet 等）：O(n) 复杂度
+  // 每层 ≈ 2 × hidden_size² per token（state 更新 + 输出投影）
+  const hSize = hiddenSize ?? (qHeads * hDim)
+  const linearAttnFlops = linLayers > 0 ? 2 * hSize * hSize * linLayers : 0
+
+  // FFN FLOPs/token ≈ 2 × activeParams × 1e9
+  const ffnFlopsPerToken = 2 * (activeParams ?? 1) * 1e9
+
+  const totalFlops = softmaxAttnFlops + linearAttnFlops + ffnFlopsPerToken
+  // 综合因子：total / ffn_only，即相对于只算 FFN 时的 FLOPs 倍数
+  // 在 computeBaseLimit 中除以此因子，得到实际 prefill 速度
+  return totalFlops / ffnFlopsPerToken
 }
 
 function getFlashAttentionBoostRange({ enabled, promptLen, headDim = 128 }) {

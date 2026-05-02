@@ -277,6 +277,9 @@ export default {
     quant_matrix_status: '状态',
     quant_matrix_speed: '预估速度',
     quant_matrix_offloadable_tip: '⚡ 启用 CPU 卸载后可容纳（MoE Expert 卸载到内存），显示为卸载后的 GPU 显存占用',
+    quant_matrix_ppl: 'PPL Δ',
+    energy_efficiency: '能效比',
+    energy_efficiency_tip: 'tok/J = 解码吞吐（tok/s）÷ 总功耗（W）。越高越好，适合数据中心选型时比较能效。',
   },
   warning: {
     vram_oom: '显存不足 {diff} GB，建议增加显卡数量或降低量化精度',
@@ -333,5 +336,6 @@ export default {
     filter_hide_offload: '隐藏需 CPU 卸载',
     filter_reset: '重置筛选',
     active_filters: '已筛选',
+    loading_more: '已显示 {shown} / {total} 个模型，滚动加载更多',
   },
 }

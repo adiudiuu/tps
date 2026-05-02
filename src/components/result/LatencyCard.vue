@@ -49,5 +49,17 @@ defineProps({ result: Object })
         <div class="text-xs font-semibold text-gray-700 mt-0.5">{{ result.prefixCacheHit }}% / {{ result.effectivePromptLen }} tok</div>
       </div>
     </div>
+
+    <!-- 能效比 -->
+    <div v-if="result && result.tokPerJoule != null" class="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between">
+      <div class="flex items-center gap-1.5">
+        <span class="text-[10px] text-gray-400">{{ t('result.energy_efficiency') }}</span>
+        <TipIcon :text="t('result.energy_efficiency_tip')" />
+      </div>
+      <div class="text-xs font-semibold text-gray-700">
+        {{ result.tokPerJoule.toFixed(2) }} tok/J
+        <span class="text-gray-400 font-normal ml-1">({{ (result.totalPower * 1000).toFixed(0) }} W)</span>
+      </div>
+    </div>
   </div>
 </template>

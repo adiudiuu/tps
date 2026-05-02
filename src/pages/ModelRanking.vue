@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter, useRoute } from 'vue-router'
 import TopBar from '../components/layout/TopBar.vue'
@@ -242,6 +242,32 @@ const modelResults = computed(() => {
   return list
 })
 
+// ── 虚拟化：分页渲染（每次加载 50 条，滚动到底部追加）──
+const PAGE_SIZE = 50
+const visibleCount = ref(PAGE_SIZE)
+const sentinelRef = ref(null)
+let observer = null
+
+// 筛选条件变化时重置可见数量
+watch(modelResults, () => { visibleCount.value = PAGE_SIZE })
+
+const visibleResults = computed(() => modelResults.value.slice(0, visibleCount.value))
+const hasMore = computed(() => visibleCount.value < modelResults.value.length)
+
+function loadMore() {
+  visibleCount.value = Math.min(visibleCount.value + PAGE_SIZE, modelResults.value.length)
+}
+
+onMounted(() => {
+  observer = new IntersectionObserver(
+    (entries) => { if (entries[0].isIntersecting && hasMore.value) loadMore() },
+    { rootMargin: '200px' }
+  )
+  if (sentinelRef.value) observer.observe(sentinelRef.value)
+})
+
+onUnmounted(() => { observer?.disconnect() })
+
 // ── 跳转 ─────────────────────────────────────────────
 function useThisModel(modelData) {
   const query = {
@@ -402,7 +428,7 @@ function useThisModel(modelData) {
             </thead>
             <tbody class="divide-y divide-gray-200">
               <tr
-                v-for="item in modelResults"
+                v-for="item in visibleResults"
                 :key="item.model.id"
                 class="hover:bg-gray-50 transition-colors"
                 :class="{ 'opacity-50': !item.canRun }"
@@ -460,12 +486,17 @@ function useThisModel(modelData) {
             </tbody>
           </table>
         </div>
+        <!-- 加载更多哨兵（桌面端） -->
+        <div ref="sentinelRef" class="h-4" />
+        <div v-if="hasMore" class="text-center py-3 text-xs text-gray-400">
+          {{ t('ranking.loading_more', { shown: visibleResults.length, total: modelResults.length }) }}
+        </div>
       </div>
 
       <!-- 移动端：卡片视图 -->
       <div class="sm:hidden space-y-3">
         <div
-          v-for="item in modelResults"
+          v-for="item in visibleResults"
           :key="item.model.id"
           class="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm"
           :class="{ 'opacity-60': !item.canRun }"
@@ -564,6 +595,10 @@ function useThisModel(modelData) {
               {{ t('ranking.status_oom') }}
             </div>
           </div>
+        </div>
+        <!-- 加载更多哨兵（移动端） -->
+        <div v-if="hasMore" class="text-center py-3 text-xs text-gray-400">
+          {{ t('ranking.loading_more', { shown: visibleResults.length, total: modelResults.length }) }}
         </div>
       </div>
     </div>

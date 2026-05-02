@@ -3,27 +3,31 @@
 // bytes: 权重每参数字节数
 // kv_bytes: KV Cache 每元素字节数（通常比权重精度高，独立于权重量化）
 // flops_key: 对应 GPU 算力字段
+// ppl_loss: 量化困惑度损失参考值（相对 BF16 基准的 PPL 增量，基于 llama.cpp 实测数据）
+//           数值越小质量越好，0 = 无损，来源：llama.cpp wiki quantization comparison
 export const QUANT_MAP = [
-  { id: 'fp32',  label: 'FP32',          bytes: 4.00, kv_bytes: 4.0, flops_key: 'bf16', quality: 'best'  },
-  { id: 'bf16',  label: 'BF16/FP16',     bytes: 2.00, kv_bytes: 2.0, flops_key: 'bf16', quality: 'great' },
-  { id: 'fp8',   label: 'FP8',           bytes: 1.00, kv_bytes: 1.0, flops_key: 'fp8',  quality: 'great' },
-  { id: 'int8',  label: 'INT8/Q8',       bytes: 1.00, kv_bytes: 2.0, flops_key: 'int8', quality: 'good'  },
-  { id: 'int6',  label: 'Q6_K',          bytes: 0.75, kv_bytes: 2.0, flops_key: 'bf16', quality: 'good'  },
-  { id: 'int5',  label: 'Q5_K',          bytes: 0.625,kv_bytes: 2.0, flops_key: 'bf16', quality: 'ok'    },
-  { id: 'int4',  label: 'INT4/GPTQ/AWQ', bytes: 0.50, kv_bytes: 2.0, flops_key: 'int4', quality: 'ok'    },
-  { id: 'int3',  label: 'Q3_K',          bytes: 0.375,kv_bytes: 2.0, flops_key: 'int4', quality: 'poor'  },
-  { id: 'int2',  label: 'INT2/NF2',      bytes: 0.25, kv_bytes: 2.0, flops_key: 'int4', quality: 'bad'   },
+  { id: 'fp32',  label: 'FP32',          bytes: 4.00, kv_bytes: 4.0, flops_key: 'bf16', quality: 'best',  ppl_loss: 0.00 },
+  { id: 'bf16',  label: 'BF16/FP16',     bytes: 2.00, kv_bytes: 2.0, flops_key: 'bf16', quality: 'great', ppl_loss: 0.00 },
+  { id: 'fp8',   label: 'FP8',           bytes: 1.00, kv_bytes: 1.0, flops_key: 'fp8',  quality: 'great', ppl_loss: 0.10 },
+  { id: 'int8',  label: 'INT8/Q8',       bytes: 1.00, kv_bytes: 2.0, flops_key: 'int8', quality: 'good',  ppl_loss: 0.10 },
+  { id: 'int6',  label: 'Q6_K',          bytes: 0.75, kv_bytes: 2.0, flops_key: 'bf16', quality: 'good',  ppl_loss: 0.20 },
+  { id: 'int5',  label: 'Q5_K',          bytes: 0.625,kv_bytes: 2.0, flops_key: 'bf16', quality: 'ok',    ppl_loss: 0.40 },
+  { id: 'int4',  label: 'INT4/GPTQ/AWQ', bytes: 0.50, kv_bytes: 2.0, flops_key: 'int4', quality: 'ok',    ppl_loss: 0.80 },
+  { id: 'int3',  label: 'Q3_K',          bytes: 0.375,kv_bytes: 2.0, flops_key: 'int4', quality: 'poor',  ppl_loss: 2.00 },
+  { id: 'int2',  label: 'INT2/NF2',      bytes: 0.25, kv_bytes: 2.0, flops_key: 'int4', quality: 'bad',   ppl_loss: 8.00 },
 ]
 
 export const INTERCONNECT_MAP = [
-  { id: 'nvlink5',  label: 'NVLink 5.0',    bw: 1800 },
-  { id: 'nvlink4',  label: 'NVLink 4.0',    bw: 900 },
-  { id: 'nvlink3',  label: 'NVLink 3.0',    bw: 600 },
-  { id: 'nvswitch', label: 'NVSwitch',       bw: 900 },
-  { id: 'ib_ndr',   label: 'InfiniBand NDR', bw: 100 },
-  { id: 'ib_hdr',   label: 'InfiniBand HDR', bw: 50  },
-  { id: 'pcie5',    label: 'PCIe 5.0',       bw: 128 },
-  { id: 'pcie4',    label: 'PCIe 4.0',       bw: 64  },
+  { id: 'nvlink5',  label: 'NVLink 5.0',    bw: 1800, scope: 'intra' },
+  { id: 'nvlink4',  label: 'NVLink 4.0',    bw: 900,  scope: 'intra' },
+  { id: 'nvlink3',  label: 'NVLink 3.0',    bw: 600,  scope: 'intra' },
+  { id: 'nvswitch', label: 'NVSwitch',       bw: 900,  scope: 'intra' },
+  // 跨节点互联（all-reduce 延迟比节点内高 1-2 个数量级）
+  { id: 'ib_ndr',   label: 'InfiniBand NDR (inter-node)', bw: 100, scope: 'inter' },
+  { id: 'ib_hdr',   label: 'InfiniBand HDR (inter-node)', bw: 50,  scope: 'inter' },
+  // PCIe（节点内，无 NVLink 时）
+  { id: 'pcie5',    label: 'PCIe 5.0',       bw: 128,  scope: 'intra' },
+  { id: 'pcie4',    label: 'PCIe 4.0',       bw: 64,   scope: 'intra' },
 ]
 
 export const FRAMEWORK_MAP = [

@@ -1,6 +1,7 @@
 // Gemma 3n: Edge-optimized model with MobileNet hybrid architecture
 // Designed for mobile and edge devices
 // Source: Community reports and edge deployment patterns
+// vision_seq_tokens: Gemma 3n 使用 MobileNet 视觉编码器，每张图约 256 patch tokens
 export default {
   id: 'gemma3n',
   released: '2025-04',
@@ -12,6 +13,7 @@ export default {
   head_dim: 128,
   hidden_size: 1024,
   max_ctx: 8192,
+  vision_seq_tokens: 256,  // MobileNet 视觉编码器，每张图约 256 patch tokens
   links: {
     ollama: null,
     hf: 'https://huggingface.co/google/gemma-3n',

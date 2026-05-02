@@ -100,16 +100,17 @@ const pieData = computed(() => {
         </svg>
       </button>
       <div v-show="showMatrix" class="space-y-1">
-        <div class="grid grid-cols-4 text-xs text-gray-400 font-medium px-1 pb-1">
+        <div class="grid grid-cols-5 text-xs text-gray-400 font-medium px-1 pb-1">
           <span>{{ t('result.quant_matrix_quant') }}</span>
           <span class="text-right">{{ t('result.quant_matrix_vram') }}</span>
           <span class="text-center">{{ t('result.quant_matrix_status') }}</span>
           <span class="text-right">{{ t('result.quant_matrix_speed') }}</span>
+          <span class="text-right">{{ t('result.quant_matrix_ppl') }}</span>
         </div>
         <div
           v-for="row in quantMatrix" :key="row.quant.id"
           @click="!props.readonly && emit('selectQuant', row.quant)"
-          class="grid grid-cols-4 text-xs px-2 py-1.5 rounded items-center transition-colors"
+          class="grid grid-cols-5 text-xs px-2 py-1.5 rounded items-center transition-colors"
           :class="[
             row.quant.id === currentQuantId ? 'bg-emerald-600 text-white' : '',
             !props.readonly && row.quant.id !== currentQuantId ? 'cursor-pointer hover:bg-gray-100' : '',
@@ -125,6 +126,9 @@ const pieData = computed(() => {
           </span>
           <span class="text-right" :class="row.quant.id === currentQuantId ? 'text-white' : 'text-gray-500'">
             {{ row.vramOk ? row.decodeToks.toFixed(1) + ' tok/s' : '—' }}
+          </span>
+          <span class="text-right" :class="row.quant.id === currentQuantId ? 'text-emerald-100' : 'text-gray-400'">
+            {{ row.quant.ppl_loss != null ? (row.quant.ppl_loss === 0 ? '—' : '+' + row.quant.ppl_loss.toFixed(2)) : '?' }}
           </span>
         </div>
         <p class="text-xs text-gray-400 leading-snug pt-1">{{ t('result.vram_theory_note') }}</p>
