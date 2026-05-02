@@ -210,10 +210,20 @@ export function calcAll({
     if (model.experts && model.experts_per_token) {
       // 有字段时精确计算：代数推导非专家参数量
       // non_expert_total = (params × experts_per_token - experts × active_params) / (experts_per_token - experts)
-      const non_expert_total = (model.params * model.experts_per_token - model.experts * model.active_params)
-                               / (model.experts_per_token - model.experts)
-      const active_expert_params = model.active_params - non_expert_total
-      expertIOPerStep = active_expert_params * quant.bytes
+      // 前提：experts_per_token < experts（正常 MoE 路由，每 token 只激活部分专家）
+      // 边界：experts_per_token === experts 时分母为零（top-all 或数据异常），回退到 70% 估算
+      const denom = model.experts_per_token - model.experts
+      if (denom !== 0) {
+        const non_expert_total = (model.params * model.experts_per_token - model.experts * model.active_params) / denom
+        const active_expert_params = model.active_params - non_expert_total
+        // active_expert_params 理论上应 > 0；若算出负值说明数据异常，同样回退
+        expertIOPerStep = active_expert_params > 0
+          ? active_expert_params * quant.bytes
+          : model.active_params * 0.70 * quant.bytes
+      } else {
+        // experts_per_token === experts：所有专家都激活，等同于 dense 层，无 expert IO 分离
+        expertIOPerStep = model.active_params * 0.70 * quant.bytes
+      }
     } else {
       // 无字段时：expert FFN 约占 active_params 的 70%
       expertIOPerStep = model.active_params * 0.70 * quant.bytes
@@ -325,17 +335,47 @@ export function calcAll({
   // ─────────────────────────────────────────────
   // TP 通信效率（多卡 Tensor Parallel）
   // ─────────────────────────────────────────────
-  // 每层 all-reduce 通信量 ≈ 2 × hidden_size × batch × 2 bytes（BF16）
-  // 通信时间 vs 计算时间的比值决定效率
-  // 跨节点互联（InfiniBand）延迟比节点内 NVLink 高 1-2 个数量级，需额外惩罚
+  // 核心公式：efficiency = t_compute / (t_compute + t_comm)
+  //
+  // ❌ 旧方案：computePerLayer = tpot / layers
+  //    tpot 含 framework.decode 系数，框架越差 tpot 越大，computePerLayer 越大，
+  //    导致 tpEfficiency 反而越高——与框架效率耦合，方向完全错误。
+  //
+  // ✅ 新方案：用纯物理带宽时间推导 t_compute，不含任何框架系数
+  //    t_compute_per_layer = (decodeBytesPerStep / ppCount) / effectiveBw / layers  (s)
+  //    这是单层权重 + KV 读取的纯 HBM 时间，与框架无关。
+  //
+  // 通信模型（ring all-reduce，LogP）：
+  //   t_comm = α + β × message_size
+  //   α（latency）：节点内 NVLink ≈ 1μs，跨节点 IB ≈ 2-5μs per hop
+  //   β（bandwidth term）：message_size / interconnect.bw
+  //   ring all-reduce 每层传输量 = 2*(N-1)/N × hidden_size × batch × 2 bytes
+  //   需要 2*(N-1) 次点对点传输，每次 RTT = α
+  //
+  // 跨节点 IB 场景：α 远大于节点内，是 TP 效率的主要杀手
   let tpEfficiency = 1.0
-  if (gpuCount > 1 && interconnect) {
-    const commBytesPerLayer   = 2 * model.hidden_size * batch * 2 * (gpuCount - 1) / gpuCount  // bytes，BF16，all-reduce 实际系数 2*(N-1)/N
-    const commLatencyPerLayer = commBytesPerLayer / (interconnect.bw * 1e9) * 1000  // ms
-    // 跨节点互联（IB）额外加入固定延迟（RTT ≈ 2-5 μs per hop）
-    const interNodeLatencyMs = (interconnect.scope === 'inter') ? 0.005 * (gpuCount - 1) : 0
-    const computePerLayer     = tpot / model.layers  // ms
-    tpEfficiency = computePerLayer / (computePerLayer + commLatencyPerLayer + interNodeLatencyMs)
+  // pureCpu / llamacpp hybrid 场景不做 TP，跳过通信效率计算
+  const isGpuPath = !pureCpu && !isLlamaCppHybrid
+  if (isGpuPath && gpuCount > 1 && interconnect) {
+    // 每层 all-reduce 消息大小（bytes，BF16，ring 系数 2*(N-1)/N）
+    const commBytesPerLayer = 2 * (model.hidden_size ?? 4096) * batch * 2 * (gpuCount - 1) / gpuCount
+
+    // β 项：带宽传输时间（ms）
+    const commBwMs = commBytesPerLayer / (interconnect.bw * 1e9) * 1000
+
+    // α 项：固定延迟（ms）
+    // 节点内（NVLink/PCIe）：~1μs；跨节点（IB）：~4μs per hop，ring 需 2*(N-1) 次握手
+    const alphaMs = (interconnect.scope === 'inter')
+      ? 0.004 * 2 * (gpuCount - 1)   // IB：4μs × 2*(N-1) 次握手
+      : 0.001 * 2 * (gpuCount - 1)   // NVLink：1μs × 2*(N-1) 次握手
+
+    const commLatencyPerLayer = commBwMs + alphaMs  // ms，总通信延迟
+
+    // 纯物理计算时间（ms/layer）：不含框架系数，只看 HBM 带宽
+    // 使用 totalBw（GPU HBM 总带宽），decodeBytesPerStep / ppCount 是单 stage IO
+    const physicalTimePerLayer = (decodeBytesPerStep / ppCount) / totalBw / (model.layers ?? 1) * 1000
+
+    tpEfficiency = physicalTimePerLayer / (physicalTimePerLayer + commLatencyPerLayer)
     tpEfficiency = Math.min(1.0, Math.max(0.01, tpEfficiency))
   }
 
