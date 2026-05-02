@@ -280,7 +280,6 @@ export function calcAll({
     promptLen:  effectivePromptLen,
     activeParams,
     linearAttnLayers,
-    hiddenSize: model.hidden_size,
   })
 
   // tok/s：prefill FLOPs/tok = 2 × activeParams × 1e9（FFN 部分）
@@ -427,47 +426,44 @@ export function calcAll({
  * 返回值 factor = total_flops_per_token / ffn_flops_per_token（≥ 1）
  * 在 computeBaseLimit 中除以此因子，得到实际 prefill 速度。
  *
- * 组成：
- *   softmax attention FLOPs/token = 2 × (Q_heads + KV_heads) × head_dim × seq_len × softmax_layers
- *   linear attention FLOPs/token  = 2 × hidden_size² × linear_layers（O(n)，不含 seq_len）
- *   FFN FLOPs/token               = 2 × active_params × 1e9
+ * computeBaseLimit = tflops / (2 × activeParams × 1e9) 的分母已包含：
+ *   - FFN 层 FLOPs（O(n)，per token）
+ *   - 线性 attention 层 FLOPs（O(n)，per token，参数已计入 activeParams）
+ *
+ * 需要额外修正的只有 softmax attention 的 O(n²) 开销：
+ *   4 × kv_heads × head_dim × seq_len × softmax_layers
+ *   （QK^T + AV，每 token 需 attend 到 seq_len 个位置）
+ *
+ * 线性 attention 层（GatedDeltaNet 等）无 O(n²) 开销，其 FLOPs 已被 activeParams 覆盖，
+ * 不需要额外计入 factor。
  *
  * @param {object} params
- * @param {number} params.totalHeads        - Q 头数
- * @param {number} params.kvHeads           - KV 头数
+ * @param {number} params.kvHeads           - KV 头数（决定 softmax attention FLOPs）
  * @param {number} params.headDim           - 每头维度
  * @param {number} params.layers            - 总层数
  * @param {number} params.promptLen         - prompt 长度（tokens）
  * @param {number} params.activeParams      - 激活参数量（B）
- * @param {number} [params.linearAttnLayers] - 线性注意力层数（GatedDeltaNet 等）
- * @param {number} [params.hiddenSize]      - 隐藏层维度（用于线性 attention FLOPs 估算）
+ * @param {number} [params.linearAttnLayers] - 线性注意力层数（从总层数中排除，不计入 softmax attention）
  */
 function getPrefillAttentionFactor({ totalHeads, kvHeads, headDim, layers, promptLen, activeParams, linearAttnLayers, hiddenSize }) {
-  // 有效 softmax attention 层数（线性 attention 层 FLOPs 远低于 softmax，分开计算）
+  // softmax attention 层数（排除线性 attention 层）
   const linLayers = linearAttnLayers ?? 0
   const softmaxLayers = Math.max(0, (layers ?? 1) - linLayers)
 
-  const qHeads = totalHeads ?? kvHeads ?? 1
-  const kHeads = kvHeads ?? qHeads
+  const kHeads = kvHeads ?? (totalHeads ?? 1)
   const hDim   = headDim ?? 128
   const seqLen = promptLen ?? 512
 
-  // softmax attention FLOPs/token：QK^T + AV，GQA 下 Q 侧和 KV 侧分开
-  // ≈ 2 × (total_heads + kv_heads) × head_dim × seq_len × softmaxLayers
-  const softmaxAttnFlops = 2 * (qHeads + kHeads) * hDim * seqLen * softmaxLayers
+  // softmax attention 额外 FLOPs/token（O(n²)，不在 activeParams 里）：
+  //   QK^T + AV = 4 × kv_heads × head_dim × seq_len × softmax_layers
+  const softmaxAttnFlops = 4 * kHeads * hDim * seqLen * softmaxLayers
 
-  // 线性 attention FLOPs/token（GatedDeltaNet 等）：O(n) 复杂度
-  // 每层 ≈ 2 × hidden_size² per token（state 更新 + 输出投影）
-  const hSize = hiddenSize ?? (qHeads * hDim)
-  const linearAttnFlops = linLayers > 0 ? 2 * hSize * hSize * linLayers : 0
-
-  // FFN FLOPs/token ≈ 2 × activeParams × 1e9
+  // FFN FLOPs/token（O(n)，已被 activeParams 覆盖，作为分母基准）
   const ffnFlopsPerToken = 2 * (activeParams ?? 1) * 1e9
 
-  const totalFlops = softmaxAttnFlops + linearAttnFlops + ffnFlopsPerToken
-  // 综合因子：total / ffn_only，即相对于只算 FFN 时的 FLOPs 倍数
-  // 在 computeBaseLimit 中除以此因子，得到实际 prefill 速度
-  return totalFlops / ffnFlopsPerToken
+  // factor = (softmax_attn_extra + ffn) / ffn
+  // 线性 attention 层的 O(n) FLOPs 已在 ffnFlopsPerToken 中，不重复计入
+  return (softmaxAttnFlops + ffnFlopsPerToken) / ffnFlopsPerToken
 }
 
 function getFlashAttentionBoostRange({ enabled, promptLen, headDim = 128 }) {
