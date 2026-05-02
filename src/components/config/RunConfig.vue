@@ -32,11 +32,32 @@ const draftLen = defineModel('draftLen', { required: true })
 const ppCount = defineModel('ppCount', { required: true })
 const imageCount = defineModel('imageCount', { required: true })
 const nglCount = defineModel('nglCount', { default: null })
+const epCount = defineModel('epCount', { default: 1 })
 
 // PP 显示条件：至少 2 张卡且模型参数 >= 30B
 const ppSupported = computed(() => props.gpuCount >= 2 && (props.model?.params ?? 0) >= 30)
 // 隐藏 PP 控件时自动重置为 1
 watch(ppSupported, (v) => { if (!v) ppCount.value = 1 })
+
+// EP 显示条件：MoE 模型且有 experts 字段，至少 2 张卡
+const epSupported = computed(() =>
+  props.model?.type === 'moe' &&
+  props.model?.experts != null &&
+  props.gpuCount >= 2
+)
+// EP 可选值：1（不启用）+ experts 的因子（不超过 gpuCount）
+const epOptions = computed(() => {
+  if (!epSupported.value) return [1]
+  const experts = props.model.experts
+  const maxEp = Math.min(experts, props.gpuCount)
+  const options = [1]
+  for (const n of [2, 4, 8, 16, 32, 64, 128, 256]) {
+    if (n <= maxEp && experts % n === 0) options.push(n)
+  }
+  return options
+})
+// 隐藏 EP 控件时自动重置为 1
+watch(epSupported, (v) => { if (!v) epCount.value = 1 })
 const speculativeSupported = computed(() => {
   const supportedFrameworks = ['vllm', 'trtllm']
   return supportedFrameworks.includes(props.framework?.id)
@@ -78,6 +99,7 @@ const ctxOptions = computed(() => {
           v-for="q in QUANT_MAP"
           :key="q.id"
           @click="quant = q"
+          :title="q.ppl_loss != null ? (q.ppl_loss === 0 ? t('run.quant_ppl_lossless') : t('run.quant_ppl_loss', { loss: q.ppl_loss.toFixed(2) })) : ''"
           :class="[
             'px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors',
             quant.id === q.id
@@ -86,6 +108,10 @@ const ctxOptions = computed(() => {
           ]"
         >
           {{ q.label }}
+          <span
+            v-if="q.ppl_loss != null && q.ppl_loss > 0"
+            :class="['ml-0.5 text-[10px] font-normal', quant.id === q.id ? 'text-emerald-200' : 'text-gray-400']"
+          >+{{ q.ppl_loss }}</span>
         </button>
       </div>
     </div>
@@ -405,7 +431,7 @@ const ctxOptions = computed(() => {
               />
             </div>
             <div class="text-xs text-emerald-700 bg-emerald-50 rounded px-2 py-1.5 border border-emerald-200">
-              {{ t('run.speculative_speedup', { speedup: (1 + acceptanceRate * draftLen).toFixed(1) }) }}
+              {{ t('run.speculative_speedup', { speedup: ((1 - Math.pow(Math.min(0.999, acceptanceRate), draftLen + 1)) / (1 - Math.min(0.999, acceptanceRate))).toFixed(2) }) }}
             </div>
           </div>
         </template>
@@ -436,6 +462,29 @@ const ctxOptions = computed(() => {
                 : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:border-gray-300'
           ]"
         >PP{{ n }}</button>
+      </div>
+    </div>
+
+    <!-- Expert Parallel（仅 MoE 模型 + 多卡时显示）-->
+    <div v-if="epSupported" class="pt-1 border-t border-gray-100">
+      <label class="flex items-center justify-between text-xs text-gray-500 mb-2">
+        <span class="flex items-center gap-1">
+          {{ t('run.ep_count') }}<TipIcon :text="t('run.ep_count_tip')" />
+        </span>
+        <span class="text-emerald-700 font-medium">EP{{ epCount }}</span>
+      </label>
+      <div class="flex gap-1.5 flex-wrap">
+        <button
+          v-for="n in epOptions"
+          :key="n"
+          @click="epCount = n"
+          :class="[
+            'px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors',
+            epCount === n
+              ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm'
+              : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:border-gray-300'
+          ]"
+        >EP{{ n }}</button>
       </div>
     </div>
 

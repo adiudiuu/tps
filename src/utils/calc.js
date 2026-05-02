@@ -8,6 +8,7 @@ import { getAttentionSummary, getAttentionType, getTotalHeads } from './model.js
  * - KV Cache 精度独立于权重量化（kv_bytes），INT4 权重的 KV Cache 通常仍是 FP16
  * - MoE 模型 prefill 用 active_params 计算 FLOPs，而非总参数
  * - 多卡 TP 下，每卡只存 1/N 权重，带宽效率按分片后计算
+ * - EP（Expert Parallelism）：每卡只存部分 expert，需要 all-to-all token routing
  *
  * @param {object} params
  * @param {object} params.gpu          - GPU 对象
@@ -20,6 +21,7 @@ import { getAttentionSummary, getAttentionType, getTotalHeads } from './model.js
  * @param {number} params.promptLen    - Prompt 长度（tokens）
  * @param {number} params.outputLen    - 输出长度（tokens）
  * @param {object} params.framework    - 推理框架对象
+ * @param {number} [params.epCount]    - Expert Parallelism 度（仅 MoE 模型有效，默认 1 = 不启用）
  */
 export function calcAll({
   gpu, gpuCount, interconnect, model, quant, ctx, batch, promptLen, outputLen, framework,
@@ -29,6 +31,7 @@ export function calcAll({
   nglCount = null,
   speculativeDecoding = false, acceptanceRate = 0.7, draftLen = 4, draftModelParams = null,
   ppCount = 1,
+  epCount = 1,
   imageCount = 0,
 }) {
   const totalVram = gpu.vram * gpuCount * (gpu.usableRatio ?? 1.0)
@@ -58,17 +61,55 @@ export function calcAll({
   }
 
   // ─────────────────────────────────────────────
+  // EP（Expert Parallelism）预计算
+  // ─────────────────────────────────────────────
+  // EP 仅对 MoE 模型有效，epCount > 1 时启用
+  // 每卡只存 1/epCount 的 expert 权重，非 expert 权重（attention/embed/norm）每卡完整保留
+  //
+  // 推导非 expert 参数量（non_expert_params）：
+  //   non_expert_params = (params × experts_per_token - experts × active_params)
+  //                       / (experts_per_token - experts)
+  //   （与 CPU Offload 路径相同的代数推导）
+  // 每卡 expert 权重 = (active_params - non_expert_params) / epCount × experts
+  //   注意：active_params 里的 expert 部分 = active_params - non_expert_params
+  //         每卡存 experts/epCount 个 expert，每个 expert 的参数量 = expert_params / experts
+  //         所以每卡 expert 权重 = (active_params - non_expert_params) / epCount
+  //         （等价于总 expert 权重 / epCount）
+  const isEP = epCount > 1 && model.type === 'moe' && model.experts && model.experts_per_token
+  let epWeightGB = null  // EP 模式下每卡实际权重（GB）
+  let nonExpertParams = null
+  if (isEP) {
+    const denom = model.experts_per_token - model.experts
+    if (denom !== 0) {
+      nonExpertParams = (model.params * model.experts_per_token - model.experts * model.active_params) / denom
+    } else {
+      // experts_per_token === experts（top-all）：无 expert 分离，EP 退化为 TP
+      nonExpertParams = model.active_params
+    }
+    nonExpertParams = Math.max(0, nonExpertParams)
+    // 总 expert 参数量（所有 expert 的 FFN 权重之和）
+    const totalExpertParams = model.params - nonExpertParams
+    // 每卡 expert 权重 = 总 expert 权重 / epCount
+    const expertParamsPerCard = totalExpertParams / epCount
+    // 每卡权重 = 非 expert（完整）+ 本卡 expert 分片
+    epWeightGB = (nonExpertParams + expertParamsPerCard) * quant.bytes
+  }
+
+  // ─────────────────────────────────────────────
   // 显存计算
   // ─────────────────────────────────────────────
 
   // 权重显存：总参数 × 每参数字节数
+  // EP 模式：每卡只存 1/epCount 的 expert + 完整非 expert 权重
   // MoE CPU Offload：expert 权重卸载到 CPU RAM，GPU 只需保留当前激活的 expert 块 + 非 MoE dense 层
   // 估算：active_params × quant.bytes × 1.5
   //   active_params × quant.bytes ≈ 当前激活 expert 权重
   //   × 1.5 覆盖 attention / embedding / normalization 等始终驻留 GPU 的非 MoE 层
-  const weightGB = (cpuOffload && model.type === 'moe' && framework?.id !== 'llamacpp')
-    ? model.active_params * quant.bytes * 1.5
-    : model.params * quant.bytes
+  const weightGB = isEP
+    ? epWeightGB
+    : (cpuOffload && model.type === 'moe' && framework?.id !== 'llamacpp')
+      ? model.active_params * quant.bytes * 1.5
+      : model.params * quant.bytes
   // Vision encoder：encoder 权重独立于 LLM backbone（如已包含在 params 内则不重复计算）
   // vision_encoder_params 已从 params 中独立出来的情况：视具体模型而定
   // 当前约定：vision_encoder_params 已包含在 params 内，无需额外加；
@@ -129,9 +170,15 @@ export function calcAll({
   // TP 分片：每卡只存 1/N 权重，N 卡同时读，等效带宽 = N × gpu.bw
   // 而每卡权重 = activeWeight / N，bwLimit = totalBw / activeWeight × batch
   // all-reduce 通信开销由后续 tpEfficiency 修正（基于纯物理时间，不含框架系数）
-  const activeWeight = model.type === 'moe'
-    ? model.active_params * quant.bytes
-    : weightGB
+  //
+  // EP 模式：每卡只读自己那份 expert 权重（1/epCount），带宽需求大幅降低
+  //   每卡 IO = 非 expert 权重 + 本卡 expert 权重 + KV Cache
+  //   all-to-all 通信开销由 epCommLatencyMs 单独建模
+  const activeWeight = isEP
+    ? epWeightGB  // EP 下每卡只读自己那份权重
+    : model.type === 'moe'
+      ? model.active_params * quant.bytes
+      : weightGB
 
   const decodeFactorMin = adjustedFramework.decodeMin ?? adjustedFramework.decode
   const decodeFactorMax = adjustedFramework.decodeMax ?? adjustedFramework.decode
@@ -361,11 +408,55 @@ export function calcAll({
   }
 
   // ─────────────────────────────────────────────
+  // EP 通信效率（Expert Parallelism all-to-all）
+  // ─────────────────────────────────────────────
+  // EP 每个 MoE 层需要两次 all-to-all：
+  //   1. dispatch：把 token 路由到持有对应 expert 的卡（发送 hidden_size × experts_per_token tokens）
+  //   2. combine：把 expert 输出汇聚回原卡
+  //
+  // 每次 all-to-all 消息大小（per card）：
+  //   batch × experts_per_token × hidden_size × 2 bytes（BF16）/ epCount
+  //   （每卡平均接收 batch × experts_per_token / epCount 个 token）
+  //
+  // 通信延迟模型（LogP）：α + β × message_size
+  //   α：节点内 ~1μs，跨节点 ~4μs（与 TP 相同）
+  //   两次 all-to-all = 2 × (α + β × msg)
+  //
+  // MoE 层数 = layers（所有层都有 MoE FFN，attention 层不参与 EP）
+  let epEfficiency = 1.0
+  if (isEP && isGpuPath && interconnect) {
+    const moeLayerCount = model.layers ?? 1
+    const hiddenSize = model.hidden_size ?? 4096
+    const expertsPerToken = model.experts_per_token ?? 1
+
+    // 每次 all-to-all 每卡消息大小（bytes）
+    const a2aMsgBytes = batch * expertsPerToken * hiddenSize * 2 / epCount
+
+    // β 项：带宽传输时间（ms），两次 all-to-all
+    const a2aBwMs = 2 * a2aMsgBytes / (interconnect.bw * 1e9) * 1000
+
+    // α 项：固定延迟（ms），两次 all-to-all
+    const a2aAlphaMs = (interconnect.scope === 'inter')
+      ? 2 * 0.004  // IB：4μs × 2
+      : 2 * 0.001  // NVLink：1μs × 2
+
+    const epCommLatencyPerLayer = a2aBwMs + a2aAlphaMs  // ms，每 MoE 层
+
+    // 纯物理计算时间（ms/layer）：每卡只读自己的 expert 权重
+    const physicalTimePerLayer = (decodeBytesPerStep / ppCount) / totalBw / moeLayerCount * 1000
+
+    epEfficiency = physicalTimePerLayer / (physicalTimePerLayer + epCommLatencyPerLayer)
+    epEfficiency = Math.min(1.0, Math.max(0.01, epEfficiency))
+  }
+
+  // ─────────────────────────────────────────────
   // 综合结果
   // ─────────────────────────────────────────────
-  const effectiveToks = decodeToks * tpEfficiency
-  const effectiveToksMin = decodeToksMin * tpEfficiency
-  const effectiveToksMax = decodeToksMax * tpEfficiency
+  // EP 和 TP 效率叠加：两者都会降低有效吞吐
+  const combinedEfficiency = tpEfficiency * epEfficiency
+  const effectiveToks = decodeToks * combinedEfficiency
+  const effectiveToksMin = decodeToksMin * combinedEfficiency
+  const effectiveToksMax = decodeToksMax * combinedEfficiency
   const singleToks    = effectiveToks / batch
   const singleToksMin = effectiveToksMin / batch
   const singleToksMax = effectiveToksMax / batch
@@ -391,6 +482,9 @@ export function calcAll({
     ttft, tpot, totalLatency,
     // 综合
     roofline, bottleneck, tpEfficiency,
+    epEfficiency,
+    epCount,
+    isEP,
     totalPower,
     tokPerJoule,
     flashAttention,
@@ -445,7 +539,7 @@ export function calcAll({
  * @param {number} params.activeParams      - 激活参数量（B）
  * @param {number} [params.linearAttnLayers] - 线性注意力层数（从总层数中排除，不计入 softmax attention）
  */
-function getPrefillAttentionFactor({ totalHeads, kvHeads, headDim, layers, promptLen, activeParams, linearAttnLayers, hiddenSize }) {
+function getPrefillAttentionFactor({ totalHeads, kvHeads, headDim, layers, promptLen, activeParams, linearAttnLayers }) {
   // softmax attention 层数（排除线性 attention 层）
   const linLayers = linearAttnLayers ?? 0
   const softmaxLayers = Math.max(0, (layers ?? 1) - linLayers)

@@ -59,6 +59,7 @@ const speculativeDecoding = ref(_url.speculativeDecoding ?? false)
 const acceptanceRate = ref(_url.acceptanceRate ?? 0.7)
 const draftLen       = ref(_url.draftLen       ?? 4)
 const ppCount        = ref(_url.ppCount        ?? 1)
+const epCount        = ref(_url.epCount        ?? 1)
 const imageCount     = ref(_url.imageCount     ?? 0)
 const nglCount       = ref(_url.nglCount       ?? null)
 
@@ -125,7 +126,7 @@ watch([cpuOffload, framework], ([co, fw]) => {
 watchUrlState({ gpuSlots, interconnect, model, quant, ctx, batch,
   promptLen, outputLen, framework, flashAttention, kvCacheQuant,
   prefixCacheHit, cpuOffload, pcieBw, pureCpu, cpuMemBw,
-  speculativeDecoding, acceptanceRate, draftLen, ppCount, imageCount, sharedVram, nglCount })
+  speculativeDecoding, acceptanceRate, draftLen, ppCount, epCount, imageCount, sharedVram, nglCount })
 
 const result = computed(() => {
   if (!effectiveGpu.value || !model.value || !quant.value || !framework.value) return null
@@ -139,6 +140,7 @@ const result = computed(() => {
       pureCpu: pureCpu.value, cpuMemBw: cpuMemBw.value,
       speculativeDecoding: speculativeDecoding.value, acceptanceRate: acceptanceRate.value, draftLen: draftLen.value,
       ppCount: ppCount.value,
+      epCount: epCount.value,
       imageCount: imageCount.value,
       nglCount: nglCount.value,
     }), quantId: quant.value.id }
@@ -294,7 +296,7 @@ const batchSweepData = computed(() => {
           v-model:speculativeDecoding="speculativeDecoding"
           v-model:acceptanceRate="acceptanceRate" v-model:draftLen="draftLen"
           v-model:ppCount="ppCount" v-model:imageCount="imageCount"
-          v-model:nglCount="nglCount"
+          v-model:nglCount="nglCount" v-model:epCount="epCount"
         />
       </template>
       <template #result>
