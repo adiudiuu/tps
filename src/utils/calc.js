@@ -107,10 +107,9 @@ export function calcAll({
   }
 
   // 系统开销（CUDA context、激活值、临时 buffer 等）
-  // 动态调整：小模型固定 1GB，大模型按权重 3% 计算，上限 5GB
-  // 激活值显存：纯推理不保留中间层激活，峰值仅为当前层 hidden + FFN 中间值
-  // 改为单层估算：batch × hidden_size × 4（FFN 中间层约 4× hidden）× 2 bytes（BF16）× 4（安全系数）
-  // 上限 2GB，避免小模型大 batch 时虚高
+  // 基础部分：小模型固定 1GB，大模型按权重 3% 计算，上限 5GB
+  // 激活值部分：纯推理不保留中间层激活，峰值仅为当前层
+  //   单层估算：batch × hidden_size × 4（FFN 中间层约 4× hidden）× 2 bytes（BF16）× 4（安全系数），上限 2GB
   const activationGB = Math.min(batch * (model.hidden_size ?? 4096) * 4 * 2 / 1e9 * 4, 2.0)
   const overheadGB  = Math.max(1.0, Math.min(weightGB * 0.03, 5.0)) + activationGB
   // llama.cpp 混合推理：GPU 只持有前 nglCount 层的权重和 KV Cache
@@ -127,15 +126,9 @@ export function calcAll({
   // Decode 阶段每步只处理 1 token，是带宽密集型
   // MoE：每 token 只激活部分专家，只需读取 active_params 的权重
   // Dense：需要读取全部权重
-  // TP 分片：每卡只存 1/N 权重，但 N 卡并行，总带宽 = N × 单卡带宽
-  // 因此 bwLimit = totalBw / (activeWeightPerCard) = totalBw / (activeWeight / gpuCount)
-  //             = totalBw × gpuCount / activeWeight  ← 但 totalBw 已经 × gpuCount
-  // 化简：bwLimit = (gpu.bw × gpuCount) / (activeWeight / gpuCount) × ...
-  // 实际上 TP 下每卡读自己那份权重，N 卡同时读，等效带宽 = N × gpu.bw
-  // 而每卡权重 = activeWeight / N，所以：
-  // bwLimit = (N × gpu.bw) / (activeWeight / N) = N² × gpu.bw / activeWeight
-  // 但这忽略了 all-reduce 通信开销，通信效率由 tpEfficiency 修正
-  // 简化模型：bwLimit = totalBw / activeWeight × batch（与 gpuCount 无关，因为分子分母都 ×N）
+  // TP 分片：每卡只存 1/N 权重，N 卡同时读，等效带宽 = N × gpu.bw
+  // 而每卡权重 = activeWeight / N，bwLimit = totalBw / activeWeight × batch
+  // all-reduce 通信开销由后续 tpEfficiency 修正（基于纯物理时间，不含框架系数）
   const activeWeight = model.type === 'moe'
     ? model.active_params * quant.bytes
     : weightGB
@@ -244,12 +237,10 @@ export function calcAll({
     bwLimit = (effectiveBw / (decodeBytesPerStep / ppCount)) * batch * ppBubbleEff
   }
   // Speculative Decoding 加速：每步尝试验证 draftLen 个 token，接受率为 acceptanceRate
-  // 更准确的期望接受 token 数：mean_accepted = (1 - α^(γ+1)) / (1 - α)
-  // 其中 α = acceptanceRate，γ = draftLen
-  // 这比简化公式 1 + α×γ 更准确，特别是高接受率时
-  // 例：α=0.7, γ=4 → mean_accepted = (1 - 0.7^5) / (1 - 0.7) ≈ 2.83（简化公式 = 3.8）
-  // draftModelParams（可选）：draft model 每步也需读一次权重，从 bwLimit 中扣除开销
-  //   有效 bwLimit = totalBw / (target权重 + draft权重) × batch
+  // 期望接受 token 数：mean_accepted = (1 - α^(γ+1)) / (1 - α)，其中 α=acceptanceRate，γ=draftLen
+  // 例：α=0.7, γ=4 → mean_accepted ≈ 2.83
+  // draftModelParams（可选）：draft model 每步读 draftLen 次权重，与 target 共用 HBM 带宽，
+  //   需重算 bwLimit = effectiveBw / (target_IO + draft_IO) × batch
   let speculativeSpeedup = 1.0
   if (speculativeDecoding && acceptanceRate > 0 && draftLen > 0) {
     // 期望每步接受的 token 数（含 target model 强制接受的最后一个 token）
@@ -260,9 +251,7 @@ export function calcAll({
     if (draftModelParams != null && draftModelParams > 0) {
       // draft model 读 draftLen 次权重，target model 读 1 次，共用同一 HBM 带宽
       const draftWeightGB = draftModelParams * quant.bytes
-      const draftOverhead = draftWeightGB * draftLen  // draftLen 次 draft 前向
-      const totalIOPerVerifyStep = decodeBytesPerStep + draftOverhead
-      // 重新以实际 IO 量计算有效 bwLimit（覆盖上面的 bwLimit，保留 PP scaling）
+      const totalIOPerVerifyStep = decodeBytesPerStep + draftWeightGB * draftLen
       bwLimit = (effectiveBw / (totalIOPerVerifyStep / ppCount)) * batch * ppBubbleEff
     }
   }
@@ -337,24 +326,17 @@ export function calcAll({
   // ─────────────────────────────────────────────
   // 核心公式：efficiency = t_compute / (t_compute + t_comm)
   //
-  // ❌ 旧方案：computePerLayer = tpot / layers
-  //    tpot 含 framework.decode 系数，框架越差 tpot 越大，computePerLayer 越大，
-  //    导致 tpEfficiency 反而越高——与框架效率耦合，方向完全错误。
+  // t_compute_per_layer（纯物理 HBM 时间，不含框架系数）：
+  //   (decodeBytesPerStep / ppCount) / totalBw / layers
   //
-  // ✅ 新方案：用纯物理带宽时间推导 t_compute，不含任何框架系数
-  //    t_compute_per_layer = (decodeBytesPerStep / ppCount) / effectiveBw / layers  (s)
-  //    这是单层权重 + KV 读取的纯 HBM 时间，与框架无关。
+  // t_comm（ring all-reduce，LogP 模型：α + β × message_size）：
+  //   message_size = 2*(N-1)/N × hidden_size × batch × 2 bytes（BF16）
+  //   α（固定握手延迟）= latency_per_hop × 2*(N-1) 次握手
+  //     节点内 NVLink：~1μs/hop；跨节点 IB：~4μs/hop
+  //   β 项 = message_size / interconnect.bw
   //
-  // 通信模型（ring all-reduce，LogP）：
-  //   t_comm = α + β × message_size
-  //   α（latency）：节点内 NVLink ≈ 1μs，跨节点 IB ≈ 2-5μs per hop
-  //   β（bandwidth term）：message_size / interconnect.bw
-  //   ring all-reduce 每层传输量 = 2*(N-1)/N × hidden_size × batch × 2 bytes
-  //   需要 2*(N-1) 次点对点传输，每次 RTT = α
-  //
-  // 跨节点 IB 场景：α 远大于节点内，是 TP 效率的主要杀手
+  // pureCpu / llamacpp hybrid 不做 TP，跳过此计算
   let tpEfficiency = 1.0
-  // pureCpu / llamacpp hybrid 场景不做 TP，跳过通信效率计算
   const isGpuPath = !pureCpu && !isLlamaCppHybrid
   if (isGpuPath && gpuCount > 1 && interconnect) {
     // 每层 all-reduce 消息大小（bytes，BF16，ring 系数 2*(N-1)/N）
@@ -440,32 +422,25 @@ export function calcAll({
 }
 
 /**
- * 动态计算 prefill 注意力 FLOPs 占比，并返回综合修正因子
+ * 动态计算 prefill 总 FLOPs 修正因子
  *
- * 旧方案：注意力占总 FLOPs 固定 20%，长上下文时严重低估 attention 开销
- * 新方案：动态计算 attention FLOPs vs FFN FLOPs 的比值
+ * 返回值 factor = total_flops_per_token / ffn_flops_per_token（≥ 1）
+ * 在 computeBaseLimit 中除以此因子，得到实际 prefill 速度。
  *
- * attention FLOPs/token ≈ 2 × kv_heads × head_dim × seq_len × layers（QK^T + AV）
- * FFN FLOPs/token       ≈ 2 × active_params × 1e9（已有）
- *
- * GQA/MQA 修正：attention FLOPs 中 Q 侧用 total_heads，KV 侧用 kv_heads
- * 实际 attention FLOPs/token ≈ 2 × total_heads × head_dim × seq_len × layers（Q 投影）
- *                             + 2 × kv_heads × head_dim × seq_len × layers（KV 投影）
- * 简化：≈ 2 × (total_heads + kv_heads) × head_dim × seq_len × layers / 2
- *       = (total_heads + kv_heads) × head_dim × seq_len × layers
- *
- * 线性 attention 层（GatedDeltaNet）：FLOPs ≈ 2 × hidden_size² per token（O(n)，不含 seq_len）
- * 这部分 FLOPs 远低于 softmax attention 的 O(n²)，但仍需计入总 FLOPs
+ * 组成：
+ *   softmax attention FLOPs/token = 2 × (Q_heads + KV_heads) × head_dim × seq_len × softmax_layers
+ *   linear attention FLOPs/token  = 2 × hidden_size² × linear_layers（O(n)，不含 seq_len）
+ *   FFN FLOPs/token               = 2 × active_params × 1e9
  *
  * @param {object} params
- * @param {number} params.totalHeads   - Q 头数
- * @param {number} params.kvHeads      - KV 头数
- * @param {number} params.headDim      - 每头维度
- * @param {number} params.layers       - 层数
- * @param {number} params.promptLen    - prompt 长度（tokens）
- * @param {number} params.activeParams - 激活参数量（B）
+ * @param {number} params.totalHeads        - Q 头数
+ * @param {number} params.kvHeads           - KV 头数
+ * @param {number} params.headDim           - 每头维度
+ * @param {number} params.layers            - 总层数
+ * @param {number} params.promptLen         - prompt 长度（tokens）
+ * @param {number} params.activeParams      - 激活参数量（B）
  * @param {number} [params.linearAttnLayers] - 线性注意力层数（GatedDeltaNet 等）
- * @param {number} [params.hiddenSize] - 隐藏层维度（用于线性 attention FLOPs 估算）
+ * @param {number} [params.hiddenSize]      - 隐藏层维度（用于线性 attention FLOPs 估算）
  */
 function getPrefillAttentionFactor({ totalHeads, kvHeads, headDim, layers, promptLen, activeParams, linearAttnLayers, hiddenSize }) {
   // 有效 softmax attention 层数（线性 attention 层 FLOPs 远低于 softmax，分开计算）
