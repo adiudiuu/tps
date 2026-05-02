@@ -95,7 +95,7 @@ const quant = defineModel('quant', { required: true })
       :cpu-offload="cpuOffload"
       :pure-cpu="pureCpu"
     />
-    <LatencyCard :result="result" />
+    <LatencyCard :result="result" :readonly="readonly" />
     <div :class="compact ? 'grid grid-cols-1 gap-4' : 'grid grid-cols-1 lg:grid-cols-2 gap-4'">
       <RooflineChart :result="result" />
       <VramPieChart :result="result" />
