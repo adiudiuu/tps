@@ -41,12 +41,13 @@ function calcNgl(model, cpuOffload, pureCpu) {
  * 生成 vLLM 启动命令
  */
 function genVllm(hfModel, config) {
-  const { gpuCount, ppCount, ctx, batch, quant, kvCacheQuant, prefixCacheHit, speculativeDecoding, draftLen } = config
+  const { gpuCount, ppCount, epCount, ctx, batch, quant, kvCacheQuant, prefixCacheHit, speculativeDecoding, draftLen } = config
   const parts = [`vllm serve ${hfModel}`]
   const notes = []
 
   if (gpuCount > 1) parts.push(`--tensor-parallel-size ${gpuCount}`)
   if (ppCount > 1)  parts.push(`--pipeline-parallel-size ${ppCount}`)
+  if (epCount > 1)  parts.push(`--expert-parallel-size ${epCount}`)
   parts.push(`--max-model-len ${ctx}`)
   parts.push(`--max-num-seqs ${batch}`)
   parts.push(`--gpu-memory-utilization 0.90`)
@@ -55,7 +56,8 @@ function genVllm(hfModel, config) {
   if (quant.id === 'fp8') {
     parts.push(`--quantization fp8`)
   } else if (quant.id === 'int8') {
-    parts.push(`--quantization bitsandbytes --load-in-8bit`)
+    parts.push(`--quantization compressed-tensors`)
+    notes.push(`# Note: use --quantization bitsandbytes --load-in-8bit for older vLLM (<0.4) or non-compressed-tensors checkpoints`)
   } else if (quant.id === 'int4') {
     parts.push(`--quantization awq`)
     notes.push(`# Note: use --quantization gptq if the model is in GPTQ format instead of AWQ`)
@@ -82,13 +84,14 @@ function genVllm(hfModel, config) {
  * 生成 SGLang 启动命令
  */
 function genSglang(hfModel, config) {
-  const { gpuCount, ppCount, ctx, batch, quant, kvCacheQuant, prefixCacheHit, speculativeDecoding, draftLen } = config
+  const { gpuCount, ppCount, epCount, ctx, batch, quant, kvCacheQuant, prefixCacheHit, speculativeDecoding, draftLen } = config
   const parts = [`python -m sglang.launch_server`]
   const notes = []
 
   parts.push(`--model-path ${hfModel}`)
   if (gpuCount > 1) parts.push(`--tp ${gpuCount}`)
   if (ppCount > 1)  parts.push(`--pp ${ppCount}`)
+  if (epCount > 1)  parts.push(`--ep ${epCount}`)
   parts.push(`--context-length ${ctx}`)
   parts.push(`--max-running-requests ${batch}`)
 

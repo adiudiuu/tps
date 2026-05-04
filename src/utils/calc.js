@@ -443,7 +443,9 @@ export function calcAll({
     const epCommLatencyPerLayer = a2aBwMs + a2aAlphaMs  // ms，每 MoE 层
 
     // 纯物理计算时间（ms/layer）：每卡只读自己的 expert 权重
-    const physicalTimePerLayer = (decodeBytesPerStep / ppCount) / totalBw / moeLayerCount * 1000
+    // 注意：decodeBytesPerStep 是每卡 IO，应除以单卡带宽，而非 totalBw（N 卡总带宽）
+    const singleCardBw = gpu.bw * (gpu.bwUtilization ?? 0.80)
+    const physicalTimePerLayer = (decodeBytesPerStep / ppCount) / singleCardBw / moeLayerCount * 1000
 
     epEfficiency = physicalTimePerLayer / (physicalTimePerLayer + epCommLatencyPerLayer)
     epEfficiency = Math.min(1.0, Math.max(0.01, epEfficiency))

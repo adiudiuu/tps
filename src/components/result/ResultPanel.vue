@@ -19,6 +19,7 @@ const props = defineProps({
   gpu: Object,
   gpuCount: Number,
   ppCount: { type: Number, default: 1 },
+  epCount: { type: Number, default: 1 },
   compact: Boolean,
   readonly: Boolean,
   sweepData: Array,
@@ -86,6 +87,7 @@ const quant = defineModel('quant', { required: true })
       :model="props.model"
       :gpu-count="gpuCount"
       :pp-count="ppCount"
+      :ep-count="epCount"
       :ctx="ctx"
       :batch="batch"
       :quant="quant"
