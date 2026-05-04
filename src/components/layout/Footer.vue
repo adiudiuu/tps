@@ -6,10 +6,11 @@ import { useI18n } from 'vue-i18n'
 const { t, locale } = useI18n()
 const route = useRoute()
 
-const SESSION_KEY = 'tps_calc_query'
+const SESSION_KEY = 'tps_estimator_query'
+const LEGACY_SESSION_KEY = 'tps_calc_query'
 const homeLink = computed(() => {
   if (route.path === '/') return '/'
-  const saved = sessionStorage.getItem(SESSION_KEY) ?? ''
+  const saved = sessionStorage.getItem(SESSION_KEY) ?? sessionStorage.getItem(LEGACY_SESSION_KEY) ?? ''
   const query = Object.fromEntries(new URLSearchParams(saved))
   return { path: '/', query }
 })
@@ -28,7 +29,7 @@ const homeLink = computed(() => {
       <svg class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
         <path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V4a2 2 0 00-2-2H6zm1 2a1 1 0 000 2h6a1 1 0 100-2H7zm0 4a1 1 0 000 2h1a1 1 0 100-2H7zm5 0a1 1 0 100 2h1a1 1 0 100-2h-1zm-5 4a1 1 0 100 2h1a1 1 0 100-2H7zm5 0a1 1 0 100 2h1a1 1 0 100-2h-1zm-3 0a1 1 0 100 2h1a1 1 0 100-2h-1z" clip-rule="evenodd"/>
       </svg>
-      <span>{{ t('nav.calc_short') }}</span>
+      <span>{{ t('nav.estimator_short') }}</span>
     </RouterLink>
     <RouterLink
       to="/library"
@@ -40,7 +41,7 @@ const homeLink = computed(() => {
       <svg class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
         <path fill-rule="evenodd" d="M5 4a2 2 0 012-2h6a2 2 0 012 2v1h2a2 2 0 012 2v9a2 2 0 01-2 2H3a2 2 0 01-2-2V7a2 2 0 012-2h2V4zm2 1h6V4H7v1zm-2 2H3v9h14V7H5zm2 2a.75.75 0 000 1.5h6a.75.75 0 000-1.5H7zm0 3a.75.75 0 000 1.5h4a.75.75 0 000-1.5H7z" clip-rule="evenodd"/>
       </svg>
-      <span>{{ t('nav.supported') }}</span>
+      <span>{{ t('nav.library') }}</span>
     </RouterLink>
   </nav>
 </template>

@@ -5,7 +5,12 @@ import { ALL_MODELS } from '../data/models/index.js'
 import { QUANT_MAP, INTERCONNECT_MAP, FRAMEWORK_MAP } from '../data/constants.js'
 import { KV_CACHE_MAP, PCIE_BW_OPTIONS, CPU_MEM_BW_OPTIONS } from '../data/runtime.js'
 
-const SESSION_KEY = 'tps_calc_query'
+const SESSION_KEY = 'tps_estimator_query'
+const LEGACY_SESSION_KEY = 'tps_calc_query'
+
+function getSavedSearch() {
+  return sessionStorage.getItem(SESSION_KEY) ?? sessionStorage.getItem(LEGACY_SESSION_KEY) ?? ''
+}
 
 function getParams() {
   return new URLSearchParams(window.location.search)
@@ -20,13 +25,14 @@ function setParams(updates) {
   window.history.replaceState({}, '', url.toString())
   // 同步保存到 sessionStorage，供切换路由后恢复
   sessionStorage.setItem(SESSION_KEY, url.search)
+  sessionStorage.setItem(LEGACY_SESSION_KEY, url.search)
 }
 
 /** 从 URL 读取初始状态，URL 无参数时回退到 sessionStorage */
 export function readUrlState() {
   let search = window.location.search
   if (!search || search === '?') {
-    search = sessionStorage.getItem(SESSION_KEY) ?? ''
+    search = getSavedSearch()
     // 把 sessionStorage 的 query 恢复到 URL
     if (search) {
       window.history.replaceState({}, '', window.location.pathname + search)

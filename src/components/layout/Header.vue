@@ -3,14 +3,46 @@ import { ref, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { generateMarkdown, downloadMarkdown, buildFilename } from '../../utils/exportMd.js'
+import { UPDATED_AT_BEIJING } from '../../data/appMeta.js'
 
 const { t, locale } = useI18n()
 const route = useRoute()
 
-const SESSION_KEY = 'tps_calc_query'
+const SESSION_KEY = 'tps_estimator_query'
+const LEGACY_SESSION_KEY = 'tps_calc_query'
+
+function parseBeijingTime(input) {
+  const match = input.match(/^(\d{4})\/(\d{2})\/(\d{2})\s+(\d{2}):(\d{2})$/)
+  if (!match) return null
+  const [, year, month, day, hour, minute] = match
+  return new Date(Date.UTC(Number(year), Number(month) - 1, Number(day), Number(hour) - 8, Number(minute), 0))
+}
+
+const updatedAtText = computed(() => {
+  const sourceDate = parseBeijingTime(UPDATED_AT_BEIJING)
+  if (!sourceDate) return UPDATED_AT_BEIJING
+  const formatter = new Intl.DateTimeFormat(locale.value === 'zh' ? 'zh-CN' : 'en-CA', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    timeZoneName: 'short',
+  })
+  const parts = Object.fromEntries(
+    formatter
+      .formatToParts(sourceDate)
+      .filter(part => part.type !== 'literal')
+      .map(part => [part.type, part.value])
+  )
+  return `${parts.year}/${parts.month}/${parts.day} ${parts.hour}:${parts.minute} ${parts.timeZoneName}`
+})
+
 const homeLink = computed(() => {
   if (route.path === '/') return '/'
-  const saved = sessionStorage.getItem(SESSION_KEY) ?? ''
+  const saved = sessionStorage.getItem(SESSION_KEY) ?? sessionStorage.getItem(LEGACY_SESSION_KEY) ?? ''
   const query = Object.fromEntries(new URLSearchParams(saved))
   return { path: '/', query }
 })
@@ -82,7 +114,7 @@ function exportMarkdown() {
           </div>
           <div class="flex flex-col">
             <span class="text-sm sm:text-base font-semibold text-gray-900 tracking-tight leading-tight">{{ t('nav.title') }}</span>
-            <span class="text-[10px] text-gray-400 leading-tight whitespace-nowrap">{{ t('nav.updated') }} 2026/05/02 09:00</span>
+            <span class="text-[10px] text-gray-400 leading-tight whitespace-nowrap">{{ t('nav.updated') }} {{ updatedAtText }}</span>
           </div>
         </RouterLink>
       </div>
@@ -96,7 +128,16 @@ function exportMarkdown() {
             ? 'text-emerald-700 bg-emerald-100 font-semibold'
             : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'"
         >
-          {{ t('nav.calc') }}
+          {{ t('nav.estimator') }}
+        </RouterLink>
+        <RouterLink
+          to="/solver"
+          class="px-3 py-1.5 text-sm font-medium rounded-md transition-colors"
+          :class="route.path === '/solver'
+            ? 'text-emerald-700 bg-emerald-100 font-semibold'
+            : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'"
+        >
+          {{ t('nav.solver') }}
         </RouterLink>
         <RouterLink
           to="/ranking"
@@ -114,7 +155,7 @@ function exportMarkdown() {
             ? 'text-emerald-700 bg-emerald-100 font-semibold'
             : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'"
         >
-          {{ t('nav.supported') }}
+          {{ t('nav.library') }}
         </RouterLink>
       </nav>
     </div>

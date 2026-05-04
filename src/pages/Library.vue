@@ -56,7 +56,7 @@ const modelGroups = computed(() => {
     if (list.length) { list.forEach(m => used.add(m.id)); groups.push({ label: fam.key, list }) }
   }
   const rest = filteredModels.value.filter(m => !used.has(m.id))
-  if (rest.length) groups.push({ label: t('supported.others'), list: rest })
+  if (rest.length) groups.push({ label: t('library.others'), list: rest })
   return groups
 })
 
@@ -99,10 +99,11 @@ const gpuGroups = computed(() => {
   return groups
 })
 
-const SESSION_KEY = 'tps_calc_query'
+const SESSION_KEY = 'tps_estimator_query'
+const LEGACY_SESSION_KEY = 'tps_calc_query'
 
 function getSavedQuery() {
-  const saved = sessionStorage.getItem(SESSION_KEY) ?? ''
+  const saved = sessionStorage.getItem(SESSION_KEY) ?? sessionStorage.getItem(LEGACY_SESSION_KEY) ?? ''
   return Object.fromEntries(new URLSearchParams(saved))
 }
 
@@ -206,23 +207,28 @@ onMounted(() => {
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6 py-8">
 
+      <div class="bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200 shadow-sm p-6 mb-8">
+        <h1 class="text-2xl font-bold text-gray-900 mb-2">{{ t('library.title') }}</h1>
+        <p class="text-sm text-gray-600">{{ t('library.subtitle') }}</p>
+      </div>
+
       <!-- 统计卡片 -->
       <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
         <div class="bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200 shadow-sm p-4 text-center hover:shadow-md transition-shadow">
           <div class="text-3xl font-bold text-emerald-600">{{ ALL_MODELS.length }}</div>
-          <div class="text-xs text-gray-500 mt-1">{{ t('supported.models') }}</div>
+          <div class="text-xs text-gray-500 mt-1">{{ t('library.models') }}</div>
         </div>
         <div class="bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200 shadow-sm p-4 text-center hover:shadow-md transition-shadow">
           <div class="text-3xl font-bold text-blue-600">{{ GPU_LIST.length }}</div>
-          <div class="text-xs text-gray-500 mt-1">{{ t('supported.gpus') }}</div>
+          <div class="text-xs text-gray-500 mt-1">{{ t('library.gpus') }}</div>
         </div>
         <div class="bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200 shadow-sm p-4 text-center hover:shadow-md transition-shadow">
           <div class="text-3xl font-bold text-amber-600">{{ ALL_MODELS.filter(m => m.type === 'moe').length }}</div>
-          <div class="text-xs text-gray-500 mt-1">{{ t('supported.moe_models') }}</div>
+          <div class="text-xs text-gray-500 mt-1">{{ t('library.moe_models') }}</div>
         </div>
         <div class="bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200 shadow-sm p-4 text-center hover:shadow-md transition-shadow">
           <div class="text-3xl font-bold text-purple-600">{{ ALL_MODELS.filter(m => isNew(m.released)).length }}</div>
-          <div class="text-xs text-gray-500 mt-1">{{ t('supported.recently_added') }}</div>
+          <div class="text-xs text-gray-500 mt-1">{{ t('library.recently_added') }}</div>
         </div>
       </div>
 
@@ -235,7 +241,7 @@ onMounted(() => {
               ? 'bg-emerald-600 border-emerald-600 text-white shadow-md shadow-emerald-200'
               : 'bg-white/80 backdrop-blur-sm border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-white hover:shadow-sm']"
         >
-          {{ t('supported.models_tab') }}
+          {{ t('library.models_tab') }}
         </button>
         <button
           @click="activeTab = 'gpus'"
@@ -244,7 +250,7 @@ onMounted(() => {
               ? 'bg-emerald-600 border-emerald-600 text-white shadow-md shadow-emerald-200'
               : 'bg-white/80 backdrop-blur-sm border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-white hover:shadow-sm']"
         >
-          {{ t('supported.gpus_tab') }}
+          {{ t('library.gpus_tab') }}
         </button>
       </div>
 
@@ -254,7 +260,7 @@ onMounted(() => {
           <input
             v-model="modelSearch"
             type="text"
-            :placeholder="t('supported.search_models')"
+            :placeholder="t('library.search_models')"
             class="w-full sm:w-80 bg-white/80 backdrop-blur-sm border border-gray-300 rounded-lg px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
           />
         </div>
@@ -303,7 +309,7 @@ onMounted(() => {
                   <button
                     @click.stop="openModelDetail(m)"
                     class="sm:hidden p-1 rounded hover:bg-emerald-100 transition-colors"
-                    :title="t('supported.view_details')"
+                    :title="t('library.view_details')"
                   >
                     <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -314,7 +320,7 @@ onMounted(() => {
             </div>
           </div>
           <div v-if="modelGroups.length === 0" class="text-center text-gray-400 py-12 text-sm">
-            {{ t('supported.no_results') }}
+            {{ t('library.no_results') }}
           </div>
         </div>
       </template>
@@ -325,7 +331,7 @@ onMounted(() => {
           <input
             v-model="gpuSearch"
             type="text"
-            :placeholder="t('supported.search_gpus')"
+            :placeholder="t('library.search_gpus')"
             class="w-full sm:w-80 bg-white/80 backdrop-blur-sm border border-gray-300 rounded-lg px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
           />
         </div>
@@ -376,7 +382,7 @@ onMounted(() => {
                   <button
                     @click.stop="openGpuDetail(g)"
                     class="sm:hidden p-1 rounded hover:bg-emerald-100 transition-colors"
-                    :title="t('supported.view_details')"
+                    :title="t('library.view_details')"
                   >
                     <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -387,7 +393,7 @@ onMounted(() => {
             </div>
           </div>
           <div v-if="gpuGroups.length === 0" class="text-center text-gray-400 py-12 text-sm">
-            {{ t('supported.no_results') }}
+            {{ t('library.no_results') }}
           </div>
         </div>
       </template>
@@ -415,36 +421,36 @@ onMounted(() => {
               <span v-if="isNew(hoveredModel.released)" class="text-xs bg-red-500 text-white px-2 py-0.5 rounded-full font-medium">NEW</span>
             </div>
             <div class="text-xs text-gray-500">
-              {{ t('supported.released') }}: {{ hoveredModel.released || '—' }}
+              {{ t('library.released') }}: {{ hoveredModel.released || '—' }}
             </div>
           </div>
 
           <!-- 核心参数 -->
           <div class="grid grid-cols-2 gap-2">
             <div class="bg-gray-50 rounded-lg p-2.5 border border-gray-200">
-              <div class="text-xs text-gray-600 mb-0.5">{{ t('supported.parameters') }}</div>
+              <div class="text-xs text-gray-600 mb-0.5">{{ t('library.parameters') }}</div>
               <div class="text-lg font-bold text-gray-800">{{ fmtParams(hoveredModel.params) }}</div>
             </div>
             <div class="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-lg p-2.5 border border-blue-200">
-              <div class="text-xs text-gray-600 mb-0.5">{{ t('supported.context') }}</div>
+              <div class="text-xs text-gray-600 mb-0.5">{{ t('library.context') }}</div>
               <div class="text-lg font-bold text-blue-700">{{ fmtCtx(hoveredModel.max_ctx) }}</div>
             </div>
             <div v-if="hoveredModel.type === 'moe'" class="bg-gradient-to-br from-amber-50 to-orange-50 rounded-lg p-2.5 border border-amber-200">
-              <div class="text-xs text-gray-600 mb-0.5">{{ t('supported.active_params') }}</div>
+              <div class="text-xs text-gray-600 mb-0.5">{{ t('library.active_params') }}</div>
               <div class="text-lg font-bold text-amber-700">{{ fmtParams(hoveredModel.active_params) }}</div>
             </div>
             <div class="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg p-2.5 border border-purple-200">
-              <div class="text-xs text-gray-600 mb-0.5">{{ t('supported.attention') }}</div>
+              <div class="text-xs text-gray-600 mb-0.5">{{ t('library.attention') }}</div>
               <div class="text-sm font-bold text-purple-700">{{ hoveredModel.kv_heads }} KV</div>
             </div>
           </div>
 
           <!-- 架构详情 -->
           <div class="space-y-1.5">
-            <div class="text-xs font-semibold text-gray-700 uppercase tracking-wide">{{ t('supported.architecture') }}</div>
+            <div class="text-xs font-semibold text-gray-700 uppercase tracking-wide">{{ t('library.architecture') }}</div>
             <div class="grid grid-cols-2 gap-1.5 text-xs">
               <div class="bg-gray-50 rounded px-2 py-1.5 border border-gray-200">
-                <div class="text-gray-500 text-[10px]">{{ t('supported.layers') }}</div>
+                <div class="text-gray-500 text-[10px]">{{ t('library.layers') }}</div>
                 <div class="font-semibold text-gray-900">{{ hoveredModel.layers }}</div>
               </div>
               <div class="bg-gray-50 rounded px-2 py-1.5 border border-gray-200">
@@ -464,7 +470,7 @@ onMounted(() => {
 
           <!-- MLA 压缩 -->
           <div v-if="hoveredModel.mla_ratio" class="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg p-2 border border-purple-200">
-            <div class="text-xs text-gray-600 mb-0.5">{{ t('supported.kv_cache_compression') }}</div>
+            <div class="text-xs text-gray-600 mb-0.5">{{ t('library.kv_cache_compression') }}</div>
             <div class="text-sm font-semibold text-purple-700">
               {{ (hoveredModel.mla_ratio * 100).toFixed(2) }}% ({{ (1 / hoveredModel.mla_ratio).toFixed(0) }}x)
             </div>
@@ -472,9 +478,9 @@ onMounted(() => {
 
           <!-- 混合注意力 -->
           <div v-if="hoveredModel.sliding_window" class="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg p-2 border border-blue-200">
-            <div class="text-xs text-gray-600 mb-0.5">{{ t('supported.hybrid_attention') }}</div>
+            <div class="text-xs text-gray-600 mb-0.5">{{ t('library.hybrid_attention') }}</div>
             <div class="text-sm font-semibold text-blue-700">
-              {{ t('supported.window') }}: {{ hoveredModel.sliding_window }} · Local: {{ hoveredModel.local_layers }}
+              {{ t('library.window') }}: {{ hoveredModel.sliding_window }} · Local: {{ hoveredModel.local_layers }}
             </div>
           </div>
         </div>
@@ -508,26 +514,26 @@ onMounted(() => {
           <!-- 核心规格 -->
           <div class="grid grid-cols-2 gap-2">
             <div class="bg-gray-50 rounded-lg p-2.5 border border-gray-200">
-              <div class="text-xs text-gray-600 mb-0.5">{{ t('supported.vram') }}</div>
+              <div class="text-xs text-gray-600 mb-0.5">{{ t('library.vram') }}</div>
               <div class="text-lg font-bold text-gray-800">{{ hoveredGpu.vram }} <span class="text-sm">GB</span></div>
             </div>
             <div class="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-lg p-2.5 border border-blue-200">
-              <div class="text-xs text-gray-600 mb-0.5">{{ t('supported.bandwidth') }}</div>
+              <div class="text-xs text-gray-600 mb-0.5">{{ t('library.bandwidth') }}</div>
               <div class="text-lg font-bold text-blue-700">{{ hoveredGpu.bw }} <span class="text-sm">GB/s</span></div>
             </div>
             <div class="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg p-2.5 border border-purple-200">
-              <div class="text-xs text-gray-600 mb-0.5">BF16 {{ t('supported.compute') }}</div>
+              <div class="text-xs text-gray-600 mb-0.5">BF16 {{ t('library.compute') }}</div>
               <div class="text-lg font-bold text-purple-700">{{ hoveredGpu.bf16 }} <span class="text-sm">T</span></div>
             </div>
             <div class="bg-gradient-to-br from-amber-50 to-orange-50 rounded-lg p-2.5 border border-amber-200">
-              <div class="text-xs text-gray-600 mb-0.5">{{ t('supported.tdp') }}</div>
+              <div class="text-xs text-gray-600 mb-0.5">{{ t('library.tdp') }}</div>
               <div class="text-lg font-bold text-amber-700">{{ hoveredGpu.tdp }} <span class="text-sm">W</span></div>
             </div>
           </div>
 
           <!-- 高级算力 -->
           <div class="space-y-1.5">
-            <div class="text-xs font-semibold text-gray-700 uppercase tracking-wide">{{ t('supported.advanced_compute') }}</div>
+            <div class="text-xs font-semibold text-gray-700 uppercase tracking-wide">{{ t('library.advanced_compute') }}</div>
             <div class="grid grid-cols-3 gap-1.5 text-xs">
               <div v-if="hoveredGpu.fp8" class="bg-gray-50 rounded px-2 py-1.5 border border-gray-200">
                 <div class="text-gray-500 text-[10px]">FP8</div>
@@ -546,7 +552,7 @@ onMounted(() => {
 
           <!-- 互联信息 -->
           <div v-if="hoveredGpu.nvlink_bw" class="bg-gray-50 rounded-lg p-2 border border-gray-200">
-            <div class="text-xs text-gray-600 mb-0.5">{{ t('supported.interconnect') }}</div>
+            <div class="text-xs text-gray-600 mb-0.5">{{ t('library.interconnect') }}</div>
             <div class="text-sm font-semibold text-gray-800">
               {{ hoveredGpu.nvlink_bw }} GB/s
             </div>
@@ -554,7 +560,7 @@ onMounted(() => {
 
           <!-- 可用显存比例 -->
           <div v-if="hoveredGpu.usableRatio && hoveredGpu.usableRatio < 1" class="text-xs text-gray-500 bg-amber-50 rounded px-2 py-1.5 border border-amber-200">
-            ⚠️ {{ t('supported.usable_vram') }} {{ (hoveredGpu.usableRatio * 100).toFixed(0) }}%
+            ⚠️ {{ t('library.usable_vram') }} {{ (hoveredGpu.usableRatio * 100).toFixed(0) }}%
           </div>
         </div>
       </div>
@@ -583,7 +589,7 @@ onMounted(() => {
                   <span v-if="isNew(detailModel.released)" class="text-xs bg-red-500 text-white px-2 py-0.5 rounded-full font-medium">NEW</span>
                 </div>
                 <div class="text-xs text-gray-600">
-                  {{ t('supported.released') }}: {{ detailModel.released || '—' }}
+                  {{ t('library.released') }}: {{ detailModel.released || '—' }}
                 </div>
               </div>
               <button
@@ -599,29 +605,29 @@ onMounted(() => {
             <!-- 核心参数 -->
             <div class="grid grid-cols-2 gap-2">
               <div class="bg-gray-50 rounded-lg p-2.5 border border-gray-200">
-                <div class="text-xs text-gray-700 mb-0.5">{{ t('supported.parameters') }}</div>
+                <div class="text-xs text-gray-700 mb-0.5">{{ t('library.parameters') }}</div>
                 <div class="text-lg font-bold text-gray-800">{{ fmtParams(detailModel.params) }}</div>
               </div>
               <div class="bg-gradient-to-br from-blue-100 to-cyan-100 rounded-lg p-2.5 border border-blue-300">
-                <div class="text-xs text-gray-700 mb-0.5">{{ t('supported.context') }}</div>
+                <div class="text-xs text-gray-700 mb-0.5">{{ t('library.context') }}</div>
                 <div class="text-lg font-bold text-blue-800">{{ fmtCtx(detailModel.max_ctx) }}</div>
               </div>
               <div v-if="detailModel.type === 'moe'" class="bg-gradient-to-br from-amber-100 to-orange-100 rounded-lg p-2.5 border border-amber-300">
-                <div class="text-xs text-gray-700 mb-0.5">{{ t('supported.active_params') }}</div>
+                <div class="text-xs text-gray-700 mb-0.5">{{ t('library.active_params') }}</div>
                 <div class="text-lg font-bold text-amber-800">{{ fmtParams(detailModel.active_params) }}</div>
               </div>
               <div class="bg-gradient-to-br from-purple-100 to-pink-100 rounded-lg p-2.5 border border-purple-300">
-                <div class="text-xs text-gray-700 mb-0.5">{{ t('supported.attention') }}</div>
+                <div class="text-xs text-gray-700 mb-0.5">{{ t('library.attention') }}</div>
                 <div class="text-sm font-bold text-purple-800">{{ detailModel.kv_heads }} KV</div>
               </div>
             </div>
 
             <!-- 架构详情 -->
             <div class="space-y-1.5">
-              <div class="text-xs font-semibold text-gray-700 uppercase tracking-wide">{{ t('supported.architecture') }}</div>
+              <div class="text-xs font-semibold text-gray-700 uppercase tracking-wide">{{ t('library.architecture') }}</div>
               <div class="grid grid-cols-2 gap-1.5 text-xs">
                 <div class="bg-gray-50 rounded px-2 py-1.5 border border-gray-200">
-                  <div class="text-gray-600 text-[10px]">{{ t('supported.layers') }}</div>
+                  <div class="text-gray-600 text-[10px]">{{ t('library.layers') }}</div>
                   <div class="font-semibold text-gray-900">{{ detailModel.layers }}</div>
                 </div>
                 <div class="bg-gray-50 rounded px-2 py-1.5 border border-gray-200">
@@ -641,7 +647,7 @@ onMounted(() => {
 
             <!-- MLA 压缩 -->
             <div v-if="detailModel.mla_ratio" class="bg-gradient-to-r from-purple-100 to-pink-100 rounded-lg p-2 border border-purple-300">
-              <div class="text-xs text-gray-700 mb-0.5">{{ t('supported.kv_cache_compression') }}</div>
+              <div class="text-xs text-gray-700 mb-0.5">{{ t('library.kv_cache_compression') }}</div>
               <div class="text-sm font-semibold text-purple-800">
                 {{ (detailModel.mla_ratio * 100).toFixed(2) }}% ({{ (1 / detailModel.mla_ratio).toFixed(0) }}x)
               </div>
@@ -649,9 +655,9 @@ onMounted(() => {
 
             <!-- 混合注意力 -->
             <div v-if="detailModel.sliding_window" class="bg-gradient-to-r from-blue-100 to-cyan-100 rounded-lg p-2 border border-blue-300">
-              <div class="text-xs text-gray-700 mb-0.5">{{ t('supported.hybrid_attention') }}</div>
+              <div class="text-xs text-gray-700 mb-0.5">{{ t('library.hybrid_attention') }}</div>
               <div class="text-sm font-semibold text-blue-800">
-                {{ t('supported.window') }}: {{ detailModel.sliding_window }} · Local: {{ detailModel.local_layers }}
+                {{ t('library.window') }}: {{ detailModel.sliding_window }} · Local: {{ detailModel.local_layers }}
               </div>
             </div>
 
@@ -661,7 +667,7 @@ onMounted(() => {
                 @click="selectModel(detailModel)"
                 class="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition-colors"
               >
-                {{ t('supported.use_this_model') }}
+                {{ t('library.use_this_model') }}
               </button>
             </div>
           </div>
@@ -705,19 +711,19 @@ onMounted(() => {
             <!-- 核心规格 -->
             <div class="grid grid-cols-2 gap-2">
               <div class="bg-gray-50 rounded-lg p-2.5 border border-gray-200">
-                <div class="text-xs text-gray-700 mb-0.5">{{ t('supported.vram') }}</div>
+                <div class="text-xs text-gray-700 mb-0.5">{{ t('library.vram') }}</div>
                 <div class="text-lg font-bold text-gray-800">{{ detailGpu.vram }} <span class="text-sm">GB</span></div>
               </div>
               <div class="bg-gradient-to-br from-blue-100 to-cyan-100 rounded-lg p-2.5 border border-blue-300">
-                <div class="text-xs text-gray-700 mb-0.5">{{ t('supported.bandwidth') }}</div>
+                <div class="text-xs text-gray-700 mb-0.5">{{ t('library.bandwidth') }}</div>
                 <div class="text-lg font-bold text-blue-800">{{ detailGpu.bw }} <span class="text-sm">GB/s</span></div>
               </div>
               <div class="bg-gradient-to-br from-purple-100 to-pink-100 rounded-lg p-2.5 border border-purple-300">
-                <div class="text-xs text-gray-700 mb-0.5">BF16 {{ t('supported.compute') }}</div>
+                <div class="text-xs text-gray-700 mb-0.5">BF16 {{ t('library.compute') }}</div>
                 <div class="text-lg font-bold text-purple-800">{{ detailGpu.bf16 }} <span class="text-sm">T</span></div>
               </div>
               <div class="bg-gradient-to-br from-amber-100 to-orange-100 rounded-lg p-2.5 border border-amber-300">
-                <div class="text-xs text-gray-700 mb-0.5">{{ t('supported.tdp') }}</div>
+                <div class="text-xs text-gray-700 mb-0.5">{{ t('library.tdp') }}</div>
                 <div class="text-lg font-bold text-amber-800">{{ detailGpu.tdp }} <span class="text-sm">W</span></div>
               </div>
             </div>
