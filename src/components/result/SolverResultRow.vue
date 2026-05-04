@@ -7,7 +7,6 @@ const { t, locale } = useI18n()
 
 const props = defineProps({
   row: { type: Object, required: true },
-  mode: { type: String, required: true },
   isPareto: { type: Boolean, default: false },
 })
 
@@ -46,11 +45,7 @@ const gpuDesc = computed(() => {
   return `${props.row.gpu.name} × ${props.row.gpuCount}`
 })
 
-// 模型描述（模式 B）
-const modelDesc = computed(() => {
-  if (!props.row.model) return '—'
-  return props.row.model.name
-})
+const totalGpuCount = computed(() => props.row.totalGpuCount ?? props.row.gpuCount ?? 1)
 </script>
 
 <template>
@@ -59,20 +54,13 @@ const modelDesc = computed(() => {
     <div class="flex-1 min-w-0">
       <!-- 标题行 -->
       <div class="flex flex-wrap items-center gap-1.5 mb-1.5">
-        <!-- 模式 A：显示 GPU 配置 -->
-        <template v-if="mode === 'model'">
-          <span class="font-medium text-sm text-gray-900 truncate">{{ gpuDesc }}</span>
-        </template>
-        <!-- 模式 B：显示模型名 -->
-        <template v-else>
-          <span class="font-medium text-sm text-gray-900 truncate">{{ modelDesc }}</span>
-          <span v-if="row.model?.type === 'moe'"
-            class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-purple-100 text-purple-700">MoE</span>
-        </template>
+        <span class="font-medium text-sm text-gray-900 truncate">{{ gpuDesc }}</span>
 
         <!-- 量化 + 框架 badges -->
         <span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-700">{{ quantLabel }}</span>
         <span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600">{{ frameworkLabel }}</span>
+        <span v-if="row.ppCount > 1" class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-violet-100 text-violet-700">PP{{ row.ppCount }}</span>
+        <span v-if="row.epCount > 1" class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-fuchsia-100 text-fuchsia-700">EP{{ row.epCount }}</span>
       </div>
 
       <!-- 指标行 -->
@@ -96,14 +84,14 @@ const modelDesc = computed(() => {
           </span>
         </div>
         <!-- GPU 数量（模式 A 时显示） -->
-        <div v-if="mode === 'model'" class="flex items-center gap-1">
+        <div class="flex items-center gap-1">
           <span class="text-gray-400">{{ t('solver.gpu_count_label') }}</span>
-          <span class="text-gray-700 font-medium">{{ row.gpuCount }}</span>
+          <span class="text-gray-700 font-medium">{{ totalGpuCount }}</span>
         </div>
         <!-- 速度/卡 -->
         <div class="flex items-center gap-1">
           <span class="text-gray-400">{{ t('solver.speed_per_gpu') }}</span>
-          <span class="text-gray-700 font-medium">{{ fmtToks(row.decodeSpeed / row.gpuCount) }}</span>
+          <span class="text-gray-700 font-medium">{{ fmtToks(row.decodeSpeed / totalGpuCount) }}</span>
         </div>
       </div>
     </div>

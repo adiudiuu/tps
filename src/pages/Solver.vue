@@ -39,6 +39,9 @@ const progress = ref(0)
 const progressTotal = ref(0)
 const results = ref([])
 const hasRun = ref(false)
+const wasCancelled = ref(false)
+const visibleNonParetoCount = ref(50)
+const activeRunToken = ref(null)
 
 // ── 结果排序 ──────────────────────────────────────────
 const sortBy = ref('speed') // speed | vram | gpuCount | speedPerGpu
@@ -47,23 +50,28 @@ const sortedResults = computed(() => {
   const list = [...results.value]
   switch (sortBy.value) {
     case 'vram':        return list.sort((a, b) => a.vramNeeded - b.vramNeeded)
-    case 'gpuCount':    return list.sort((a, b) => a.gpuCount - b.gpuCount)
-    case 'speedPerGpu': return list.sort((a, b) => (b.decodeSpeed / b.gpuCount) - (a.decodeSpeed / a.gpuCount))
+    case 'gpuCount':    return list.sort((a, b) => (a.totalGpuCount ?? a.gpuCount) - (b.totalGpuCount ?? b.gpuCount))
+    case 'speedPerGpu': return list.sort((a, b) => (b.decodeSpeed / (b.totalGpuCount ?? b.gpuCount)) - (a.decodeSpeed / (a.totalGpuCount ?? a.gpuCount)))
     default:            return list.sort((a, b) => b.decodeSpeed - a.decodeSpeed)
   }
 })
 
 const paretoResults  = computed(() => sortedResults.value.filter(r => r.isPareto))
 const nonParetoResults = computed(() => sortedResults.value.filter(r => !r.isPareto))
+const visibleNonParetoResults = computed(() => nonParetoResults.value.slice(0, visibleNonParetoCount.value))
 
 // ── 求解入口 ──────────────────────────────────────────
 async function runSolver() {
   if (solving.value) return
+  const runToken = { cancelled: false }
+  activeRunToken.value = runToken
   solving.value = true
   progress.value = 0
   progressTotal.value = 0
   results.value = []
   hasRun.value = true
+  wasCancelled.value = false
+  visibleNonParetoCount.value = 50
 
   try {
     const commonParams = {
@@ -75,8 +83,9 @@ async function runSolver() {
         progress.value = done
         progressTotal.value = total
       },
+      shouldCancel: () => runToken.cancelled,
     }
-    results.value = await solveForModel({
+    const outcome = await solveForModel({
       model: modelA.value,
       maxGpuCount: maxGpuCount.value,
       vendorFilter: vendorFilter.value,
@@ -85,9 +94,26 @@ async function runSolver() {
       maxTtft: maxTtft.value ? Number(maxTtft.value) : null,
       ...commonParams,
     })
+    if (activeRunToken.value !== runToken) return
+    if (outcome.cancelled) {
+      wasCancelled.value = true
+      return
+    }
+    results.value = outcome.results
   } finally {
-    solving.value = false
+    if (activeRunToken.value === runToken) {
+      solving.value = false
+      activeRunToken.value = null
+    }
   }
+}
+
+function cancelSolver() {
+  if (activeRunToken.value) activeRunToken.value.cancelled = true
+}
+
+function showMoreResults() {
+  visibleNonParetoCount.value += 50
 }
 
 // ── 跳转到主计算器 ────────────────────────────────────
@@ -101,6 +127,8 @@ function useConfig(row) {
       model: modelA.value.id,
       quant: row.quant.id,
       fw: row.framework.id,
+      pp: row.ppCount > 1 ? row.ppCount : undefined,
+      ep: row.epCount > 1 ? row.epCount : undefined,
       ctx: ctx.value,
       b: batch.value,
       pl: promptLen.value,
@@ -282,20 +310,23 @@ onMounted(() => {
 
           <!-- 求解按钮 -->
           <button
+            v-if="!solving"
             @click="runSolver"
-            :disabled="solving"
-            class="w-full py-3 rounded-xl text-sm font-semibold transition-colors"
-            :class="solving
-              ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-              : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm'"
+            class="w-full py-3 rounded-xl text-sm font-semibold transition-colors bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
           >
-            <span v-if="!solving">{{ t('solver.run_btn') }}</span>
-            <span v-else class="flex items-center justify-center gap-2">
+            <span>{{ t('solver.run_btn') }}</span>
+          </button>
+          <button
+            v-else
+            @click="cancelSolver"
+            class="w-full py-3 rounded-xl text-sm font-semibold transition-colors bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100"
+          >
+            <span class="flex items-center justify-center gap-2">
               <svg class="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
               </svg>
-              {{ t('solver.running') }} {{ progressTotal ? `${progressPct()}%` : '' }}
+              {{ t('solver.running') }} {{ progressTotal ? `${progressPct()}%` : '' }} · {{ t('solver.cancel_btn') }}
             </span>
           </button>
         </div>
@@ -332,7 +363,7 @@ onMounted(() => {
               <circle cx="32" cy="32" r="28" stroke="currentColor" stroke-width="3"/>
               <path d="M22 22l20 20M42 22L22 42" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
             </svg>
-            <p class="text-sm">{{ t('solver.no_results') }}</p>
+            <p class="text-sm">{{ wasCancelled ? t('solver.cancelled') : t('solver.no_results') }}</p>
           </div>
 
           <!-- 结果列表 -->
@@ -373,7 +404,7 @@ onMounted(() => {
                   v-for="(row, i) in paretoResults" :key="'p' + i"
                   class="bg-white rounded-xl border border-amber-200 p-3 sm:p-4 hover:border-amber-300 transition-colors"
                 >
-                  <ResultRowContent :row="row" mode="model" :is-pareto="true" @use="useConfig(row)" />
+                  <ResultRowContent :row="row" :is-pareto="true" @use="useConfig(row)" />
                 </div>
               </div>
             </div>
@@ -383,15 +414,23 @@ onMounted(() => {
               <div class="text-xs text-gray-400 mb-2 mt-4">{{ t('solver.other_results') }}</div>
               <div class="space-y-2">
                 <div
-                  v-for="(row, i) in nonParetoResults.slice(0, 50)" :key="'n' + i"
+                  v-for="(row, i) in visibleNonParetoResults" :key="'n' + i"
                   class="bg-white rounded-xl border border-gray-200 p-3 sm:p-4 hover:border-gray-300 transition-colors"
                 >
-                  <ResultRowContent :row="row" mode="model" :is-pareto="false" @use="useConfig(row)" />
+                  <ResultRowContent :row="row" :is-pareto="false" @use="useConfig(row)" />
                 </div>
               </div>
-              <p v-if="nonParetoResults.length > 50" class="text-xs text-gray-400 text-center mt-3">
-                {{ t('solver.truncated', { n: nonParetoResults.length - 50 }) }}
-              </p>
+              <div v-if="nonParetoResults.length > visibleNonParetoCount" class="flex flex-col items-center gap-2 mt-3">
+                <p class="text-xs text-gray-400 text-center">
+                  {{ t('solver.truncated', { n: nonParetoResults.length - visibleNonParetoCount }) }}
+                </p>
+                <button
+                  @click="showMoreResults"
+                  class="px-3 py-1.5 rounded-lg text-xs font-medium border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+                >
+                  {{ t('solver.show_more') }}
+                </button>
+              </div>
             </div>
           </template>
         </div>
