@@ -316,6 +316,7 @@ export default {
     filter_moe: 'MoE',
     sort_by: 'Sort By',
     sort_speed: 'Speed',
+    sort_prefill: 'Prefill Speed',
     sort_vram: 'VRAM Usage',
     sort_params: 'Parameters',
     show_only_runnable: 'Show only runnable models',

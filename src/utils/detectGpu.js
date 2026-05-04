@@ -4,7 +4,7 @@
 import { GPU_LIST } from '../data/gpus/index.js'
 
 // ── WebGPU 带宽测量（Storage Buffer Copy） ───────────────────────────
-async function measureBandwidth(adapter) {
+async function measureBandwidth(adapter, vendor) {
   try {
     const device = await adapter.requestDevice()
     const elements = 4 * 1024 * 1024
@@ -49,8 +49,14 @@ async function measureBandwidth(adapter) {
     await device.queue.onSubmittedWorkDone()
     const ms = performance.now() - t0
     src.destroy(); dst.destroy(); device.destroy()
-    // 每次读写各一次，除以 0.6 校正利用率
-    return Math.round(byteSize * 2 * RUNS / ms / 1e6 / 0.6)
+    // 每次读写各一次，按 vendor 分档校正利用率
+    // Apple Silicon 实测约 0.70，NVIDIA 独显约 0.55，AMD 约 0.58，其他 0.60
+    const v = (vendor || '').toLowerCase()
+    const correction = v.includes('apple')  ? 0.70
+                     : v.includes('nvidia') ? 0.55
+                     : v.includes('amd')    ? 0.58
+                     : 0.60
+    return Math.round(byteSize * 2 * RUNS / ms / 1e6 / correction)
   } catch {
     return null
   }
@@ -123,7 +129,9 @@ function measureGlslBandwidth() {
 
 // ── WebGPU GPU Cores 估算（Compute Benchmark） ───────────────────────
 // vendor 前缀用于校正 FLOPS→Cores 的比例系数
-const VENDOR_FLOPS_PER_CORE = { apple: 400, nvidia: 5, amd: 4.5, intel: 16 }
+// Intel：Alchemist（Xe，Arc A 系列）= 16 FLOPS/core；Battlemage（Xe2，Arc B 系列）= 32 FLOPS/core
+// 默认取 Battlemage 值（32），Alchemist 型号在名称匹配时乘 0.5 修正（见 matchGpuByName）
+const VENDOR_FLOPS_PER_CORE = { apple: 400, nvidia: 5, amd: 4.5, intel: 32 }
 
 async function estimateGpuCores(adapter, vendorHint) {
   try {
@@ -160,7 +168,12 @@ async function estimateGpuCores(adapter, vendorHint) {
     const gflops = N * ITERS * 2 / ms / 1e6
     const hint = (vendorHint || '').toLowerCase()
     for (const [v, ratio] of Object.entries(VENDOR_FLOPS_PER_CORE)) {
-      if (hint.includes(v)) return Math.round(gflops / ratio)
+      if (hint.includes(v)) {
+        let r = ratio
+        // Alchemist（Arc A 系列，Xe 架构）FLOPS/core 约为 Battlemage 的一半
+        if (v === 'intel' && /arc\s*a\d/i.test(vendorHint || '')) r = r * 0.5
+        return Math.round(gflops / r)
+      }
     }
     return null
   } catch {
@@ -356,7 +369,7 @@ export async function detectLocalGpu() {
     let estimatedRAM = null
 
     if (adapter) {
-      measuredBW = await measureBandwidth(adapter)
+      measuredBW = await measureBandwidth(adapter, 'apple')
       estimatedRAM = estimateVramFromAdapter(adapter)
       if (measuredBW === null) measuredBW = measureGlslBandwidth()
     } else {

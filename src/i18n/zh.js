@@ -316,6 +316,7 @@ export default {
     filter_moe: 'MoE',
     sort_by: '排序方式',
     sort_speed: '速度优先',
+    sort_prefill: 'Prefill 速度',
     sort_vram: '显存占用',
     sort_params: '参数量',
     show_only_runnable: '仅显示可运行模型',

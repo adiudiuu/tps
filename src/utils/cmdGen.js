@@ -349,7 +349,32 @@ export function generateCmd(framework, config) {
 
     // theory 和 trtllm 不支持生成命令
     case 'theory':
-    case 'trtllm':
+      return null
+
+    case 'trtllm': {
+      const { gpuCount, ppCount, ctx, batch, quant } = config
+      const dtMap = { bf16: 'bfloat16', fp8: 'fp8', int8: 'int8', int4: 'int4_awq' }
+      const dtype = dtMap[quant?.id] ?? 'bfloat16'
+      const tpFlag = gpuCount > 1 ? `--tp_size ${gpuCount} ` : ''
+      const ppFlag = ppCount > 1  ? `--pp_size ${ppCount} ` : ''
+      return [
+        `# 1. Build engine`,
+        `trtllm-build \\`,
+        `  --checkpoint_dir ./model_checkpoint \\`,
+        `  --output_dir ./engine \\`,
+        `  --dtype ${dtype} \\`,
+        `  ${tpFlag}${ppFlag}--max_batch_size ${batch} \\`,
+        `  --max_input_len ${ctx} --max_seq_len ${ctx + 2048}`,
+        ``,
+        `# 2. Run inference server`,
+        `python -m tensorrt_llm.serve \\`,
+        `  --engine_dir ./engine \\`,
+        `  --max_batch_size ${batch}`,
+        ``,
+        `# Note: convert checkpoint first with convert_checkpoint.py for your model family`,
+      ].join('\n')
+    }
+
     default:
       return null
   }

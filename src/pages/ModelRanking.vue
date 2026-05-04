@@ -51,7 +51,7 @@ const effectiveGpu = computed(() => {
 })
 
 // ── 排序 & 基础筛选 ──────────────────────────────────
-const sortBy          = ref(['speed','vram','params'].includes(_p.sort) ? _p.sort : 'speed')
+const sortBy          = ref(['speed','prefill','vram','params'].includes(_p.sort) ? _p.sort : 'speed')
 const filterType      = ref(['all','dense','moe'].includes(_p.type) ? _p.type : 'all')
 const showOnlyRunnable = ref(_p.runnable === '0' ? false : true)
 
@@ -127,8 +127,33 @@ watch(
   }
 )
 
-// ── 计算所有模型结果（不含后置筛选）────────────────────
-const allModelResults = computed(() => {
+// ── 计算所有模型结果（requestIdleCallback 分批，避免 UI 卡顿）────────
+const allModelResults = ref([])
+const calcProgress    = ref(0)   // 已完成模型数，用于进度展示
+let   _calcVersion    = 0        // 版本号，配置变化时取消旧批次
+
+function _runCalcBatch(models, start, version) {
+  // 版本不匹配说明配置已变，丢弃本批次
+  if (version !== _calcVersion) return
+
+  const BATCH = 20
+  const end = Math.min(start + BATCH, models.length)
+  for (let i = start; i < end; i++) {
+    const { model, quant, result, canRun, cpuOffload } = models[i]
+    allModelResults.value[i] = { model, quant, result, canRun, cpuOffload }
+  }
+  calcProgress.value = end
+
+  if (end < models.length) {
+    if (typeof requestIdleCallback !== 'undefined') {
+      requestIdleCallback(() => _runCalcBatch(models, end, version), { timeout: 500 })
+    } else {
+      setTimeout(() => _runCalcBatch(models, end, version), 0)
+    }
+  }
+}
+
+function _buildRawResults() {
   if (!effectiveGpu.value || !framework.value) return []
 
   const results = []
@@ -192,6 +217,10 @@ const allModelResults = computed(() => {
       if (!a.result) return 1
       if (!b.result) return -1
       return b.result.singleToks - a.result.singleToks
+    } else if (sortBy.value === 'prefill') {
+      if (!a.result) return 1
+      if (!b.result) return -1
+      return b.result.prefillToks - a.result.prefillToks
     } else if (sortBy.value === 'vram') {
       if (!a.result) return 1
       if (!b.result) return -1
@@ -202,11 +231,26 @@ const allModelResults = computed(() => {
   })
 
   return results
-})
+}
+
+// 监听所有影响计算的配置，触发分批重算
+watch(
+  [effectiveGpu, gpuCount, interconnect, ctx, batch, framework, sortBy, filterType, showOnlyRunnable],
+  () => {
+    const version = ++_calcVersion
+    allModelResults.value = []
+    calcProgress.value = 0
+    const raw = _buildRawResults()
+    // 预分配数组长度，避免 reactive 数组频繁扩容
+    allModelResults.value = new Array(raw.length).fill(null)
+    _runCalcBatch(raw, 0, version)
+  },
+  { immediate: true }
+)
 
 // ── 后置筛选（在已排序结果上叠加）──────────────────────
 const modelResults = computed(() => {
-  let list = allModelResults.value
+  let list = allModelResults.value.filter(Boolean)
 
   // 参数量范围
   if (filterParams.value !== 'all') {
@@ -329,6 +373,7 @@ function useThisModel(modelData) {
             <label class="text-xs font-medium text-gray-500 whitespace-nowrap">{{ t('ranking.sort_by') }}</label>
             <select v-model="sortBy" class="text-xs border border-gray-300 rounded-lg px-2.5 py-1.5 bg-gray-50 focus:outline-none focus:ring-1 focus:ring-emerald-500">
               <option value="speed">{{ t('ranking.sort_speed') }}</option>
+              <option value="prefill">{{ t('ranking.sort_prefill') }}</option>
               <option value="vram">{{ t('ranking.sort_vram') }}</option>
               <option value="params">{{ t('ranking.sort_params') }}</option>
             </select>
@@ -407,6 +452,17 @@ function useThisModel(modelData) {
             </div>
           </div>
         </div>
+      </div>
+
+      <!-- 计算进度条（分批计算期间显示） -->
+      <div v-if="calcProgress > 0 && calcProgress < allModelResults.length" class="bg-white rounded-xl border border-gray-200 px-4 py-2 flex items-center gap-3">
+        <div class="flex-1 bg-gray-100 rounded-full h-1.5 overflow-hidden">
+          <div
+            class="bg-emerald-500 h-1.5 rounded-full transition-all duration-200"
+            :style="{ width: (calcProgress / allModelResults.length * 100).toFixed(1) + '%' }"
+          />
+        </div>
+        <span class="text-xs text-gray-400 whitespace-nowrap">{{ calcProgress }} / {{ allModelResults.length }}</span>
       </div>
 
       <!-- 模型列表 -->

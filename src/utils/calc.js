@@ -569,11 +569,17 @@ function getFlashAttentionBoostRange({ enabled, promptLen, headDim = 128 }) {
   // 基于 head_dim=128 的基准值，线性缩放，范围限制在 [0.5, 2.0] 内
   const hdScale = Math.min(2.0, Math.max(0.5, headDim / 128))
 
-  let base
-  if (promptLen >= 32768) base = { min: 3, mid: 4, max: 5 }  // 序列越长，HBM IO 节省越显著
-  else if (promptLen >= 8192)  base = { min: 2, mid: 2.5, max: 3 }
-  else if (promptLen >= 2048)  base = { min: 1.5, mid: 1.75, max: 2 }
-  else return { min: 1.1, mid: 1.3, max: 1.8 }  // < 2048 tokens，FA2 paper 实测 seq=1024 仍有 1.5-2x 加速
+  // 连续 log 线性插值：在 [2048, 65536] 区间内平滑过渡，消除档位边界跳变
+  // logScale = 0 @ promptLen=2048，logScale = 1 @ promptLen=65536
+  // < 2048 时 logScale = 0（取下界值），> 65536 时 logScale = 1（取上界值）
+  const logScale = Math.min(1, Math.max(0,
+    Math.log2(Math.max(2048, promptLen) / 2048) / Math.log2(65536 / 2048)
+  ))
+  const base = {
+    min: 1.2 + (3.0 - 1.2) * logScale,
+    mid: 1.3 + (4.0 - 1.3) * logScale,
+    max: 1.5 + (5.0 - 1.5) * logScale,
+  }
 
   return {
     min: Math.max(1, base.min * hdScale),
