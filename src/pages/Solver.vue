@@ -22,6 +22,31 @@ const route = useRoute()
 const _p = route.query
 const hasInitialQuery = Object.keys(_p).length > 0
 
+const LIMITS = {
+  minDecodeSpeed: { min: 1, max: 100000 },
+  maxTtft: { min: 1, max: 600000 },
+  ctx: { min: 512, max: 262144, def: 4096 },
+  batch: { min: 1, max: 256, def: 1 },
+  promptLen: { min: 1, max: 262144, def: 512 },
+  outputLen: { min: 1, max: 131072, def: 256 },
+}
+
+function clampInt(value, { min, max, def }) {
+  const n = Number(value)
+  if (!Number.isFinite(n)) return def
+  const rounded = Math.round(n)
+  return Math.min(max, Math.max(min, rounded))
+}
+
+function clampOptionalPositive(value, { min, max }) {
+  if (value === '' || value == null) return ''
+  const n = Number(value)
+  if (!Number.isFinite(n)) return ''
+  const rounded = Math.round(n)
+  if (rounded < min) return ''
+  return Math.min(max, rounded)
+}
+
 // ── 升级模式检测 ──────────────────────────────────────
 const isUpgradeMode = ref(_p.upgrade === '1')
 
@@ -49,15 +74,16 @@ const modelA = ref(ALL_MODELS.find(m => m.id === _p.model) ?? ALL_MODELS.find(m 
 const maxGpuCount = ref(_p.maxg ? Math.max(1, Number(_p.maxg)) : 4)
 const vendorFilter = ref(['all', 'nvidia', 'amd', 'apple', 'intel', 'domestic'].includes(_p.vendor) ? _p.vendor : 'all')
 const quantFloor = ref(QUANT_FLOOR_OPTIONS.some(q => q.id === _p.qf) ? _p.qf : 'none')
-const excludeDatacenterGpu = ref(_p.excl_dc === '1')
-const minDecodeSpeedA = ref(_p.minds && _p.minds !== 'none' ? Number(_p.minds) : '')
-const maxTtft = ref(_p.mttft && _p.mttft !== 'none' ? Number(_p.mttft) : '')
+// 默认过滤数据中心卡（消费级优先）；仅当显式传入 excl_dc=0 时展示全部
+const excludeDatacenterGpu = ref(_p.excl_dc !== '0')
+const minDecodeSpeedA = ref(clampOptionalPositive(_p.minds && _p.minds !== 'none' ? _p.minds : '', LIMITS.minDecodeSpeed))
+const maxTtft = ref(clampOptionalPositive(_p.mttft && _p.mttft !== 'none' ? _p.mttft : '', LIMITS.maxTtft))
 
 // ── 共用参数 ──────────────────────────────────────────
-const ctx = ref(_p.ctx ? Math.max(512, Number(_p.ctx)) : 4096)
-const batch = ref(_p.b ? Math.max(1, Number(_p.b)) : 1)
-const promptLen = ref(_p.pl ? Math.max(1, Number(_p.pl)) : 512)
-const outputLen = ref(_p.ol ? Math.max(1, Number(_p.ol)) : 256)
+const ctx = ref(clampInt(_p.ctx ?? LIMITS.ctx.def, LIMITS.ctx))
+const batch = ref(clampInt(_p.b ?? LIMITS.batch.def, LIMITS.batch))
+const promptLen = ref(clampInt(_p.pl ?? LIMITS.promptLen.def, LIMITS.promptLen))
+const outputLen = ref(clampInt(_p.ol ?? LIMITS.outputLen.def, LIMITS.outputLen))
 
 // ── 求解状态 ──────────────────────────────────────────
 const solving = ref(false)
@@ -103,10 +129,10 @@ async function runSolver() {
 
   try {
     const commonParams = {
-      ctx: ctx.value,
-      batch: batch.value,
-      promptLen: promptLen.value,
-      outputLen: outputLen.value,
+      ctx: clampInt(ctx.value, LIMITS.ctx),
+      batch: clampInt(batch.value, LIMITS.batch),
+      promptLen: clampInt(promptLen.value, LIMITS.promptLen),
+      outputLen: clampInt(outputLen.value, LIMITS.outputLen),
       onProgress: (done, total) => {
         progress.value = done
         progressTotal.value = total
@@ -148,8 +174,8 @@ async function runSolver() {
         vendorFilter: vendorFilter.value,
         excludeDatacenterGpu: excludeDatacenterGpu.value,
         quantFloor: quantFloor.value,
-        minDecodeSpeed: minDecodeSpeedA.value ? Number(minDecodeSpeedA.value) : null,
-        maxTtft: maxTtft.value ? Number(maxTtft.value) : null,
+        minDecodeSpeed: clampOptionalPositive(minDecodeSpeedA.value, LIMITS.minDecodeSpeed) || null,
+        maxTtft: clampOptionalPositive(maxTtft.value, LIMITS.maxTtft) || null,
         disableYield: true,
       }
 
@@ -250,18 +276,32 @@ const SORT_OPTIONS = computed(() => [
 watch(
   [modelA, maxGpuCount, vendorFilter, excludeDatacenterGpu, quantFloor, minDecodeSpeedA, maxTtft, ctx, batch, promptLen, outputLen],
   ([model, maxg, vendor, excl_dc, qf, minds, mttft, ctxValue, batchValue, promptValue, outputValue]) => {
+    const normalizedMinds = clampOptionalPositive(minds, LIMITS.minDecodeSpeed)
+    const normalizedMttft = clampOptionalPositive(mttft, LIMITS.maxTtft)
+    const normalizedCtx = clampInt(ctxValue, LIMITS.ctx)
+    const normalizedBatch = clampInt(batchValue, LIMITS.batch)
+    const normalizedPrompt = clampInt(promptValue, LIMITS.promptLen)
+    const normalizedOutput = clampInt(outputValue, LIMITS.outputLen)
+
+    if (minDecodeSpeedA.value !== normalizedMinds) minDecodeSpeedA.value = normalizedMinds
+    if (maxTtft.value !== normalizedMttft) maxTtft.value = normalizedMttft
+    if (ctx.value !== normalizedCtx) ctx.value = normalizedCtx
+    if (batch.value !== normalizedBatch) batch.value = normalizedBatch
+    if (promptLen.value !== normalizedPrompt) promptLen.value = normalizedPrompt
+    if (outputLen.value !== normalizedOutput) outputLen.value = normalizedOutput
+
     const query = {}
     if (model?.id) query.model = model.id
     if (maxg !== 4) query.maxg = String(maxg)
     if (vendor !== 'all') query.vendor = vendor
-    if (excl_dc) query.excl_dc = '1'
+    if (!excl_dc) query.excl_dc = '0'
     if (qf !== 'none') query.qf = qf
-    if (minds !== '' && typeof minds === 'number' && !Number.isNaN(minds) && minds > 0) query.minds = String(minds)
-    if (mttft !== '' && typeof mttft === 'number' && !Number.isNaN(mttft) && mttft > 0) query.mttft = String(mttft)
-    if (ctxValue !== 4096 && !Number.isNaN(ctxValue)) query.ctx = String(ctxValue)
-    if (batchValue !== 1 && !Number.isNaN(batchValue)) query.b = String(batchValue)
-    if (promptValue !== 512 && !Number.isNaN(promptValue)) query.pl = String(promptValue)
-    if (outputValue !== 256 && !Number.isNaN(outputValue)) query.ol = String(outputValue)
+    if (normalizedMinds !== '') query.minds = String(normalizedMinds)
+    if (normalizedMttft !== '') query.mttft = String(normalizedMttft)
+    if (normalizedCtx !== LIMITS.ctx.def) query.ctx = String(normalizedCtx)
+    if (normalizedBatch !== LIMITS.batch.def) query.b = String(normalizedBatch)
+    if (normalizedPrompt !== LIMITS.promptLen.def) query.pl = String(normalizedPrompt)
+    if (normalizedOutput !== LIMITS.outputLen.def) query.ol = String(normalizedOutput)
     router.replace({ query })
   },
   { immediate: true }
@@ -385,7 +425,7 @@ onMounted(() => {
                 <span class="text-gray-400 font-normal">{{ t('solver.optional') }}</span>
               </label>
               <div class="relative">
-                <input v-model.number="minDecodeSpeedA" type="number" min="0" placeholder="—"
+                <input v-model.number="minDecodeSpeedA" type="number" min="0" :max="LIMITS.minDecodeSpeed.max" placeholder="—"
                   class="w-full px-3 py-1.5 pr-14 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent" />
                 <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">tok/s</span>
               </div>
@@ -398,7 +438,7 @@ onMounted(() => {
                 <span class="text-gray-400 font-normal">{{ t('solver.optional') }}</span>
               </label>
               <div class="relative">
-                <input v-model.number="maxTtft" type="number" min="0" placeholder="—"
+                <input v-model.number="maxTtft" type="number" min="0" :max="LIMITS.maxTtft.max" placeholder="—"
                   class="w-full px-3 py-1.5 pr-10 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent" />
                 <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">ms</span>
               </div>
@@ -411,22 +451,22 @@ onMounted(() => {
             <div class="grid grid-cols-2 gap-3">
               <div>
                 <label class="block text-xs text-gray-500 mb-1">{{ t('run.ctx') }}</label>
-                <input v-model.number="ctx" type="number" min="512"
+                <input v-model.number="ctx" type="number" :min="LIMITS.ctx.min" :max="LIMITS.ctx.max"
                   class="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500" />
               </div>
               <div>
                 <label class="block text-xs text-gray-500 mb-1">{{ t('run.batch') }}</label>
-                <input v-model.number="batch" type="number" min="1"
+                <input v-model.number="batch" type="number" :min="LIMITS.batch.min" :max="LIMITS.batch.max"
                   class="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500" />
               </div>
               <div>
                 <label class="block text-xs text-gray-500 mb-1">{{ t('run.prompt') }}</label>
-                <input v-model.number="promptLen" type="number" min="1"
+                <input v-model.number="promptLen" type="number" :min="LIMITS.promptLen.min" :max="LIMITS.promptLen.max"
                   class="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500" />
               </div>
               <div>
                 <label class="block text-xs text-gray-500 mb-1">{{ t('run.output') }}</label>
-                <input v-model.number="outputLen" type="number" min="1"
+                <input v-model.number="outputLen" type="number" :min="LIMITS.outputLen.min" :max="LIMITS.outputLen.max"
                   class="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500" />
               </div>
             </div>
