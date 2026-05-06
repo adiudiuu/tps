@@ -1,17 +1,16 @@
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import TopBar from '../components/layout/TopBar.vue'
+import TimelineChart from '../components/result/TimelineChart.vue'
 import { ALL_MODELS } from '../data/models/index.js'
 import { GPU_LIST } from '../data/gpus/index.js'
 import { fmtParams, fmtCtx, isNew } from '../utils/format.js'
-
-const router = useRouter()
 const { t, locale } = useI18n()
 const isZh = computed(() => locale.value === 'zh')
 
 const activeTab = ref('models')
+const viewMode = ref('list') // 'list' or 'timeline'
 const modelSearch = ref('')
 const gpuSearch = ref('')
 const filterTag = ref('')  // Tag filter for models
@@ -24,11 +23,6 @@ const detailGpu = ref(null)    // 点击查看详情的 GPU
 // 从 URL 或 sessionStorage 获取当前选中的模型和 GPU
 const currentModelId = ref(null)
 const currentGpuId = ref(null)
-
-// 初始化时读取当前选中项
-const savedQuery = getSavedQuery()
-currentModelId.value = savedQuery.model || null
-currentGpuId.value = savedQuery.gpu || null
 
 // ── 模型分组 ──────────────────────────────────────
 const MODEL_FAMILIES = [
@@ -121,14 +115,18 @@ function getSavedQuery() {
 }
 
 function selectModel(m) {
-  router.push({ path: '/', query: { ...getSavedQuery(), model: m.id } })
+  // 点击跳转功能已移除
 }
 
 function selectGpu(g) {
-  router.push({ path: '/', query: { ...getSavedQuery(), gpu: g.id } })
+  // 点击跳转功能已移除
 }
 
 function handleModelHover(m, event) {
+  if (!m) {
+    hoveredModel.value = null
+    return
+  }
   hoveredModel.value = m
   updateHoverPosition(event)
 }
@@ -189,29 +187,6 @@ function closeDetail() {
   detailModel.value = null
   detailGpu.value = null
 }
-
-// 滚动到选中的项
-function scrollToSelected() {
-  setTimeout(() => {
-    if (activeTab.value === 'models' && currentModelId.value) {
-      const el = document.querySelector(`[data-model-id="${currentModelId.value}"]`)
-      el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    } else if (activeTab.value === 'gpus' && currentGpuId.value) {
-      const el = document.querySelector(`[data-gpu-id="${currentGpuId.value}"]`)
-      el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    }
-  }, 100)
-}
-
-// 监听 tab 切换，自动滚动到选中项
-watch(activeTab, () => {
-  scrollToSelected()
-})
-
-// 页面加载时滚动到选中项
-onMounted(() => {
-  scrollToSelected()
-})
 </script>
 
 <template>
@@ -269,127 +244,159 @@ onMounted(() => {
 
       <!-- ── 模型 ── -->
       <template v-if="activeTab === 'models'">
-        <div class="mb-4 space-y-3">
-          <input
-            v-model="modelSearch"
-            type="text"
-            :placeholder="t('library.search_models')"
-            class="w-full sm:w-80 bg-white/80 backdrop-blur-sm border border-gray-300 rounded-lg px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-          />
-          
-          <!-- Tag Filter Buttons -->
-          <div class="flex flex-wrap gap-2 items-center">
-            <span class="text-xs font-medium text-gray-500">{{ t('library.filter_by_tag') }}:</span>
+        <!-- 视图模式切换 -->
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex gap-2">
             <button
-              @click="filterTag = ''"
-              :class="['px-3 py-1 rounded-lg text-xs font-medium border transition-colors',
-                filterTag === ''
+              @click="viewMode = 'list'"
+              :class="['px-4 py-2 rounded-lg text-sm font-medium border transition-all flex items-center gap-2',
+                viewMode === 'list'
                   ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm'
                   : 'bg-white/80 border-gray-200 text-gray-600 hover:bg-gray-50']"
-            >{{ t('library.tag_all') }}</button>
+            >
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+              {{ t('library.list_view') }}
+            </button>
             <button
-              @click="filterTag = 'chat'"
-              :class="['px-3 py-1 rounded-lg text-xs font-medium border transition-colors',
-                filterTag === 'chat'
+              @click="viewMode = 'timeline'"
+              :class="['px-4 py-2 rounded-lg text-sm font-medium border transition-all flex items-center gap-2',
+                viewMode === 'timeline'
                   ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm'
                   : 'bg-white/80 border-gray-200 text-gray-600 hover:bg-gray-50']"
-            >{{ t('library.tag_chat') }}</button>
-            <button
-              @click="filterTag = 'code'"
-              :class="['px-3 py-1 rounded-lg text-xs font-medium border transition-colors',
-                filterTag === 'code'
-                  ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm'
-                  : 'bg-white/80 border-gray-200 text-gray-600 hover:bg-gray-50']"
-            >{{ t('library.tag_code') }}</button>
-            <button
-              @click="filterTag = 'reasoning'"
-              :class="['px-3 py-1 rounded-lg text-xs font-medium border transition-colors',
-                filterTag === 'reasoning'
-                  ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm'
-                  : 'bg-white/80 border-gray-200 text-gray-600 hover:bg-gray-50']"
-            >{{ t('library.tag_reasoning') }}</button>
-            <button
-              @click="filterTag = 'vision'"
-              :class="['px-3 py-1 rounded-lg text-xs font-medium border transition-colors',
-                filterTag === 'vision'
-                  ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm'
-                  : 'bg-white/80 border-gray-200 text-gray-600 hover:bg-gray-50']"
-            >{{ t('library.tag_vision') }}</button>
-            <button
-              @click="filterTag = 'math'"
-              :class="['px-3 py-1 rounded-lg text-xs font-medium border transition-colors',
-                filterTag === 'math'
-                  ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm'
-                  : 'bg-white/80 border-gray-200 text-gray-600 hover:bg-gray-50']"
-            >{{ t('library.tag_math') }}</button>
-            <button
-              @click="filterTag = 'multilingual'"
-              :class="['px-3 py-1 rounded-lg text-xs font-medium border transition-colors',
-                filterTag === 'multilingual'
-                  ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm'
-                  : 'bg-white/80 border-gray-200 text-gray-600 hover:bg-gray-50']"
-            >{{ t('library.tag_multilingual') }}</button>
+            >
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+              {{ t('library.timeline_view') }}
+            </button>
           </div>
         </div>
 
-        <div class="space-y-6">
-          <div v-for="group in modelGroups" :key="group.label">
-            <div class="flex items-center gap-2 mb-3">
-              <h3 class="text-sm font-semibold text-gray-700">{{ group.label }}</h3>
-              <span class="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">{{ group.list.length }}</span>
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
-              <button
-                v-for="m in group.list"
-                :key="m.id"
-                :data-model-id="m.id"
-                @click="selectModel(m)"
-                @mouseenter="handleModelHover(m, $event)"
-                @mouseleave="clearHover"
-                :class="[
-                  'group flex items-center justify-between backdrop-blur-sm border rounded-lg px-3 py-2.5 text-left hover:border-emerald-400 hover:shadow-md transition-all',
-                  m.id === currentModelId
-                    ? 'border-emerald-600 ring-2 ring-emerald-300 shadow-lg'
-                    : 'bg-white/90 border-gray-200 shadow-sm'
-                ]"
-                :style="m.id === currentModelId ? { backgroundColor: 'rgb(209 250 229)' } : {}"
-              >
-                <div class="flex items-center gap-2 min-w-0 flex-1">
-                  <span
-                    :class="m.type === 'moe'
-                      ? 'bg-amber-100 text-amber-700'
-                      : 'bg-emerald-100 text-emerald-700'"
-                    class="text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0"
-                  >{{ m.type === 'moe' ? 'MoE' : 'Dense' }}</span>
-                  <span
-                    :class="[
-                      'text-sm truncate transition-colors',
-                      m.id === currentModelId ? 'text-emerald-700 font-semibold' : 'text-gray-800 group-hover:text-emerald-700'
-                    ]"
-                  >{{ m.name }}</span>
-                  <span v-if="isNew(m.released)" class="w-1.5 h-1.5 rounded-full bg-red-500 flex-shrink-0"></span>
-                </div>
-                <div class="flex items-center gap-1.5 flex-shrink-0 ml-2">
-                  <span class="text-xs text-gray-400 hidden sm:inline">{{ fmtParams(m.params) }}</span>
-                  <span class="text-xs text-gray-300 hidden sm:inline">·</span>
-                  <span class="text-xs text-gray-400 hidden sm:inline">{{ fmtCtx(m.max_ctx) }}</span>
-                  <button
-                    @click.stop="openModelDetail(m)"
-                    class="sm:hidden p-1 rounded hover:bg-emerald-100 transition-colors"
-                    :title="t('library.view_details')"
-                  >
-                    <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </button>
-                </div>
-              </button>
-            </div>
-          </div>
-          <div v-if="modelGroups.length === 0" class="text-center text-gray-400 py-12 text-sm">
-            {{ t('library.no_results') }}
-          </div>
+        <!-- 时间轴视图 -->
+        <div v-if="viewMode === 'timeline'" class="bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200 shadow-sm p-6">
+          <TimelineChart
+            :models="filteredModels"
+            @model-hover="handleModelHover"
+            @model-click="openModelDetail"
+          />
         </div>
+
+        <!-- 列表视图 -->
+        <template v-else>
+          <div class="mb-4 space-y-3">
+            <input
+              v-model="modelSearch"
+              type="text"
+              :placeholder="t('library.search_models')"
+              class="w-full sm:w-80 bg-white/80 backdrop-blur-sm border border-gray-300 rounded-lg px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+            />
+            
+            <!-- Tag Filter Buttons -->
+            <div class="flex flex-wrap gap-2 items-center">
+              <span class="text-xs font-medium text-gray-500">{{ t('library.filter_by_tag') }}:</span>
+              <button
+                @click="filterTag = ''"
+                :class="['px-3 py-1 rounded-lg text-xs font-medium border transition-colors',
+                  filterTag === ''
+                    ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm'
+                    : 'bg-white/80 border-gray-200 text-gray-600 hover:bg-gray-50']"
+              >{{ t('library.tag_all') }}</button>
+              <button
+                @click="filterTag = 'chat'"
+                :class="['px-3 py-1 rounded-lg text-xs font-medium border transition-colors',
+                  filterTag === 'chat'
+                    ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm'
+                    : 'bg-white/80 border-gray-200 text-gray-600 hover:bg-gray-50']"
+              >{{ t('library.tag_chat') }}</button>
+              <button
+                @click="filterTag = 'code'"
+                :class="['px-3 py-1 rounded-lg text-xs font-medium border transition-colors',
+                  filterTag === 'code'
+                    ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm'
+                    : 'bg-white/80 border-gray-200 text-gray-600 hover:bg-gray-50']"
+              >{{ t('library.tag_code') }}</button>
+              <button
+                @click="filterTag = 'reasoning'"
+                :class="['px-3 py-1 rounded-lg text-xs font-medium border transition-colors',
+                  filterTag === 'reasoning'
+                    ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm'
+                    : 'bg-white/80 border-gray-200 text-gray-600 hover:bg-gray-50']"
+              >{{ t('library.tag_reasoning') }}</button>
+              <button
+                @click="filterTag = 'vision'"
+                :class="['px-3 py-1 rounded-lg text-xs font-medium border transition-colors',
+                  filterTag === 'vision'
+                    ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm'
+                    : 'bg-white/80 border-gray-200 text-gray-600 hover:bg-gray-50']"
+              >{{ t('library.tag_vision') }}</button>
+              <button
+                @click="filterTag = 'math'"
+                :class="['px-3 py-1 rounded-lg text-xs font-medium border transition-colors',
+                  filterTag === 'math'
+                    ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm'
+                    : 'bg-white/80 border-gray-200 text-gray-600 hover:bg-gray-50']"
+              >{{ t('library.tag_math') }}</button>
+              <button
+                @click="filterTag = 'multilingual'"
+                :class="['px-3 py-1 rounded-lg text-xs font-medium border transition-colors',
+                  filterTag === 'multilingual'
+                    ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm'
+                    : 'bg-white/80 border-gray-200 text-gray-600 hover:bg-gray-50']"
+              >{{ t('library.tag_multilingual') }}</button>
+            </div>
+          </div>
+
+          <div class="space-y-6">
+            <div v-for="group in modelGroups" :key="group.label">
+              <div class="flex items-center gap-2 mb-3">
+                <h3 class="text-sm font-semibold text-gray-700">{{ group.label }}</h3>
+                <span class="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">{{ group.list.length }}</span>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
+                <button
+                  v-for="m in group.list"
+                  :key="m.id"
+                  :data-model-id="m.id"
+                  @mouseenter="handleModelHover(m, $event)"
+                  @mouseleave="clearHover"
+                  class="group flex items-center justify-between backdrop-blur-sm border rounded-lg px-3 py-2.5 text-left hover:border-emerald-400 hover:shadow-md transition-all bg-white/90 border-gray-200 shadow-sm"
+                >
+                  <div class="flex items-center gap-2 min-w-0 flex-1">
+                    <span
+                      :class="m.type === 'moe'
+                        ? 'bg-amber-100 text-amber-700'
+                        : 'bg-emerald-100 text-emerald-700'"
+                      class="text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0"
+                    >{{ m.type === 'moe' ? 'MoE' : 'Dense' }}</span>
+                    <span
+                      class="text-sm truncate transition-colors text-gray-800 group-hover:text-emerald-700"
+                    >{{ m.name }}</span>
+                    <span v-if="isNew(m.released)" class="w-1.5 h-1.5 rounded-full bg-red-500 flex-shrink-0"></span>
+                  </div>
+                  <div class="flex items-center gap-1.5 flex-shrink-0 ml-2">
+                    <span class="text-xs text-gray-400 hidden sm:inline">{{ fmtParams(m.params) }}</span>
+                    <span class="text-xs text-gray-300 hidden sm:inline">·</span>
+                    <span class="text-xs text-gray-400 hidden sm:inline">{{ fmtCtx(m.max_ctx) }}</span>
+                    <button
+                      @click.stop="openModelDetail(m)"
+                      class="sm:hidden p-1 rounded hover:bg-emerald-100 transition-colors"
+                      :title="t('library.view_details')"
+                    >
+                      <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </button>
+                  </div>
+                </button>
+              </div>
+            </div>
+            <div v-if="modelGroups.length === 0" class="text-center text-gray-400 py-12 text-sm">
+              {{ t('library.no_results') }}
+            </div>
+          </div>
+        </template>
       </template>
 
       <!-- ── GPU ── -->
@@ -414,16 +421,9 @@ onMounted(() => {
                 v-for="g in group.list"
                 :key="g.id"
                 :data-gpu-id="g.id"
-                @click="selectGpu(g)"
                 @mouseenter="handleGpuHover(g, $event)"
                 @mouseleave="clearHover"
-                :class="[
-                  'group flex items-center justify-between backdrop-blur-sm border rounded-lg px-3 py-2.5 text-left hover:border-emerald-400 hover:shadow-md transition-all',
-                  g.id === currentGpuId
-                    ? 'border-emerald-600 ring-2 ring-emerald-300 shadow-lg'
-                    : 'bg-white/90 border-gray-200 shadow-sm'
-                ]"
-                :style="g.id === currentGpuId ? { backgroundColor: 'rgb(209 250 229)' } : {}"
+                class="group flex items-center justify-between backdrop-blur-sm border rounded-lg px-3 py-2.5 text-left hover:border-emerald-400 hover:shadow-md transition-all bg-white/90 border-gray-200 shadow-sm"
               >
                 <div class="flex items-center gap-2 min-w-0 flex-1">
                   <span
@@ -435,10 +435,7 @@ onMounted(() => {
                     class="text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0"
                   >{{ g.vendor === 'apple' ? 'AS' : g.tier === 'datacenter' ? 'DC' : 'CS' }}</span>
                   <span
-                    :class="[
-                      'text-sm truncate transition-colors',
-                      g.id === currentGpuId ? 'text-emerald-700 font-semibold' : 'text-gray-800 group-hover:text-emerald-700'
-                    ]"
+                    class="text-sm truncate transition-colors text-gray-800 group-hover:text-emerald-700"
                   >{{ g.name }}</span>
                   <span v-if="isNew(g.released)" class="w-1.5 h-1.5 rounded-full bg-red-500 flex-shrink-0"></span>
                 </div>
@@ -727,16 +724,6 @@ onMounted(() => {
                 {{ t('library.window') }}: {{ detailModel.sliding_window }} · Local: {{ detailModel.local_layers }}
               </div>
             </div>
-
-            <!-- 操作按钮 -->
-            <div class="flex gap-2 pt-2 border-t border-gray-100">
-              <button
-                @click="selectModel(detailModel)"
-                class="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition-colors"
-              >
-                {{ t('library.use_this_model') }}
-              </button>
-            </div>
           </div>
         </div>
       </div>
@@ -825,16 +812,6 @@ onMounted(() => {
             <!-- 可用显存比例 -->
             <div v-if="detailGpu.usableRatio && detailGpu.usableRatio < 1" class="text-xs text-gray-700 bg-amber-100 rounded px-2 py-1.5 border border-amber-300">
               ⚠️ {{ isZh ? '可用显存约' : 'Usable VRAM' }} {{ (detailGpu.usableRatio * 100).toFixed(0) }}%
-            </div>
-
-            <!-- 操作按钮 -->
-            <div class="flex gap-2 pt-2 border-t border-gray-100">
-              <button
-                @click="selectGpu(detailGpu)"
-                class="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition-colors"
-              >
-                {{ isZh ? '使用此 GPU' : 'Use This GPU' }}
-              </button>
             </div>
           </div>
         </div>
