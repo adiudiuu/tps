@@ -24,6 +24,21 @@ export const CPU_MEM_BW_OPTIONS = [
   { id: 'ddr4_3200', label: 'DDR4-3200', bw: 51 },
   { id: 'ddr4_3600', label: 'DDR4-3600', bw: 57 },
   { id: 'ddr5_4800', label: 'DDR5-4800', bw: 76 },
+  { id: 'ddr5_5200', label: 'DDR5-5200', bw: 83 },
+  { id: 'ddr5_5600', label: 'DDR5-5600', bw: 90 },
+  { id: 'ddr5_6000', label: 'DDR5-6000', bw: 96 },
   { id: 'ddr5_6400', label: 'DDR5-6400', bw: 102 },
   { id: 'ddr5_8000', label: 'DDR5-8000', bw: 128 },
 ]
+
+// PCIe 插槽宽度，决定 CPU Offload 模式下 expert 权重的实际传输带宽
+// ratio = 实际带宽 / PCIE_BW_OPTIONS 中存储的 x16 理论峰值
+// 台式机主板常见：x8（多卡），x16（主槽单卡）；服务器/HEDT 可跑 x16
+export const PCIE_WIDTH_OPTIONS = [
+  { id: 'x4',  label: 'x4',  ratio: 0.25 },
+  { id: 'x8',  label: 'x8',  ratio: 0.5  },  // 台式机多卡默认（如 RTX 4060）
+  { id: 'x16', label: 'x16', ratio: 1.0  },
+]
+
+// 系统内存（RAM）容量预设，用于 CPU Offload / 纯 CPU 模式下的 OOM 校验
+export const RAM_CAPACITY_OPTIONS = [16, 32, 48, 64, 96, 128, 192, 256, 384, 512]

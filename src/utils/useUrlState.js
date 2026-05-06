@@ -3,7 +3,7 @@ import { watch } from 'vue'
 import { GPU_LIST } from '../data/gpus/index.js'
 import { ALL_MODELS } from '../data/models/index.js'
 import { QUANT_MAP, INTERCONNECT_MAP, FRAMEWORK_MAP } from '../data/constants.js'
-import { KV_CACHE_MAP, PCIE_BW_OPTIONS, CPU_MEM_BW_OPTIONS } from '../data/runtime.js'
+import { KV_CACHE_MAP, PCIE_BW_OPTIONS, CPU_MEM_BW_OPTIONS, PCIE_WIDTH_OPTIONS } from '../data/runtime.js'
 
 const SESSION_KEY = 'tps_estimator_query'
 const LEGACY_SESSION_KEY = 'tps_calc_query'
@@ -56,8 +56,10 @@ export function readUrlState() {
     prefixCacheHit: p.has('pc')   ? Number(p.get('pc'))  : null,
     cpuOffload:     p.has('co')   ? p.get('co') === '1'  : null,
     pcieBwId:       p.get('pcie'),
+    pcieWidthId:    p.get('pw'),
     pureCpu:        p.has('pcpu') ? p.get('pcpu') === '1' : null,
     cpuMemBwId:     p.get('cmb'),
+    sysRam:         p.has('sr')   ? Math.max(8, Math.min(512, Number(p.get('sr')))) : null,
     sharedVram:     p.has('sv')   ? Math.max(1, Math.min(512, Number(p.get('sv')))) : null,
     speculativeDecoding: p.has('sd')  ? p.get('sd') === '1' : null,
     acceptanceRate:      p.has('ar')  ? Number(p.get('ar')) : null,
@@ -98,9 +100,11 @@ export function resolveUrlState(init) {
     prefixCacheHit: init.prefixCacheHit,
     cpuOffload:   init.cpuOffload,
     pcieBw:       PCIE_BW_OPTIONS.find(p => p.id === init.pcieBwId) ?? null,
+    pcieWidth:    PCIE_WIDTH_OPTIONS.find(w => w.id === init.pcieWidthId) ?? null,
     pureCpu:      init.pureCpu,
     cpuMemBw:     CPU_MEM_BW_OPTIONS.find(p => p.id === init.cpuMemBwId) ?? null,
     sharedVram:   init.sharedVram,
+    sysRam:       init.sysRam,
     speculativeDecoding: init.speculativeDecoding,
     acceptanceRate:      init.acceptanceRate,
     draftLen:            init.draftLen,
@@ -114,15 +118,15 @@ export function resolveUrlState(init) {
 export function watchUrlState({
   gpuSlots, interconnect, model, quant, ctx, batch,
   promptLen, outputLen, framework, flashAttention,
-  kvCacheQuant, prefixCacheHit, cpuOffload, pcieBw, pureCpu, cpuMemBw, sharedVram,
+  kvCacheQuant, prefixCacheHit, cpuOffload, pcieBw, pcieWidth, pureCpu, cpuMemBw, sysRam, sharedVram,
   speculativeDecoding, acceptanceRate, draftLen, ppCount, imageCount, nglCount,
 }) {
   watch(
     [gpuSlots, interconnect, model, quant, ctx, batch,
      promptLen, outputLen, framework, flashAttention,
-     kvCacheQuant, prefixCacheHit, cpuOffload, pcieBw, pureCpu, cpuMemBw, sharedVram,
+     kvCacheQuant, prefixCacheHit, cpuOffload, pcieBw, pcieWidth, pureCpu, cpuMemBw, sysRam, sharedVram,
      speculativeDecoding, acceptanceRate, draftLen, ppCount, imageCount, nglCount],
-    ([slots, ic, m, q, c, b, pl, ol, fw, fa, kv, pc, co, pb, pcpu, cmb, sv, sd, ar, dl, pp, img, ngl]) => {
+    ([slots, ic, m, q, c, b, pl, ol, fw, fa, kv, pc, co, pb, pw, pcpu, cmb, sr, sv, sd, ar, dl, pp, img, ngl]) => {
       setParams({
         gpus:  slots?.length ? slots.map(s => `${s.gpu.id}:${s.count}`).join(',') : null,
         gpu:   null,
@@ -140,8 +144,10 @@ export function watchUrlState({
         pc:    pc > 0 ? pc : null,
         co:    co ? '1' : null,
         pcie:  pb?.id  ?? null,
+        pw:    co && !pcpu ? (pw?.id ?? null) : null,
         pcpu:  pcpu ? '1' : null,
         cmb:   pcpu ? (cmb?.id ?? null) : null,
+        sr:    (co || pcpu) && sr != null && sr !== 64 ? sr : null,
         sv:    sv != null && sv !== 16 ? sv : null,
         sd:    sd ? '1' : null,
         ar:    sd && ar != null && ar !== 0.7 ? ar : null,

@@ -2,7 +2,7 @@
 import { computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { QUANT_MAP } from '../../data/constants.js'
-import { KV_CACHE_MAP, PREFIX_CACHE_OPTIONS, PCIE_BW_OPTIONS, CPU_MEM_BW_OPTIONS } from '../../data/runtime.js'
+import { KV_CACHE_MAP, PREFIX_CACHE_OPTIONS, PCIE_BW_OPTIONS, PCIE_WIDTH_OPTIONS, CPU_MEM_BW_OPTIONS, RAM_CAPACITY_OPTIONS } from '../../data/runtime.js'
 import { fmtCtx } from '../../utils/format.js'
 import TipIcon from '../ui/TipIcon.vue'
 
@@ -31,8 +31,10 @@ const acceptanceRate = defineModel('acceptanceRate', { required: true })
 const draftLen = defineModel('draftLen', { required: true })
 const ppCount = defineModel('ppCount', { required: true })
 const imageCount = defineModel('imageCount', { required: true })
-const nglCount = defineModel('nglCount', { default: null })
-const epCount = defineModel('epCount', { default: 1 })
+const nglCount       = defineModel('nglCount', { default: null })
+const epCount        = defineModel('epCount', { default: 1 })
+const pcieWidth      = defineModel('pcieWidth', { required: true })
+const sysRam         = defineModel('sysRam', { required: true })
 
 // PP 显示条件：至少 2 张卡且模型参数 >= 30B
 const ppSupported = computed(() => props.gpuCount >= 2 && (props.model?.params ?? 0) >= 30)
@@ -325,7 +327,7 @@ const ctxOptions = computed(() => {
           </p>
         </template>
 
-        <!-- 非 llama.cpp：MoE CPU Offload PCIe 带宽选择 -->
+        <!-- 非 llama.cpp：MoE CPU Offload PCIe 带宽 + 插槽宽度选择 -->
         <template v-if="cpuOffload && !pureCpu && !isLlamaCppFramework">
           <label class="flex items-center gap-1 text-xs text-gray-500 mt-2 mb-1.5">{{ t('run.pcie_bw') }}<TipIcon :text="t('run.pcie_bw_tip')" /></label>
           <div class="flex gap-1.5 flex-wrap">
@@ -342,6 +344,35 @@ const ctxOptions = computed(() => {
             >
               {{ option.label }} <span class="opacity-70">({{ option.bw }} GB/s)</span>
             </button>
+          </div>
+          <label class="flex items-center gap-1 text-xs text-gray-500 mt-2 mb-1.5">{{ t('run.pcie_width') }}<TipIcon :text="t('run.pcie_width_tip')" /></label>
+          <div class="flex gap-1.5 flex-wrap">
+            <button
+              v-for="option in PCIE_WIDTH_OPTIONS"
+              :key="option.id"
+              @click="pcieWidth = option"
+              :class="[
+                'px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors',
+                pcieWidth.id === option.id
+                  ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm'
+                  : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:border-gray-300'
+              ]"
+            >{{ option.label }}</button>
+          </div>
+          <!-- 系统内存大小 -->
+          <label class="flex items-center gap-1 text-xs text-gray-500 mt-2 mb-1.5">{{ t('run.sys_ram') }}<TipIcon :text="t('run.sys_ram_tip')" /></label>
+          <div class="flex gap-1.5 flex-wrap">
+            <button
+              v-for="n in RAM_CAPACITY_OPTIONS"
+              :key="n"
+              @click="sysRam = n"
+              :class="[
+                'px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors',
+                sysRam === n
+                  ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm'
+                  : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:border-gray-300'
+              ]"
+            >{{ n }} GB</button>
           </div>
         </template>
 
@@ -362,6 +393,21 @@ const ctxOptions = computed(() => {
             >
               {{ option.label }} <span class="opacity-70">({{ option.bw }} GB/s)</span>
             </button>
+          </div>
+          <!-- 系统内存大小 -->
+          <label class="flex items-center gap-1 text-xs text-gray-500 mt-2 mb-1.5">{{ t('run.sys_ram') }}<TipIcon :text="t('run.sys_ram_tip')" /></label>
+          <div class="flex gap-1.5 flex-wrap">
+            <button
+              v-for="n in RAM_CAPACITY_OPTIONS"
+              :key="n"
+              @click="sysRam = n"
+              :class="[
+                'px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors',
+                sysRam === n
+                  ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm'
+                  : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:border-gray-300'
+              ]"
+            >{{ n }} GB</button>
           </div>
           <p class="mt-1.5 text-xs text-slate-500 bg-slate-50 rounded px-2 py-1.5 border border-slate-200">
             ℹ️ {{ t('run.cpu_prefill_note') }}

@@ -11,7 +11,7 @@ import ResultPanel from '../components/result/ResultPanel.vue'
 import { GPU_LIST } from '../data/gpus/index.js'
 import { ALL_MODELS } from '../data/models/index.js'
 import { QUANT_MAP, INTERCONNECT_MAP, FRAMEWORK_MAP } from '../data/constants.js'
-import { KV_CACHE_MAP, PCIE_BW_OPTIONS, CPU_MEM_BW_OPTIONS } from '../data/runtime.js'
+import { KV_CACHE_MAP, PCIE_BW_OPTIONS, CPU_MEM_BW_OPTIONS, PCIE_WIDTH_OPTIONS } from '../data/runtime.js'
 import { calcAll, calcBatchSweep, aggregateGpuSlots } from '../utils/calc.js'
 import { readUrlState, resolveUrlState, watchUrlState } from '../utils/useUrlState.js'
 
@@ -43,8 +43,10 @@ function needsCpuOffload(m, g, n) {
 }
 const cpuOffload     = ref(_url.cpuOffload   ?? needsCpuOffload(model.value, gpuSlots.value[0]?.gpu, gpuCount.value))
 const pcieBw         = ref(_url.pcieBw       ?? PCIE_BW_OPTIONS[1])
+const pcieWidth      = ref(_url.pcieWidth     ?? PCIE_WIDTH_OPTIONS[1])  // 默认 x8
 const pureCpu        = ref(_url.pureCpu      ?? false)
 const cpuMemBw       = ref(_url.cpuMemBw     ?? CPU_MEM_BW_OPTIONS[3])  // 默认 DDR5-4800
+const sysRam         = ref(_url.sysRam       ?? 64)  // 默认 64 GB
 
 // 共享内存 iGPU：用用户设置的共享内存大小覆盖 vram=0
 const effectiveGpu = computed(() => {
@@ -82,6 +84,7 @@ function pinCurrentResult() {
     interconnect: interconnect.value,
     cpuOffload: cpuOffload.value,
     pcieBw: pcieBw.value,
+    pcieWidth: pcieWidth.value,
     flashAttention: flashAttention.value,
     kvCacheQuant: kvCacheQuant.value,
     prefixCacheHit: prefixCacheHit.value,
@@ -93,6 +96,7 @@ function pinCurrentResult() {
     promptLen: promptLen.value,
     outputLen: outputLen.value,
     nglCount: nglCount.value,
+    sysRam: sysRam.value,
   }
 }
 
@@ -125,7 +129,7 @@ watch([cpuOffload, framework], ([co, fw]) => {
 
 watchUrlState({ gpuSlots, interconnect, model, quant, ctx, batch,
   promptLen, outputLen, framework, flashAttention, kvCacheQuant,
-  prefixCacheHit, cpuOffload, pcieBw, pureCpu, cpuMemBw,
+  prefixCacheHit, cpuOffload, pcieBw, pcieWidth, pureCpu, cpuMemBw, sysRam,
   speculativeDecoding, acceptanceRate, draftLen, ppCount, epCount, imageCount, sharedVram, nglCount })
 
 const result = computed(() => {
@@ -137,7 +141,9 @@ const result = computed(() => {
       promptLen: promptLen.value, outputLen: outputLen.value, framework: framework.value,
       flashAttention: flashAttention.value, kvCacheQuant: kvCacheQuant.value,
       prefixCacheHit: prefixCacheHit.value, cpuOffload: cpuOffload.value, pcieBw: pcieBw.value,
+      pcieWidth: pcieWidth.value,
       pureCpu: pureCpu.value, cpuMemBw: cpuMemBw.value,
+      sysRam: sysRam.value,
       speculativeDecoding: speculativeDecoding.value, acceptanceRate: acceptanceRate.value, draftLen: draftLen.value,
       ppCount: ppCount.value,
       epCount: epCount.value,
@@ -160,6 +166,7 @@ const quantMatrix = computed(() => {
         promptLen: promptLen.value, outputLen: outputLen.value, framework: framework.value,
         flashAttention: flashAttention.value, kvCacheQuant: kvCacheQuant.value,
         prefixCacheHit: prefixCacheHit.value, cpuOffload: cpuOffload.value, pcieBw: pcieBw.value,
+        pcieWidth: pcieWidth.value,
         pureCpu: pureCpu.value, cpuMemBw: cpuMemBw.value,
         speculativeDecoding: speculativeDecoding.value, acceptanceRate: acceptanceRate.value, draftLen: draftLen.value,
         ppCount: ppCount.value,        nglCount: nglCount.value,      })
@@ -175,6 +182,7 @@ const quantMatrix = computed(() => {
             promptLen: promptLen.value, outputLen: outputLen.value, framework: framework.value,
             flashAttention: flashAttention.value, kvCacheQuant: kvCacheQuant.value,
             prefixCacheHit: prefixCacheHit.value, cpuOffload: true, pcieBw: fallbackPcie,
+            pcieWidth: pcieWidth.value,
             pureCpu: false, cpuMemBw: cpuMemBw.value,
             speculativeDecoding: speculativeDecoding.value, acceptanceRate: acceptanceRate.value, draftLen: draftLen.value,
             ppCount: ppCount.value,
@@ -240,6 +248,7 @@ const pinnedBatchSweepData = computed(() => {
     acceptanceRate: c.acceptanceRate, draftLen: c.draftLen,
     ppCount: c.ppCount, imageCount: c.imageCount,
     nglCount: c.nglCount,
+    pcieWidth: c.pcieWidth,
   })
 })
 
@@ -260,6 +269,7 @@ const batchSweepData = computed(() => {
     prefixCacheHit: prefixCacheHit.value,
     cpuOffload: cpuOffload.value,
     pcieBw: pcieBw.value,
+    pcieWidth: pcieWidth.value,
     pureCpu: pureCpu.value,
     cpuMemBw: cpuMemBw.value,
     speculativeDecoding: speculativeDecoding.value,
@@ -292,6 +302,7 @@ const batchSweepData = computed(() => {
           v-model:flashAttention="flashAttention" v-model:kvCacheQuant="kvCacheQuant"
           v-model:prefixCacheHit="prefixCacheHit" v-model:cpuOffload="cpuOffload"
           v-model:pcieBw="pcieBw" v-model:pureCpu="pureCpu" v-model:cpuMemBw="cpuMemBw"
+          v-model:pcieWidth="pcieWidth" v-model:sysRam="sysRam"
           :model="model" :framework="framework" :gpuCount="gpuCount"
           v-model:speculativeDecoding="speculativeDecoding"
           v-model:acceptanceRate="acceptanceRate" v-model:draftLen="draftLen"

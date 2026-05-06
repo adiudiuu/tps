@@ -26,8 +26,9 @@ import { getAttentionSummary, getAttentionType, getTotalHeads } from './model.js
 export function calcAll({
   gpu, gpuCount, interconnect, model, quant, ctx, batch, promptLen, outputLen, framework,
   flashAttention = true, kvCacheQuant = null, prefixCacheHit = 0,
-  cpuOffload = false, pcieBw = null,
+  cpuOffload = false, pcieBw = null, pcieWidth = null,
   pureCpu = false, cpuMemBw = null,
+  sysRam = null,
   nglCount = null,
   speculativeDecoding = false, acceptanceRate = 0.7, draftLen = 4, draftModelParams = null,
   ppCount = 1,
@@ -161,6 +162,19 @@ export function calcAll({
   // totalVram 是单个 PP stage（一个 TP 组）的可用显存
   const totalNeeded = weightGB * gpuLayerRatio / ppCount + kvGB * gpuLayerRatio / ppCount + overheadGB
 
+  // CPU RAM 需求（仅在涉及 CPU 内存的模式下有效）
+  // pureCpu: 全部权重 + KV Cache 都在 DDR
+  // llamacpp 混合: CPU 层权重 + 对应比例 KV Cache 在 DDR
+  // MoE CPU Offload (非 llamacpp): expert 权重放 CPU RAM，non-expert + KV Cache 在 GPU HBM
+  const cpuRamNeededGB = (() => {
+    if (pureCpu) return weightGB + kvGB + overheadGB
+    if (isLlamaCppHybrid) return (1 - gpuLayerRatio) * (model.params * quant.bytes + kvGB)
+    if (cpuOffload && model.type === 'moe' && framework?.id !== 'llamacpp') {
+      return Math.max(0, model.params * quant.bytes - weightGB)
+    }
+    return 0
+  })()
+
   // ─────────────────────────────────────────────
   // Decode 速度（内存带宽瓶颈）
   // ─────────────────────────────────────────────
@@ -271,8 +285,9 @@ export function calcAll({
     const nonExpertIOPerStep = model.active_params * quant.bytes - expertIOPerStep
     const gpuIOPerStep = nonExpertIOPerStep + kvReadGB
     // pcieBw.bw = PCIe x16 单向理论峰值（见 runtime.js）
-    // 台式机 GPU 通常走 x8 插槽（如 RTX 4060），实际单向带宽 = bw / 2
-    const pcieBwUnidirectional = pcieBw.bw / 2
+    // pcieWidth.ratio 决定实际带宽占 x16 的比例（x4=0.25, x8=0.5, x16=1.0）
+    // 未指定 pcieWidth 时按 x8（台式机最常见）
+    const pcieBwUnidirectional = pcieBw.bw * (pcieWidth?.ratio ?? 0.5)
     const tExpert = expertIOPerStep / pcieBwUnidirectional  // s/tok，PCIe 瓶颈
     const tGpu    = gpuIOPerStep    / totalBw               // s/tok，GPU HBM 瓶颈
     // PP：每 stage 各自做 1/ppCount 的工作，流水满载时吞吐 × ppCount，再乘气泡效率
@@ -502,8 +517,11 @@ export function calcAll({
     kvCacheLabel: kvCacheQuant?.label ?? 'Auto',
     cpuOffload: cpuOffload && model.type === 'moe',
     pcieBwLabel: (cpuOffload && model.type === 'moe' && pcieBw) ? pcieBw.label : null,
+    pcieWidthLabel: (cpuOffload && model.type === 'moe' && pcieWidth) ? pcieWidth.label : null,
     pureCpu,
     cpuMemBwLabel: (pureCpu && cpuMemBw) ? cpuMemBw.label : null,
+    cpuRamNeededGB,
+    sysRam,
     speculativeDecoding,
     speculativeSpeedup,
     acceptanceRate,
@@ -593,7 +611,7 @@ function getFlashAttentionBoostRange({ enabled, promptLen, headDim = 128 }) {
  */
 export function getWarnings(result, t) {
   const warnings = []
-  const { vramOk, vramPct, totalNeeded, totalVram, tpEfficiency, singleToks, singleToksMin, roofline, totalPower, activationGB } = result
+  const { vramOk, vramPct, totalNeeded, totalVram, tpEfficiency, singleToks, singleToksMin, roofline, totalPower, activationGB, cpuRamNeededGB, sysRam } = result
 
   if (!vramOk) {
     warnings.push({
@@ -623,6 +641,15 @@ export function getWarnings(result, t) {
 
   if (totalPower > 10) {
     warnings.push({ level: 'info', key: 'high_power', power: totalPower.toFixed(1) })
+  }
+
+  if (sysRam != null && cpuRamNeededGB > 0 && cpuRamNeededGB > sysRam) {
+    warnings.push({
+      level: 'error',
+      key: 'cpu_ram_oom',
+      diff: (cpuRamNeededGB - sysRam).toFixed(1),
+      needed: cpuRamNeededGB.toFixed(1),
+    })
   }
 
   return warnings

@@ -1,6 +1,7 @@
 // AMD 集成显卡（APU / Ryzen AI）
 // 集成显卡共享系统内存，vram=0 表示无独立显存，bw 为内存带宽
 export default [
+  { id: 'ryzen_9_7950x',       name: 'Ryzen 9 7950X',         vendor: 'amd', tier: 'consumer', released: '2022-09', vram: 0,  bw: 83,  bwUtilization: 0.80, bf16: 1,    int8: null, int4: null, nvlink_bw: null, tdp: 170, sharedMemory: true },
   { id: 'ryzen_ai_max_395',     name: 'Ryzen AI MAX+ 395 (Linux)',   vendor: 'amd', tier: 'consumer', released: '2025-01', vram: 128, bw: 212, bwUtilization: 0.83, bf16: 36.9, int8: null, int4: null, nvlink_bw: null, tdp: 120 },
   { id: 'ryzen_ai_max_395_win', name: 'Ryzen AI MAX+ 395 (Windows)', vendor: 'amd', tier: 'consumer', released: '2025-01', vram: 96,  bw: 212, bwUtilization: 0.83, bf16: 36.9, int8: null, int4: null, nvlink_bw: null, tdp: 120 },
   { id: 'radeon_890m',      name: 'Radeon 890M',       vendor: 'amd', tier: 'consumer', released: '2024-07', vram: 0,  bw: 102, bwUtilization: 0.80, bf16: 5,  int8: null, int4: null, nvlink_bw: null, tdp: 28,  sharedMemory: true },
