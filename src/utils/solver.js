@@ -73,6 +73,19 @@ function isCancelled(shouldCancel) {
 }
 
 /**
+ * 计算 MoE 模型的 non-expert 参数量（与 calc.js 保持一致）
+ * @param {object} model - 模型对象
+ * @returns {number|null} - non-expert 参数量（B），非 MoE 返回 null
+ */
+function calcNonExpertParams(model) {
+  if (model.type !== 'moe' || !model.experts || !model.active_params) return null
+  const denom = (model.experts_per_token ?? 1) - model.experts
+  if (denom === 0) return model.active_params
+  const ne = (model.params * (model.experts_per_token ?? 1) - model.experts * model.active_params) / denom
+  return Math.max(0, ne)
+}
+
+/**
  * 根据 gpuCount 和 GPU 的 nvlink_bw 自动选择互联方式
  */
 export function autoInterconnect(gpu, gpuCount) {
@@ -137,16 +150,28 @@ export async function solveForModel(opts) {
   // 过滤框架（跳过 theory，只保留实际框架）
   const frameworks = FRAMEWORK_MAP.filter(f => f.id !== 'theory')
 
-  // 预估最低显存需求（仅权重，bf16），用于提前剪枝整个 GPU
-  const minWeightGB = model.params * 0.5 // INT4 最低
+  // 预计算 MoE 模型的 non-expert 参数量
+  const nonExpertParams = calcNonExpertParams(model)
+  const totalExpertParams = nonExpertParams != null ? model.params - nonExpertParams : null
+
+  // 预估最低显存需求（EP+TP 最大分片下的 INT4 每卡需求），用于第一层剪枝
+  const maxPossibleEp = (model.type === 'moe' && model.experts)
+    ? Math.min(model.experts, maxGpuCount)
+    : 1
+  const minWeightPerCardGB = (nonExpertParams != null)
+    ? ((nonExpertParams + (model.params - nonExpertParams) / maxPossibleEp) * 0.5) / maxGpuCount  // EP+TP 最大分片
+    : (model.params * 0.5) / maxGpuCount  // dense: TP 分片
 
   // 构建任务列表（提前剪枝）
   const tasks = []
   for (const gpu of gpus) {
+    // 第一层剪枝：单卡显存连 EP+TP 最大分片下的 INT4 都装不下，跳过该 GPU
+    const usableVram = gpu.vram * (gpu.usableRatio ?? 1.0)
+    if (usableVram < minWeightPerCardGB * 0.8) continue
+
     for (const totalGpuCount of totalGpuCounts) {
-      const totalVram = gpu.vram * totalGpuCount * (gpu.usableRatio ?? 1.0)
-      // 提前 OOM 剪枝：显存连 INT4 权重都装不下，跳过整个总卡数配置
-      if (totalVram < minWeightGB * 0.8) continue
+      // 提前剪枝：极小模型（< 1B）跳过多卡配置（1 卡足够，多卡无意义）
+      if (model.params < 1 && totalGpuCount > 1) continue
 
       for (const ppCount of getPpOptions(model, totalGpuCount)) {
         const gpuCount = totalGpuCount / ppCount
@@ -154,12 +179,30 @@ export async function solveForModel(opts) {
         const epOptions = getEpOptions(model, gpuCount)
 
         for (const quant of quants) {
-          const roughWeightGB = model.params * quant.bytes
-          if (roughWeightGB > totalVram * 1.1) continue
+          // 提前剪枝：极小模型（< 1B）只保留 BF16 和 INT8（量化收益微乎其微）
+          if (model.params < 1 && !['bf16', 'int8'].includes(quant.id)) continue
 
+          // EP 循环提前到 quant 同层，让剪枝能感知 EP 分片
           for (const epCount of epOptions) {
+            // 第二层剪枝：计算 EP 感知的每卡权重
+            let perCardWeightGB
+            if (epCount > 1 && totalExpertParams != null) {
+              // MoE + EP: 每卡存完整 non-expert + 1/epCount 的 expert，再除以 TP 分片数
+              perCardWeightGB = ((nonExpertParams + totalExpertParams / epCount) * quant.bytes) / gpuCount
+            } else {
+              // Dense 或 EP=1: 总参数 / TP 分片数
+              perCardWeightGB = (model.params * quant.bytes) / gpuCount
+            }
+
+            // 与单卡可用显存比较（而非总显存）
+            if (perCardWeightGB > usableVram * 1.1) continue
+
             for (const framework of frameworks) {
               if (!frameworkSupportsGpu(framework, gpu)) continue
+
+              // 提前剪枝：极小模型（< 1B）只保留高效框架
+              if (model.params < 1 && !['vllm', 'sglang', 'llamacpp', 'mlx', 'llamacpp_metal'].includes(framework.id)) continue
+
               tasks.push({ gpu, gpuCount, ppCount, epCount, interconnect, quant, framework })
             }
           }
