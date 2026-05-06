@@ -94,6 +94,11 @@ const totalGpuCount = computed(() => props.row.totalGpuCount ?? props.row.gpuCou
           <span class="text-gray-700 font-medium">{{ fmtToks(row.decodeSpeed / totalGpuCount) }}</span>
         </div>
       </div>
+
+      <!-- 洞察建议 -->
+      <div v-if="row.insight" class="mt-1.5 text-xs text-gray-500 leading-relaxed">
+        {{ row.insight }}
+      </div>
     </div>
 
     <!-- 操作按钮 -->

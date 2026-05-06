@@ -198,7 +198,7 @@ export async function solveForModel(opts) {
         if (minDecodeSpeed != null && r.singleToks < minDecodeSpeed) continue
         if (maxTtft != null && r.ttft > maxTtft) continue
 
-        results.push({
+        const row = {
           gpu: task.gpu,
           gpuCount: task.gpuCount,
           ppCount: task.ppCount,
@@ -212,7 +212,11 @@ export async function solveForModel(opts) {
           ttft: r.ttft,
           totalVram: r.totalVram,
           vramPct: r.vramPct,
-        })
+          tpEfficiency: r.tpEfficiency,
+          bottleneck: r.bottleneck,
+        }
+        row.insight = generateInsight(row)
+        results.push(row)
       } catch {
         // 忽略计算错误
       }
@@ -224,6 +228,44 @@ export async function solveForModel(opts) {
   }
 
   return { results: computePareto(pruneEquivalentResults(results)), cancelled: false }
+}
+
+/**
+ * 为每条结果生成洞察建议
+ * @param {object} row - 单条 solver 结果
+ * @returns {string|null} - 洞察文本，多条用分号分隔
+ */
+function generateInsight(row) {
+  const lines = []
+  
+  // 显存余量检查
+  if (row.vramPct > 85) {
+    lines.push('显存余量不足 15%，不建议增加上下文')
+  }
+  if (row.vramPct < 30) {
+    lines.push('显存充裕，可大幅增加上下文或 batch')
+  }
+  
+  // 多卡效率检查
+  if (row.gpuCount > 1 && row.tpEfficiency != null) {
+    if (row.tpEfficiency < 0.75) {
+      lines.push('多卡通信效率偏低，带宽是瓶颈')
+    } else if (row.tpEfficiency > 0.95) {
+      lines.push('多卡扩展效率优秀')
+    }
+  }
+  
+  // 量化质量检查
+  if (row.quant?.quality === 'ok' || row.quant?.quality === 'poor') {
+    lines.push('当前量化对质量有明显影响')
+  }
+  
+  // 瓶颈检查
+  if (row.bottleneck === 'compute') {
+    lines.push('算力瓶颈，增加 GPU 数量收益有限')
+  }
+  
+  return lines.length > 0 ? lines.join('；') : null
 }
 
 /**
@@ -272,4 +314,215 @@ function yieldToMain() {
       setTimeout(resolve, 0)
     }
   })
+}
+
+/**
+ * 升级路径求解器：给定当前配置，枚举最小改动方案以达到目标速度
+ *
+ * @param {object} opts
+ * @param {object} opts.currentGpu      - 当前 GPU 对象
+ * @param {number} opts.currentGpuCount - 当前 GPU 数量
+ * @param {object} opts.currentQuant    - 当前量化精度
+ * @param {object} opts.model           - 模型对象
+ * @param {number} opts.targetSpeed     - 目标速度（tok/s）
+ * @param {number} opts.ctx             - 上下文长度
+ * @param {number} opts.batch           - 并发数
+ * @param {number} opts.promptLen       - Prompt 长度
+ * @param {number} opts.outputLen       - 输出长度
+ * @param {function} opts.onProgress    - 进度回调
+ * @param {function} opts.shouldCancel  - 取消检查函数
+ * @returns {Promise<{ results: Array, cancelled: boolean }>}
+ */
+export async function solveUpgrade(opts) {
+  const {
+    currentGpu, currentGpuCount, currentQuant, model,
+    targetSpeed, ctx = 4096, batch = 1, promptLen = 512, outputLen = 256,
+    onProgress, shouldCancel,
+  } = opts
+
+  const upgradePaths = []
+  const frameworks = FRAMEWORK_MAP.filter(f => f.id !== 'theory')
+  
+  // 策略 1: 增加同型号 GPU（2x, 4x, 8x）
+  for (const newCount of [currentGpuCount * 2, currentGpuCount * 4, currentGpuCount * 8]) {
+    if (newCount > 8) continue
+    const interconnect = autoInterconnect(currentGpu, newCount)
+    
+    for (const framework of frameworks) {
+      if (!frameworkSupportsGpu(framework, currentGpu)) continue
+      
+      try {
+        const r = calcAll({
+          gpu: currentGpu,
+          gpuCount: newCount,
+          ppCount: 1,
+          epCount: 1,
+          interconnect,
+          model,
+          quant: currentQuant,
+          ctx,
+          batch,
+          promptLen,
+          outputLen,
+          framework,
+          flashAttention: true,
+        })
+
+        if (r.vramOk && r.singleToks >= targetSpeed) {
+          upgradePaths.push({
+            type: 'add_gpu',
+            gpu: currentGpu,
+            gpuCount: newCount,
+            ppCount: 1,
+            epCount: 1,
+            totalGpuCount: newCount,
+            interconnect,
+            quant: currentQuant,
+            framework,
+            vramNeeded: r.totalNeeded,
+            decodeSpeed: r.singleToks,
+            ttft: r.ttft,
+            totalVram: r.totalVram,
+            vramPct: r.vramPct,
+            tpEfficiency: r.tpEfficiency,
+            bottleneck: r.bottleneck,
+            changeDesc: `增加到 ${newCount} 张 ${currentGpu.name}`,
+            costMultiplier: newCount / currentGpuCount,
+          })
+        }
+      } catch {
+        // 忽略计算错误
+      }
+    }
+  }
+
+  // 策略 2: 升级量化精度（保持 GPU 数量不变）
+  const betterQuants = QUANT_MAP.filter(q => q.bytes > currentQuant.bytes)
+  for (const quant of betterQuants) {
+    const interconnect = autoInterconnect(currentGpu, currentGpuCount)
+    
+    for (const framework of frameworks) {
+      if (!frameworkSupportsGpu(framework, currentGpu)) continue
+      
+      try {
+        const r = calcAll({
+          gpu: currentGpu,
+          gpuCount: currentGpuCount,
+          ppCount: 1,
+          epCount: 1,
+          interconnect,
+          model,
+          quant,
+          ctx,
+          batch,
+          promptLen,
+          outputLen,
+          framework,
+          flashAttention: true,
+        })
+
+        if (r.vramOk && r.singleToks >= targetSpeed) {
+          upgradePaths.push({
+            type: 'upgrade_quant',
+            gpu: currentGpu,
+            gpuCount: currentGpuCount,
+            ppCount: 1,
+            epCount: 1,
+            totalGpuCount: currentGpuCount,
+            interconnect,
+            quant,
+            framework,
+            vramNeeded: r.totalNeeded,
+            decodeSpeed: r.singleToks,
+            ttft: r.ttft,
+            totalVram: r.totalVram,
+            vramPct: r.vramPct,
+            tpEfficiency: r.tpEfficiency,
+            bottleneck: r.bottleneck,
+            changeDesc: `升级量化到 ${quant.label}`,
+            costMultiplier: 1,
+          })
+        }
+      } catch {
+        // 忽略计算错误
+      }
+    }
+  }
+
+  // 策略 3: 换更大显存的同厂商 GPU（单卡）
+  const sameVendorGpus = GPU_LIST.filter(g => 
+    g.vendor === currentGpu.vendor && 
+    g.vram > currentGpu.vram &&
+    g.id !== currentGpu.id
+  ).sort((a, b) => a.vram - b.vram) // 按显存从小到大排序
+
+  for (const newGpu of sameVendorGpus) {
+    const interconnect = autoInterconnect(newGpu, 1)
+    
+    for (const framework of frameworks) {
+      if (!frameworkSupportsGpu(framework, newGpu)) continue
+      
+      try {
+        const r = calcAll({
+          gpu: newGpu,
+          gpuCount: 1,
+          ppCount: 1,
+          epCount: 1,
+          interconnect,
+          model,
+          quant: currentQuant,
+          ctx,
+          batch,
+          promptLen,
+          outputLen,
+          framework,
+          flashAttention: true,
+        })
+
+        if (r.vramOk && r.singleToks >= targetSpeed) {
+          upgradePaths.push({
+            type: 'upgrade_gpu',
+            gpu: newGpu,
+            gpuCount: 1,
+            ppCount: 1,
+            epCount: 1,
+            totalGpuCount: 1,
+            interconnect,
+            quant: currentQuant,
+            framework,
+            vramNeeded: r.totalNeeded,
+            decodeSpeed: r.singleToks,
+            ttft: r.ttft,
+            totalVram: r.totalVram,
+            vramPct: r.vramPct,
+            tpEfficiency: r.tpEfficiency,
+            bottleneck: r.bottleneck,
+            changeDesc: `换成 ${newGpu.name}`,
+            costMultiplier: newGpu.vram / currentGpu.vram, // 粗略估算成本比例
+          })
+        }
+      } catch {
+        // 忽略计算错误
+      }
+    }
+  }
+
+  onProgress?.(upgradePaths.length, upgradePaths.length)
+  await yieldToMain()
+
+  // 按成本倍数排序（优先推荐成本低的方案）
+  upgradePaths.sort((a, b) => {
+    if (a.costMultiplier !== b.costMultiplier) {
+      return a.costMultiplier - b.costMultiplier
+    }
+    // 成本相同时，优先推荐速度更快的
+    return b.decodeSpeed - a.decodeSpeed
+  })
+
+  // 为每个方案生成 insight
+  for (const path of upgradePaths) {
+    path.insight = generateInsight(path)
+  }
+
+  return { results: upgradePaths, cancelled: isCancelled(shouldCancel) }
 }

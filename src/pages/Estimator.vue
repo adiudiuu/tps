@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
 import TopBar from '../components/layout/TopBar.vue'
 import TwoColumn from '../components/layout/TwoColumn.vue'
 import ScrollingNotice from '../components/ui/ScrollingNotice.vue'
@@ -16,6 +17,7 @@ import { calcAll, calcBatchSweep, aggregateGpuSlots } from '../utils/calc.js'
 import { readUrlState, resolveUrlState, watchUrlState } from '../utils/useUrlState.js'
 
 const { t } = useI18n()
+const router = useRouter()
 const _url = resolveUrlState(readUrlState())
 const defaultModel = ALL_MODELS.find(m => m.id === 'qwen3_6_35b_a3b') ?? ALL_MODELS[0]
 
@@ -103,6 +105,26 @@ function pinCurrentResult() {
 function unpinResult() {
   pinnedResult.value = null
   pinnedConfig.value = null
+}
+
+function goToUpgrade() {
+  if (!result.value || !effectiveGpu.value || !model.value || !quant.value) return
+  
+  // 构建升级模式的 URL 参数
+  const query = {
+    upgrade: '1',
+    gpus: gpuSlots.value.map(s => `${s.gpu.id}:${s.count}`).join(','),
+    ic: interconnect.value?.id,
+    model: model.value.id,
+    quant: quant.value.id,
+    target: Math.ceil(result.value.singleToks * 1.5), // 目标速度：当前速度的 1.5 倍
+    ctx: ctx.value,
+    b: batch.value,
+    prompt: promptLen.value,
+    output: outputLen.value,
+  }
+  
+  router.push({ path: '/solver', query })
 }
 
 watch(model, (m, prev) => {
@@ -404,7 +426,18 @@ const batchSweepData = computed(() => {
         </div>
         <div v-else class="space-y-4">
           <!-- 单列模式 + 固定按钮（仅桌面端显示）/ 移动端显示提示 -->
-          <div v-if="result" class="flex justify-end items-center">
+          <div v-if="result" class="flex justify-end items-center gap-2">
+            <!-- 我想更快按钮 -->
+            <button
+              v-if="result.vramOk"
+              @click="goToUpgrade"
+              class="hidden sm:flex text-xs px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow-sm transition-colors items-center gap-1.5"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+              </svg>
+              {{ t('solver.upgrade_button') }}
+            </button>
             <!-- 桌面端：pin 按钮 -->
             <button
               @click="pinCurrentResult"

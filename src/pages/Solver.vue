@@ -6,8 +6,11 @@ import Header from '../components/layout/Header.vue'
 import ModelPicker from '../components/config/ModelPicker.vue'
 import ResultRowContent from '../components/result/SolverResultRow.vue'
 import { ALL_MODELS } from '../data/models/index.js'
+import { GPU_LIST } from '../data/gpus/index.js'
+import { QUANT_MAP } from '../data/constants.js'
 import {
   solveForModel,
+  solveUpgrade,
   QUANT_FLOOR_OPTIONS,
 } from '../utils/solver.js'
 import { fmtGB, fmtToks, fmtMs } from '../utils/format.js'
@@ -18,6 +21,28 @@ const route = useRoute()
 
 const _p = route.query
 const hasInitialQuery = Object.keys(_p).length > 0
+
+// ── 升级模式检测 ──────────────────────────────────────
+const isUpgradeMode = ref(_p.upgrade === '1')
+
+// 解析当前 GPU
+const parseCurrentGpu = () => {
+  const gpusParam = _p.gpus?.split(',')[0]
+  const gpuId = gpusParam?.split(':')[0] || _p.gpu
+  return GPU_LIST.find(g => g.id === gpuId) ?? null
+}
+const currentGpu = ref(parseCurrentGpu())
+
+// 解析当前 GPU 数量
+const parseCurrentGpuCount = () => {
+  const gpusParam = _p.gpus?.split(',')[0]
+  const count = gpusParam?.split(':')[1]
+  return count ? Number(count) : (_p.n ? Number(_p.n) : 1)
+}
+const currentGpuCount = ref(parseCurrentGpuCount())
+
+const currentQuant = ref(QUANT_MAP.find(q => q.id === _p.quant) ?? QUANT_MAP.find(q => q.id === 'bf16'))
+const targetSpeed = ref(_p.target ? Number(_p.target) : 100)
 
 // ── 模式 A：给定模型 ──────────────────────────────────
 const modelA = ref(ALL_MODELS.find(m => m.id === _p.model) ?? ALL_MODELS.find(m => m.id === 'deepseek_r1') ?? ALL_MODELS[0])
@@ -85,15 +110,31 @@ async function runSolver() {
       },
       shouldCancel: () => runToken.cancelled,
     }
-    const outcome = await solveForModel({
-      model: modelA.value,
-      maxGpuCount: maxGpuCount.value,
-      vendorFilter: vendorFilter.value,
-      quantFloor: quantFloor.value,
-      minDecodeSpeed: minDecodeSpeedA.value ? Number(minDecodeSpeedA.value) : null,
-      maxTtft: maxTtft.value ? Number(maxTtft.value) : null,
-      ...commonParams,
-    })
+    
+    let outcome
+    if (isUpgradeMode.value && currentGpu.value && currentQuant.value) {
+      // 升级模式：枚举最小改动方案
+      outcome = await solveUpgrade({
+        currentGpu: currentGpu.value,
+        currentGpuCount: currentGpuCount.value,
+        currentQuant: currentQuant.value,
+        model: modelA.value,
+        targetSpeed: targetSpeed.value,
+        ...commonParams,
+      })
+    } else {
+      // 标准模式：全量搜索
+      outcome = await solveForModel({
+        model: modelA.value,
+        maxGpuCount: maxGpuCount.value,
+        vendorFilter: vendorFilter.value,
+        quantFloor: quantFloor.value,
+        minDecodeSpeed: minDecodeSpeedA.value ? Number(minDecodeSpeedA.value) : null,
+        maxTtft: maxTtft.value ? Number(maxTtft.value) : null,
+        ...commonParams,
+      })
+    }
+    
     if (activeRunToken.value !== runToken) return
     if (outcome.cancelled) {
       wasCancelled.value = true
@@ -190,8 +231,21 @@ onMounted(() => {
     <main class="pt-14 sm:pt-16 max-w-7xl mx-auto px-3 sm:px-4 pb-16">
       <!-- 页面标题 -->
       <div class="py-6 sm:py-8">
-        <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">{{ t('solver.title') }}</h1>
-        <p class="mt-1 text-sm text-gray-500">{{ t('solver.subtitle') }}</p>
+        <div class="flex items-center gap-3 mb-2">
+          <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">{{ t('solver.title') }}</h1>
+          <span v-if="isUpgradeMode" class="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">
+            {{ t('solver.upgrade_mode') }}
+          </span>
+        </div>
+        <p v-if="!isUpgradeMode" class="mt-1 text-sm text-gray-500">{{ t('solver.subtitle') }}</p>
+        <p v-else class="mt-1 text-sm text-gray-600">
+          {{ t('solver.upgrade_current_config', { 
+            gpu: currentGpu?.name || '—', 
+            count: currentGpuCount, 
+            quant: currentQuant?.label || '—', 
+            target: targetSpeed 
+          }) }}
+        </p>
         <RouterLink to="/ranking" class="inline-flex mt-3 text-sm font-medium text-emerald-700 hover:text-emerald-800">
           {{ t('solver.reverse_link') }}
         </RouterLink>

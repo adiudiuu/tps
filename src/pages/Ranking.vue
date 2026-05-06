@@ -51,7 +51,7 @@ const effectiveGpu = computed(() => {
 })
 
 // ── 排序 & 基础筛选 ──────────────────────────────────
-const sortBy          = ref(['speed','prefill','vram','params'].includes(_p.sort) ? _p.sort : 'speed')
+const sortBy          = ref(['speed','prefill','vram','params','vram_free','efficiency'].includes(_p.sort) ? _p.sort : 'speed')
 const filterType      = ref(['all','dense','moe'].includes(_p.type) ? _p.type : 'all')
 const showOnlyRunnable = ref(_p.runnable === '0' ? false : true)
 
@@ -231,6 +231,16 @@ function _buildRawResults() {
       if (!a.result) return 1
       if (!b.result) return -1
       return a.result.totalNeeded - b.result.totalNeeded
+    } else if (sortBy.value === 'vram_free') {
+      if (!a.result) return 1
+      if (!b.result) return -1
+      return (b.result.totalVram - b.result.totalNeeded) - (a.result.totalVram - a.result.totalNeeded)
+    } else if (sortBy.value === 'efficiency') {
+      if (!a.result) return 1
+      if (!b.result) return -1
+      const aEff = a.result.tokPerJoule ?? 0
+      const bEff = b.result.tokPerJoule ?? 0
+      return bEff - aEff
     } else {
       return b.model.params - a.model.params
     }
@@ -386,6 +396,8 @@ function useThisModel(modelData) {
               <option value="speed">{{ t('ranking.sort_speed') }}</option>
               <option value="prefill">{{ t('ranking.sort_prefill') }}</option>
               <option value="vram">{{ t('ranking.sort_vram') }}</option>
+              <option value="vram_free">{{ t('ranking.sort_vram_free') }}</option>
+              <option value="efficiency">{{ t('ranking.sort_efficiency') }}</option>
               <option value="params">{{ t('ranking.sort_params') }}</option>
             </select>
           </div>
@@ -493,7 +505,9 @@ function useThisModel(modelData) {
                 <th class="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">{{ t('ranking.table_params') }}</th>
                 <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">{{ t('ranking.table_best_quant') }}</th>
                 <th class="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">{{ t('ranking.table_vram') }}</th>
+                <th class="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">{{ t('ranking.table_vram_free') }}</th>
                 <th class="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">{{ t('ranking.table_speed') }}</th>
+                <th class="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">{{ t('ranking.table_efficiency') }}</th>
                 <th class="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">{{ t('ranking.table_status') }}</th>
                 <th class="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">{{ t('ranking.table_action') }}</th>
               </tr>
@@ -527,7 +541,17 @@ function useThisModel(modelData) {
                   <span v-else class="text-sm text-gray-400">—</span>
                 </td>
                 <td class="px-4 py-3 text-right">
+                  <span v-if="item.result" class="text-sm text-gray-700">{{ fmtGB(item.result.totalVram - item.result.totalNeeded) }}</span>
+                  <span v-else class="text-sm text-gray-400">—</span>
+                </td>
+                <td class="px-4 py-3 text-right">
                   <span v-if="item.result" class="text-sm font-medium text-gray-900">{{ fmtToks(item.result.singleToks) }}</span>
+                  <span v-else class="text-sm text-gray-400">—</span>
+                </td>
+                <td class="px-4 py-3 text-right">
+                  <span v-if="item.result && item.result.tokPerJoule" class="text-sm text-gray-700" :title="`${item.result.tokPerJoule.toFixed(6)} tok/J`">
+                    {{ (item.result.tokPerJoule * 1000).toFixed(1) }}
+                  </span>
                   <span v-else class="text-sm text-gray-400">—</span>
                 </td>
                 <td class="px-4 py-3 text-center">
