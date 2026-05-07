@@ -33,6 +33,7 @@ const props = defineProps({
   draftLen:            { type: Number, default: 4 },
   cpuOffload:          { type: Boolean, default: false },
   pureCpu:             { type: Boolean, default: false },
+  nglCount:            { type: Number, default: null },
 })
 const framework = defineModel('framework', { required: true })
 const quant = defineModel('quant', { required: true })
@@ -97,6 +98,7 @@ const quant = defineModel('quant', { required: true })
       :draft-len="draftLen"
       :cpu-offload="cpuOffload"
       :pure-cpu="pureCpu"
+      :ngl-count="nglCount"
     />
     <LatencyCard :result="result" :readonly="readonly" />
     <div :class="compact ? 'grid grid-cols-1 gap-4' : 'grid grid-cols-1 lg:grid-cols-2 gap-4'">

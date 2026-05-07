@@ -26,10 +26,20 @@ function formatCmd(parts, notes = []) {
 /**
  * 计算 llama.cpp 的 --n-gpu-layers 值
  */
-function calcNgl(model, cpuOffload, pureCpu) {
+function calcNgl(model, cpuOffload, pureCpu, nglCount) {
   if (pureCpu) return null
+  
   // MoE + cpuOffload → 使用 --cpu-moe，attention 层全部在 GPU，NGL = 999
-  // Dense + cpuOffload → NGL 按层数计算
+  if (cpuOffload && model.type === 'moe') {
+    return 999
+  }
+  
+  // Dense + cpuOffload → NGL 分层，使用用户指定的层数
+  if (cpuOffload && model.type !== 'moe' && nglCount != null) {
+    return nglCount
+  }
+  
+  // 其他情况：全部在 GPU
   return 999
 }
 
@@ -214,7 +224,7 @@ const GGUF_QUANT_MAP = {
  * Metal 为 macOS 默认后端，命令与 llamacpp 完全相同
  */
 function genLlamacpp(config) {
-  const { model, ctx, batch, quant, cpuOffload, pureCpu } = config
+  const { model, ctx, batch, quant, cpuOffload, pureCpu, nglCount } = config
   const ggufInfo = GGUF_QUANT_MAP[quant.id] ?? { suffix: 'Q4_K_M', note: null }
 
   // 模型文件名：用 model.id 作为基础名
@@ -222,7 +232,7 @@ function genLlamacpp(config) {
   const ggufSuffix = ggufInfo.suffix
   const modelPath = `./models/${modelName}-${ggufSuffix}.gguf`
 
-  const ngl = calcNgl(model, cpuOffload, pureCpu)
+  const ngl = calcNgl(model, cpuOffload, pureCpu, nglCount)
   const parts = [`llama-server`]
   const notes = []
 
@@ -316,6 +326,7 @@ export function getFrameworkDocsUrl(frameworkId) {
  * @param {number}  config.draftLen
  * @param {boolean} config.cpuOffload    - MoE CPU offload 模式
  * @param {boolean} config.pureCpu       - 纯 CPU 推理模式
+ * @param {number}  [config.nglCount]    - llama.cpp NGL 层数（仅 dense + cpuOffload 时使用）
  * @returns {string|null}               - 命令字符串，不支持时返回 null
  */
 export function generateCmd(framework, config) {

@@ -25,6 +25,7 @@ const props = defineProps({
   draftLen:            { type: Number, default: 4 },
   cpuOffload:          { type: Boolean, default: false },
   pureCpu:             { type: Boolean, default: false },
+  nglCount:            { type: Number, default: null },
 })
 const framework = defineModel('framework', { required: true })
 
@@ -69,6 +70,7 @@ const generatedCmd = computed(() =>
     draftLen: props.draftLen,
     cpuOffload: props.cpuOffload,
     pureCpu: props.pureCpu,
+    nglCount: props.nglCount,
   })
 )
 
