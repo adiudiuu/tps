@@ -75,6 +75,12 @@ watch(() => props.framework, (newFramework) => {
 const isLlamaCppFramework = computed(() => props.framework?.id === 'llamacpp')
 const effectiveNgl = computed(() => nglCount.value ?? Math.floor((props.model?.layers ?? 32) / 2))
 
+// MoE + llamacpp + offload 时清除 nglCount（不需要 NGL 滑块）
+watch([cpuOffload, () => props.framework, () => props.model], ([co, fw, m]) => {
+  const isLlamaCppHybridDense = co && fw?.id === 'llamacpp' && m?.type !== 'moe'
+  if (!isLlamaCppHybridDense) nglCount.value = null
+})
+
 const BASE_CTX_OPTIONS = [512, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072, 262144, 524288, 1048576, 2097152, 4194304, 10485760]
 const BATCH_OPTIONS = [1, 2, 4, 8, 16, 32, 64, 128, 256]
 
@@ -291,8 +297,8 @@ const ctxOptions = computed(() => {
           >{{ t('run.compute_mode_cpu') }}</button>
         </div>
 
-        <!-- llama.cpp 混合推理：GPU 层数 + DDR 带宽 -->
-        <template v-if="cpuOffload && !pureCpu && isLlamaCppFramework">
+        <!-- llamacpp + dense：NGL 分层，DDR 带宽 -->
+        <template v-if="cpuOffload && !pureCpu && isLlamaCppFramework && props.model?.type !== 'moe'">
           <label class="flex items-center justify-between text-xs text-gray-500 mt-2 mb-1.5">
             <span class="flex items-center gap-1">{{ t('run.ngl_count') }}<TipIcon :text="t('run.ngl_count_tip')" /></span>
             <span class="text-emerald-700 font-medium">{{ effectiveNgl }} / {{ props.model?.layers ?? '?' }} {{ t('run.layers') }}</span>
@@ -327,8 +333,8 @@ const ctxOptions = computed(() => {
           </p>
         </template>
 
-        <!-- 非 llama.cpp：MoE CPU Offload PCIe 带宽 + 插槽宽度选择 -->
-        <template v-if="cpuOffload && !pureCpu && !isLlamaCppFramework">
+        <!-- llamacpp + MoE 或非 llamacpp：expert PCIe offload -->
+        <template v-if="cpuOffload && !pureCpu && (!isLlamaCppFramework || props.model?.type === 'moe')">
           <label class="flex items-center gap-1 text-xs text-gray-500 mt-2 mb-1.5">{{ t('run.pcie_bw') }}<TipIcon :text="t('run.pcie_bw_tip')" /></label>
           <div class="flex gap-1.5 flex-wrap">
             <button

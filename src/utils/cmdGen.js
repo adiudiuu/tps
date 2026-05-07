@@ -28,12 +28,8 @@ function formatCmd(parts, notes = []) {
  */
 function calcNgl(model, cpuOffload, pureCpu) {
   if (pureCpu) return null
-  if (cpuOffload && model.type === 'moe') {
-    const gpuLayers = model.local_layers != null
-      ? model.local_layers
-      : Math.round((model.layers ?? 32) * 0.25)
-    return gpuLayers
-  }
+  // MoE + cpuOffload → 使用 --cpu-moe，attention 层全部在 GPU，NGL = 999
+  // Dense + cpuOffload → NGL 按层数计算
   return 999
 }
 
@@ -236,9 +232,13 @@ function genLlamacpp(config) {
 
   if (ngl != null) {
     parts.push(`--n-gpu-layers ${ngl}`)
-    if (cpuOffload && model.type === 'moe') {
-      notes.push(`# Note: --n-gpu-layers set to ${ngl} for MoE CPU offload; adjust based on available VRAM`)
-    }
+  }
+
+  // MoE expert offload：单独追加 --cpu-moe 参数
+  if (cpuOffload && model.type === 'moe') {
+    parts.push(`--cpu-moe`)
+    notes.push(`# Note: --cpu-moe offloads MoE expert weights to CPU RAM, routed via PCIe each step`)
+    notes.push(`# Note: attention/norm layers remain on GPU; PCIe bandwidth is the bottleneck`)
   }
 
   if (pureCpu) parts.push(`--threads <CPU_THREADS>`)

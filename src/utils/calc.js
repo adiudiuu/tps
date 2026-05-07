@@ -108,7 +108,7 @@ export function calcAll({
   //   × 1.5 覆盖 attention / embedding / normalization 等始终驻留 GPU 的非 MoE 层
   const weightGB = isEP
     ? epWeightGB
-    : (cpuOffload && model.type === 'moe' && framework?.id !== 'llamacpp')
+    : (cpuOffload && model.type === 'moe')  // 去掉 !== 'llamacpp' 的排除
       ? model.active_params * quant.bytes * 1.5
       : model.params * quant.bytes
   // Vision encoder：encoder 权重独立于 LLM backbone（如已包含在 params 内则不重复计算）
@@ -155,7 +155,10 @@ export function calcAll({
   const activationGB = Math.min(batch * (model.hidden_size ?? 4096) * 4 * 2 / 1e9 * 4, 2.0)
   const overheadGB  = Math.max(1.0, Math.min(weightGB * 0.03, 5.0)) + activationGB
   // llama.cpp 混合推理：GPU 只持有前 nglCount 层的权重和 KV Cache
-  const isLlamaCppHybrid = cpuOffload && framework?.id === 'llamacpp'
+  // MoE + llamacpp + offload → --cpu-moe，PCIe expert offload，不是 NGL 分层
+  const isLlamaCppMoeCpuOffload = cpuOffload && framework?.id === 'llamacpp' && model.type === 'moe'
+  // Dense + llamacpp + offload → NGL 分层，DDR 带宽（原逻辑不变）
+  const isLlamaCppHybrid = cpuOffload && framework?.id === 'llamacpp' && model.type !== 'moe'
   const _effectiveNgl = isLlamaCppHybrid ? (nglCount ?? Math.floor(model.layers / 2)) : model.layers
   const gpuLayerRatio = isLlamaCppHybrid ? Math.min(1, Math.max(0, _effectiveNgl / Math.max(model.layers, 1))) : 1.0
   // PP：每个 pipeline stage 只持有 1/ppCount 的权重和 KV Cache
@@ -165,11 +168,11 @@ export function calcAll({
   // CPU RAM 需求（仅在涉及 CPU 内存的模式下有效）
   // pureCpu: 全部权重 + KV Cache 都在 DDR
   // llamacpp 混合: CPU 层权重 + 对应比例 KV Cache 在 DDR
-  // MoE CPU Offload (非 llamacpp): expert 权重放 CPU RAM，non-expert + KV Cache 在 GPU HBM
+  // MoE CPU Offload: expert 权重放 CPU RAM，non-expert + KV Cache 在 GPU HBM
   const cpuRamNeededGB = (() => {
     if (pureCpu) return weightGB + kvGB + overheadGB
     if (isLlamaCppHybrid) return (1 - gpuLayerRatio) * (model.params * quant.bytes + kvGB)
-    if (cpuOffload && model.type === 'moe' && framework?.id !== 'llamacpp') {
+    if (cpuOffload && model.type === 'moe') {  // 去掉 !== 'llamacpp'，MoE offload 统一计算
       return Math.max(0, model.params * quant.bytes - weightGB)
     }
     return 0
@@ -260,6 +263,7 @@ export function calcAll({
     bwLimit = batch / Math.max(t_gpu + t_cpu, 1e-9)
     effectiveBw = cpuMemBw.bw
   } else if (cpuOffload && model.type === 'moe' && pcieBw != null) {
+    // ── PCIe expert offload 路径（--cpu-moe，适用于所有框架包括 llamacpp）
     let expertIOPerStep
     if (model.experts && model.experts_per_token) {
       // 有字段时精确计算：代数推导非专家参数量
