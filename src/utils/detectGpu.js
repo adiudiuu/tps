@@ -1,9 +1,37 @@
 // src/utils/detectGpu.js
-// 通过 WebGPU / WebGL 检测本机 GPU，并匹配 GPU_LIST 数据库
-// Apple Silicon 额外通过带宽测量 + GPU Cores 估算 + 内存推断进行多维评分匹配
+// 通过 WebGPU / WebGL 检测本机 GPU，并匹配 GPU_LIST 数据库。
+// Apple Silicon 额外通过带宽测量 + 内存推断做多维匹配。
 import { GPU_LIST } from '../data/gpus/index.js'
 
-// ── WebGPU 带宽测量（Storage Buffer Copy） ───────────────────────────
+function normalizeGpuName(rawName) {
+  return String(rawName || '')
+    .toUpperCase()
+    .replace(/\(TM\)/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function isLikelyHumanReadableGpuName(value) {
+  if (!value) return false
+  const s = String(value).trim()
+  if (!s) return false
+  // GPUAdapterInfo.device 可能只是设备 ID，不适合直接当显卡型号。
+  if (/^(0X)?[0-9A-F]{4,}$/i.test(s)) return false
+  if (/^\d+$/.test(s)) return false
+  return true
+}
+
+function pushCandidate(list, value) {
+  if (!isLikelyHumanReadableGpuName(value)) return
+  const raw = String(value).trim()
+  const normalized = normalizeGpuName(raw)
+  if (!normalized) return
+  if (!list.some(item => item.normalized === normalized)) {
+    list.push({ raw, normalized })
+  }
+}
+
+// WebGPU 带宽测量（Storage Buffer Copy）
 async function measureBandwidth(adapter, vendor) {
   try {
     const device = await adapter.requestDevice()
@@ -41,33 +69,35 @@ async function measureBandwidth(adapter, vendor) {
       pass.end()
       device.queue.submit([enc.finish()])
     }
-    // 预热
-    dispatch(); await device.queue.onSubmittedWorkDone()
+    dispatch()
+    await device.queue.onSubmittedWorkDone()
     const RUNS = 10
     const t0 = performance.now()
     for (let i = 0; i < RUNS; i++) dispatch()
     await device.queue.onSubmittedWorkDone()
     const ms = performance.now() - t0
-    src.destroy(); dst.destroy(); device.destroy()
-    // 每次读写各一次，按 vendor 分档校正利用率
-    // Apple Silicon 实测约 0.70，NVIDIA 独显约 0.55，AMD 约 0.58，其他 0.60
+    src.destroy()
+    dst.destroy()
+    device.destroy()
     const v = (vendor || '').toLowerCase()
-    const correction = v.includes('apple')  ? 0.70
-                     : v.includes('nvidia') ? 0.55
-                     : v.includes('amd')    ? 0.58
-                     : 0.60
+    const correction = v.includes('apple') ? 0.70
+      : v.includes('nvidia') ? 0.55
+      : v.includes('amd') ? 0.58
+      : 0.60
     return Math.round(byteSize * 2 * RUNS / ms / 1e6 / correction)
   } catch {
     return null
   }
 }
 
-// ── WebGL 带宽估算（纹理采样）──────────────────────────────────────────
+// WebGL 带宽估算（纹理采样）
 function measureGlslBandwidth() {
   try {
     const canvas = document.createElement('canvas')
-    const SIZE = 2048, TAPS = 32
-    canvas.width = SIZE; canvas.height = SIZE
+    const SIZE = 2048
+    const TAPS = 32
+    canvas.width = SIZE
+    canvas.height = SIZE
     const gl = canvas.getContext('webgl2')
     if (!gl) return null
     const vert = `#version 300 es
@@ -79,122 +109,78 @@ function measureGlslBandwidth() {
       void main() {
         vec4 s = vec4(0); float step = 1.0/${SIZE}.0;
         for (int i=0;i<${TAPS};i++) s += texture(u_tex, fract(v_uv+vec2(float(i)*step,float(i)*step*0.73)));
-        o = s * ${(1/TAPS).toFixed(6)};
+        o = s * ${(1 / TAPS).toFixed(6)};
       }`
     const mkShader = (type, src) => {
       const s = gl.createShader(type)
-      gl.shaderSource(s, src); gl.compileShader(s)
+      gl.shaderSource(s, src)
+      gl.compileShader(s)
       return gl.getShaderParameter(s, gl.COMPILE_STATUS) ? s : null
     }
     const vs = mkShader(gl.VERTEX_SHADER, vert)
     const fs = mkShader(gl.FRAGMENT_SHADER, frag)
     if (!vs || !fs) return null
     const prog = gl.createProgram()
-    gl.attachShader(prog, vs); gl.attachShader(prog, fs); gl.linkProgram(prog)
+    gl.attachShader(prog, vs)
+    gl.attachShader(prog, fs)
+    gl.linkProgram(prog)
     if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) return null
     const vbo = gl.createBuffer()
     gl.bindBuffer(gl.ARRAY_BUFFER, vbo)
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1,1,-1,-1,1,1,1]), gl.STATIC_DRAW)
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW)
     const loc = gl.getAttribLocation(prog, 'a_pos')
-    gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0)
+    gl.enableVertexAttribArray(loc)
+    gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0)
     const tex = gl.createTexture()
     gl.bindTexture(gl.TEXTURE_2D, tex)
-    const px = new Uint8Array(SIZE*SIZE*4)
-    for (let i=0;i<px.length;i++) px[i] = (i*7+13) & 255
-    gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA8,SIZE,SIZE,0,gl.RGBA,gl.UNSIGNED_BYTE,px)
-    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.NEAREST)
-    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.NEAREST)
-    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.REPEAT)
-    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.REPEAT)
-    const fb = gl.createFramebuffer(), fbTex = gl.createTexture()
+    const px = new Uint8Array(SIZE * SIZE * 4)
+    for (let i = 0; i < px.length; i++) px[i] = (i * 7 + 13) & 255
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, SIZE, SIZE, 0, gl.RGBA, gl.UNSIGNED_BYTE, px)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT)
+    const fb = gl.createFramebuffer()
+    const fbTex = gl.createTexture()
     gl.bindTexture(gl.TEXTURE_2D, fbTex)
-    gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA8,SIZE,SIZE,0,gl.RGBA,gl.UNSIGNED_BYTE,null)
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, SIZE, SIZE, 0, gl.RGBA, gl.UNSIGNED_BYTE, null)
     gl.bindFramebuffer(gl.FRAMEBUFFER, fb)
-    gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,gl.TEXTURE_2D,fbTex,0)
-    gl.useProgram(prog); gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, tex)
-    gl.uniform1i(gl.getUniformLocation(prog,'u_tex'),0); gl.viewport(0,0,SIZE,SIZE)
-    gl.drawArrays(gl.TRIANGLE_STRIP,0,4); gl.finish()
-    const RUNS = 10, t0 = performance.now()
-    for (let i=0;i<RUNS;i++) gl.drawArrays(gl.TRIANGLE_STRIP,0,4)
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, fbTex, 0)
+    gl.useProgram(prog)
+    gl.activeTexture(gl.TEXTURE0)
+    gl.bindTexture(gl.TEXTURE_2D, tex)
+    gl.uniform1i(gl.getUniformLocation(prog, 'u_tex'), 0)
+    gl.viewport(0, 0, SIZE, SIZE)
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
+    gl.finish()
+    const RUNS = 10
+    const t0 = performance.now()
+    for (let i = 0; i < RUNS; i++) gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
     gl.finish()
     const ms = performance.now() - t0
-    gl.deleteTexture(tex); gl.deleteTexture(fbTex); gl.deleteFramebuffer(fb)
-    gl.deleteProgram(prog); gl.deleteShader(vs); gl.deleteShader(fs); gl.deleteBuffer(vbo)
-    const bw = Math.round((SIZE*SIZE*TAPS*4*RUNS + SIZE*SIZE*4*RUNS) / ms / 1e6 / 0.35)
+    gl.deleteTexture(tex)
+    gl.deleteTexture(fbTex)
+    gl.deleteFramebuffer(fb)
+    gl.deleteProgram(prog)
+    gl.deleteShader(vs)
+    gl.deleteShader(fs)
+    gl.deleteBuffer(vbo)
+    const bw = Math.round((SIZE * SIZE * TAPS * 4 * RUNS + SIZE * SIZE * 4 * RUNS) / ms / 1e6 / 0.35)
     return (bw >= 15 && bw <= 4000) ? bw : null
   } catch {
     return null
   }
 }
 
-// ── WebGPU GPU Cores 估算（Compute Benchmark） ───────────────────────
-// vendor 前缀用于校正 FLOPS→Cores 的比例系数
-// Intel：Alchemist（Xe，Arc A 系列）= 16 FLOPS/core；Battlemage（Xe2，Arc B 系列）= 32 FLOPS/core
-// 默认取 Battlemage 值（32），Alchemist 型号在名称匹配时乘 0.5 修正（见 matchGpuByName）
-const VENDOR_FLOPS_PER_CORE = { apple: 400, nvidia: 5, amd: 4.5, intel: 32 }
-
-async function estimateGpuCores(adapter, vendorHint) {
-  try {
-    const device = await adapter.requestDevice()
-    const N = 512 * 1024, ITERS = 512
-    const shader = device.createShaderModule({
-      code: `
-        @group(0) @binding(0) var<storage, read_write> data: array<f32>;
-        @compute @workgroup_size(256)
-        fn main(@builtin(global_invocation_id) id: vec3u) {
-          let idx = id.x;
-          if (idx >= ${N}u) { return; }
-          var x: f32 = f32(idx) * 0.001;
-          for (var i: u32 = 0; i < ${ITERS}u; i++) { x = x * 1.0001 + 0.0001; }
-          data[idx] = x;
-        }
-      `
-    })
-    const buf = device.createBuffer({ size: N * 4, usage: GPUBufferUsage.STORAGE })
-    const pipeline = device.createComputePipeline({ layout: 'auto', compute: { module: shader, entryPoint: 'main' } })
-    const bg = device.createBindGroup({ layout: pipeline.getBindGroupLayout(0), entries: [{ binding: 0, resource: { buffer: buf } }] })
-    const run = () => {
-      const enc = device.createCommandEncoder()
-      const pass = enc.beginComputePass()
-      pass.setPipeline(pipeline); pass.setBindGroup(0, bg)
-      pass.dispatchWorkgroups(Math.ceil(N / 256)); pass.end()
-      device.queue.submit([enc.finish()])
-      return device.queue.onSubmittedWorkDone()
-    }
-    await run()
-    const t0 = performance.now(); await run()
-    const ms = performance.now() - t0
-    buf.destroy(); device.destroy()
-    const gflops = N * ITERS * 2 / ms / 1e6
-    const hint = (vendorHint || '').toLowerCase()
-    for (const [v, ratio] of Object.entries(VENDOR_FLOPS_PER_CORE)) {
-      if (hint.includes(v)) {
-        let r = ratio
-        // Alchemist（Arc A 系列，Xe 架构）FLOPS/core 约为 Battlemage 的一半
-        if (v === 'intel' && /arc\s*a\d/i.test(vendorHint || '')) r = r * 0.5
-        return Math.round(gflops / r)
-      }
-    }
-    return null
-  } catch {
-    return null
-  }
-}
-
-// ── WebGPU maxBufferSize → 推断 VRAM ────────────────────────────────
-// Chrome 在所有 Apple Silicon 上将 adapter.limits.maxBufferSize 统一限制到 4GB，
-// 因此 ≤ 4.5GB 的值不可信（无法区分 16GB/32GB），直接返回 null。
-// Safari 会暴露真实值（≈总内存 × 75%）。
+// WebGPU maxBufferSize -> 推断 VRAM
 function estimateVramFromAdapter(adapter) {
   try {
     const bytes = adapter?.limits?.maxBufferSize
     if (!bytes) return null
     const gb = bytes / 1024 ** 3
-    // Chrome 默认上限为 4GB，视为不可信
     if (gb <= 4.5) return null
-    // Safari 等暴露真实限制：maxBufferSize ≈ totalRAM × 0.75
     const totalGB = gb / 0.75
-    const candidates = [8,16,18,24,32,36,48,64,96,128,192,256,512]
+    const candidates = [8, 16, 18, 24, 32, 36, 48, 64, 96, 128, 192, 256, 512]
     let best = candidates[0]
     for (const c of candidates) {
       if (Math.abs(c - totalGB) < Math.abs(best - totalGB)) best = c
@@ -205,26 +191,22 @@ function estimateVramFromAdapter(adapter) {
   }
 }
 
-// ── 通过 requestDevice 探测 Apple Silicon 实际内存 ───────────────────
-// Chrome 虽然将默认 device.maxBufferSize 限制在 4GB，
-// 但 requestDevice({ requiredLimits: { maxBufferSize: N } }) 会透传给
-// Metal 后端验证，从而可以区分 16GB / 32GB / 64GB 等配置。
+// 通过 requestDevice 探测 Apple Silicon 实际内存
 async function probeAppleRamGB(adapter) {
   const GB = 1024 ** 3
-  // 阈值取各档内存 × 0.75 的保守值（Metal 可分配上限约为总内存 75%）
   const PROBES = [
-    { limitGB: 286, ramGB: 384 },  // M4 Ultra 预留
-    { limitGB: 142, ramGB: 192 },  // M2 Ultra 192GB
-    { limitGB:  94, ramGB: 128 },  // M3/M4/M5 Max 128GB
-    { limitGB:  70, ramGB:  96 },  // M3 Max 96GB
-    { limitGB:  46, ramGB:  64 },  // M2/M3/M4/M5 Max/Pro 64GB
-    { limitGB:  34, ramGB:  48 },  // M4/M5 Max/Pro 48GB
-    { limitGB:  25, ramGB:  36 },  // M3/M4 Max 36GB
-    { limitGB:  22, ramGB:  32 },  // M2/M4/M5 32GB
-    { limitGB:  16, ramGB:  24 },  // M3/M4/M5 24GB
-    { limitGB:  12, ramGB:  18 },  // M3 Pro 18GB
-    { limitGB:  10, ramGB:  16 },  // M1/M2/M3/M4 16GB
-    { limitGB:   5, ramGB:   8 },  // M3 8GB
+    { limitGB: 286, ramGB: 384 },
+    { limitGB: 142, ramGB: 192 },
+    { limitGB: 94, ramGB: 128 },
+    { limitGB: 70, ramGB: 96 },
+    { limitGB: 46, ramGB: 64 },
+    { limitGB: 34, ramGB: 48 },
+    { limitGB: 25, ramGB: 36 },
+    { limitGB: 22, ramGB: 32 },
+    { limitGB: 16, ramGB: 24 },
+    { limitGB: 12, ramGB: 18 },
+    { limitGB: 10, ramGB: 16 },
+    { limitGB: 5, ramGB: 8 },
   ]
   for (const { limitGB, ramGB } of PROBES) {
     try {
@@ -234,28 +216,24 @@ async function probeAppleRamGB(adapter) {
       dev.destroy()
       return ramGB
     } catch {
-      // 该档内存不满足，继续探测下一档
+      // Continue probing smaller tiers.
     }
   }
   return null
 }
 
-// ── Apple Silicon 多维评分匹配 ────────────────────────────────────────
-// 通过测量带宽 + 估算内存 + 估算 GPU Cores 选出最可能的型号
+// Apple Silicon 多维评分匹配
 async function matchAppleSilicon({ adapter, measuredBW, estimatedRAM, chipFamily }) {
-  // 优先用 requestDevice 探测内存（可区分 16GB/32GB 等同频率型号）
   if (estimatedRAM === null && adapter) {
     estimatedRAM = await probeAppleRamGB(adapter)
   }
   const appleGpus = GPU_LIST.filter(g => g.vendor === 'apple')
-  // 如果 chipFamily 明确（如 "m4 max"），先按 family 筛选
   const candidates = chipFamily
     ? appleGpus.filter(g => g.id.startsWith('apple_' + chipFamily.replace(/ /g, '_')))
     : appleGpus
 
-  // Apple GPU_LIST 中没有 gpuCores 字段，但 bw 差异足够区分型号
-  // 用 bw 和 vram 双维度评分
-  let best = null, bestScore = -1
+  let best = null
+  let bestScore = -1
   for (const g of (candidates.length > 0 ? candidates : appleGpus)) {
     let score = 0
     if (measuredBW !== null) {
@@ -266,20 +244,21 @@ async function matchAppleSilicon({ adapter, measuredBW, estimatedRAM, chipFamily
       const ratio = estimatedRAM / g.vram
       score += 40 * Math.max(0, 1 - Math.abs(1 - ratio))
     }
-    if (score > bestScore) { bestScore = score; best = g }
+    if (score > bestScore) {
+      bestScore = score
+      best = g
+    }
   }
   return bestScore > 5 ? best : null
 }
 
-// ── 非 Apple GPU：对 GPU_LIST 全量做最长名称子串匹配 ─────────────────
+// 非 Apple GPU：对 GPU_LIST 全量做最长名称子串匹配
 function matchGpuByName(rawName) {
-  const name = rawName.toUpperCase()
-    .replace(/\(TM\)/gi, '').replace(/\s+/g, ' ').trim()
+  const name = normalizeGpuName(rawName)
 
-  // 特殊优先规则（避免短串误匹配，如 "L4" 匹配到 "L40S"）
   const PRIORITY_RULES = [
-    { kw: 'L40S',   id: 'l40s' },
-    { kw: 'L40',    id: 'l40' },
+    { kw: 'L40S', id: 'l40s' },
+    { kw: 'L40', id: 'l40' },
     { kw: 'H100 PCIE', id: 'h100_pcie' },
     { kw: 'A100 PCIE 80', id: 'a100_pcie_80g' },
     { kw: 'A100 PCIE 40', id: 'a100_pcie_40g' },
@@ -299,16 +278,25 @@ function matchGpuByName(rawName) {
     }
   }
 
-  // 对所有非 Apple GPU 做最长名称子串匹配
-  let best = null, bestLen = 0
+  let best = null
+  let bestLen = 0
   for (const g of GPU_LIST) {
     if (g.vendor === 'apple') continue
     const gName = g.name.toUpperCase()
     if (name.includes(gName) && gName.length > bestLen) {
-      best = g; bestLen = gName.length
+      best = g
+      bestLen = gName.length
     }
   }
   return best
+}
+
+function matchGpuFromCandidates(candidates) {
+  for (const candidate of candidates) {
+    const gpu = matchGpuByName(candidate.raw)
+    if (gpu) return { gpu, rawName: candidate.raw }
+  }
+  return { gpu: null, rawName: candidates[0]?.raw ?? null }
 }
 
 /**
@@ -316,50 +304,41 @@ function matchGpuByName(rawName) {
  * @returns {Promise<{gpu: object|null, rawName: string|null, error: string|null}>}
  */
 export async function detectLocalGpu() {
-  let rawName = null
+  const candidates = []
   let adapter = null
 
-  // 1. 尝试 WebGPU 获取 adapter 和原始名称
+  // WebGPU：优先读取 description，device 只作为弱兜底。
   if (navigator.gpu) {
     try {
       adapter = await navigator.gpu.requestAdapter()
       if (adapter) {
         const info = adapter.info ?? await adapter.requestAdapterInfo().catch(() => null)
-        rawName = info?.device || info?.description || null
+        pushCandidate(candidates, info?.description)
+        pushCandidate(candidates, info?.vendor && info?.architecture ? `${info.vendor} ${info.architecture}` : null)
+        pushCandidate(candidates, info?.vendor)
+        pushCandidate(candidates, info?.device)
       }
     } catch {}
   }
 
-  // 2. 降级 WebGL 获取原始名称
-  if (!rawName) {
-    try {
-      const canvas = document.createElement('canvas')
-      const gl = canvas.getContext('webgl2') || canvas.getContext('webgl')
-      if (gl) {
-        const ext = gl.getExtension('WEBGL_debug_renderer_info')
-        if (ext) {
-          rawName = gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) || null
-        }
-        // 降级：如果 WEBGL_debug_renderer_info 不可用（Firefox/Safari 隐私模式），使用标准 RENDERER
-        if (!rawName) {
-          rawName = gl.getParameter(gl.RENDERER) || null
-        }
+  // WebGL：即便 WebGPU 已经返回，也继续收集更具体的 renderer 作为兜底。
+  try {
+    const canvas = document.createElement('canvas')
+    const gl = canvas.getContext('webgl2') || canvas.getContext('webgl')
+    if (gl) {
+      const ext = gl.getExtension('WEBGL_debug_renderer_info')
+      if (ext) {
+        pushCandidate(candidates, gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) || null)
       }
-    } catch {}
-  }
+      pushCandidate(candidates, gl.getParameter(gl.RENDERER) || null)
+    }
+  } catch {}
 
-  if (!rawName) return { gpu: null, rawName: null, error: 'no_webgpu' }
+  if (!candidates.length) return { gpu: null, rawName: null, error: 'no_webgpu' }
 
-  const nameLower = rawName.toLowerCase()
-  const isApple = nameLower.includes('apple') && /m\d+/.test(nameLower)
-
-  // 3. Apple Silicon：多维评分匹配
-  if (isApple) {
-    // 从名称中提取 chip family（如 "m4 max"、"m3 pro"）
-    // 支持多种命名格式：
-    // - 标准格式: "Apple M4 Max"
-    // - WebGPU adapter 格式: "Apple M4-Max", "Apple M4Max"
-    // - 完整格式: "Apple M5 Pro GPU"
+  const appleCandidate = candidates.find(c => c.normalized.includes('APPLE') && /\bM\d+\b/i.test(c.raw))
+  if (appleCandidate) {
+    const rawName = appleCandidate.raw
     const familyMatch = rawName.match(/\b(m[1-9])[\s-]*(ultra|max|pro)?\b/i)
     const chipFamily = familyMatch
       ? (familyMatch[1] + (familyMatch[2] ? ' ' + familyMatch[2] : '')).toLowerCase()
@@ -380,7 +359,6 @@ export async function detectLocalGpu() {
     return { gpu, rawName, error: gpu ? null : 'no_match' }
   }
 
-  // 4. 非 Apple：名称直接匹配
-  const gpu = matchGpuByName(rawName)
+  const { gpu, rawName } = matchGpuFromCandidates(candidates)
   return { gpu, rawName, error: gpu ? null : 'no_match' }
 }
