@@ -12,7 +12,7 @@ const props = defineProps({
 
 const emit = defineEmits(['modelHover', 'modelClick'])
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const canvasRef = ref(null)
 const containerRef = ref(null)
 const hoveredModel = ref(null)
@@ -362,6 +362,11 @@ onUnmounted(() => {
 watch(() => props.models, () => {
   drawChart()
 }, { deep: true })
+
+// 监听语言切换，重新绘制图表
+watch(locale, () => {
+  drawChart()
+})
 </script>
 
 <template>

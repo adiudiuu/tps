@@ -114,14 +114,13 @@ function goToUpgrade() {
   const query = {
     upgrade: '1',
     gpus: gpuSlots.value.map(s => `${s.gpu.id}:${s.count}`).join(','),
-    ic: interconnect.value?.id,
     model: model.value.id,
     quant: quant.value.id,
     target: Math.ceil(result.value.singleToks * 1.5), // 目标速度：当前速度的 1.5 倍
     ctx: ctx.value,
     b: batch.value,
-    prompt: promptLen.value,
-    output: outputLen.value,
+    pl: promptLen.value,
+    ol: outputLen.value,
   }
   
   router.push({ path: '/solver', query })

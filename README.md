@@ -263,7 +263,7 @@ graph TD
 
 ### 数据来源
 
-- **模型参数** — [HuggingFace](https://huggingface.co)、[Ollama](https://ollama.com)、[ModelScope](https://modelscope.cn) 等官方模型库
+- **模型参数** — [HuggingFace](https://huggingface.co)、[Ollama](https://ollama.com)、[ModelScope](https://modelscope.cn) 等官方资源库
 - **GPU 规格** — 各厂商官方技术文档
 - **模型覆盖** — 351+ 模型，涵盖 2022-2026 年主流开源模型，参数规模从 0.5B 到 671B
 

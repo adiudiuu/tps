@@ -274,8 +274,8 @@ const SORT_OPTIONS = computed(() => [
 ])
 
 watch(
-  [modelA, maxGpuCount, vendorFilter, excludeDatacenterGpu, quantFloor, minDecodeSpeedA, maxTtft, ctx, batch, promptLen, outputLen],
-  ([model, maxg, vendor, excl_dc, qf, minds, mttft, ctxValue, batchValue, promptValue, outputValue]) => {
+  [modelA, maxGpuCount, vendorFilter, excludeDatacenterGpu, quantFloor, minDecodeSpeedA, maxTtft, ctx, batch, promptLen, outputLen, isUpgradeMode, currentGpu, currentGpuCount, currentQuant, targetSpeed],
+  ([model, maxg, vendor, excl_dc, qf, minds, mttft, ctxValue, batchValue, promptValue, outputValue, upgradeMode, curGpu, curGpuCount, curQuant, tgtSpeed]) => {
     const normalizedMinds = clampOptionalPositive(minds, LIMITS.minDecodeSpeed)
     const normalizedMttft = clampOptionalPositive(mttft, LIMITS.maxTtft)
     const normalizedCtx = clampInt(ctxValue, LIMITS.ctx)
@@ -292,12 +292,20 @@ watch(
 
     const query = {}
     if (model?.id) query.model = model.id
-    if (maxg !== 4) query.maxg = String(maxg)
-    if (vendor !== 'all') query.vendor = vendor
-    if (!excl_dc) query.excl_dc = '0'
-    if (qf !== 'none') query.qf = qf
-    if (normalizedMinds !== '') query.minds = String(normalizedMinds)
-    if (normalizedMttft !== '') query.mttft = String(normalizedMttft)
+    if (upgradeMode) {
+      query.upgrade = '1'
+      if (curGpu?.id) query.gpu = curGpu.id
+      if (curGpuCount !== 1) query.n = String(curGpuCount)
+      if (curQuant?.id) query.quant = curQuant.id
+      if (tgtSpeed !== 100) query.target = String(tgtSpeed)
+    } else {
+      if (maxg !== 4) query.maxg = String(maxg)
+      if (vendor !== 'all') query.vendor = vendor
+      if (!excl_dc) query.excl_dc = '0'
+      if (qf !== 'none') query.qf = qf
+      if (normalizedMinds !== '') query.minds = String(normalizedMinds)
+      if (normalizedMttft !== '') query.mttft = String(normalizedMttft)
+    }
     if (normalizedCtx !== LIMITS.ctx.def) query.ctx = String(normalizedCtx)
     if (normalizedBatch !== LIMITS.batch.def) query.b = String(normalizedBatch)
     if (normalizedPrompt !== LIMITS.promptLen.def) query.pl = String(normalizedPrompt)
