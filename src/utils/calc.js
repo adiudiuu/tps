@@ -652,7 +652,7 @@ function getAppleMoeExtraDecodeMs({ gpu, framework, model, batch }) {
   // top-1 routing（如 Llama 4 Scout）存在显著固定 gate/dispatch 开销，
   // 不应被 fanoutScale 和 activeFragments 稀释。
   if (activeExperts <= 1) {
-    const top1FixedUsPerLayer = 400
+    const top1FixedUsPerLayer = 450
     const bwScale = Math.max(1.0, Math.sqrt(600 / (gpu.bw ?? 600)))
     return ((model.layers ?? 1) * top1FixedUsPerLayer * batchScale * bwScale) / 1000
   }
