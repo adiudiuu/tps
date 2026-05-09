@@ -176,6 +176,7 @@ watch(primaryGpu, (g) => {
     // Apple Silicon 只支持单卡，强制回单卡模式
     multiMode.value = false
     if (gpuSlots.value.length > 1) gpuSlots.value = [gpuSlots.value[0]]
+    gpuSlots.value = [{ ...gpuSlots.value[0], count: 1 }]
     return
   }
   // 多卡模式下，其他 slot 若是跨 vendor 则自动替换为同 vendor 的第一张

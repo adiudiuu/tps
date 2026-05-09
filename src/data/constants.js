@@ -75,7 +75,7 @@ export const FRAMEWORK_MAP = [
     prefillMin: 0.42, prefillMax: 0.58,
     vendors: ['apple'],
     schedulingMode: 'serial',
-    appleMoeDispatchUs: 25,
+    appleMoeDispatchUs: 50,
     // 模型规模效率缩放系数（Apple Metal 后端相比 CUDA 略高）
     modelSizeScaling: [
       { maxParams: 14, decode: 0.57, decodeMin: 0.52, decodeMax: 0.65 },  // <14B
