@@ -8,6 +8,7 @@ import gpt_oss_120b from './gpt_oss_120b/index.js'
 import gpt_oss_20b from './gpt_oss_20b/index.js'
 import phi4_reasoning_14b from './phi4_reasoning_14b/index.js'
 import mistral_small_3_1_24b from './mistral_small_3_1_24b/index.js'
+import mistral_small_4 from './mistral_small_4/index.js'
 import command_r7b from './command_r7b/index.js'
 import qwen25_vl_3b from './qwen25_vl_3b/index.js'
 import qwen25_vl_7b from './qwen25_vl_7b/index.js'
@@ -667,6 +668,7 @@ export const DENSE_MODELS = [
 export const MOE_MODELS = [
   // 2026
   nemotron_cascade_2_30b,
+  mistral_small_4,
   // 2024
   gpt4o,
   glm5_1,

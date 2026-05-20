@@ -103,6 +103,9 @@ export const FRAMEWORK_MAP = [
       { maxParams: 14, decode: 0.52, decodeMin: 0.48, decodeMax: 0.56 },  // <14B: 实测约 0.52
       { maxParams: 30, decode: 0.545, decodeMin: 0.50, decodeMax: 0.59 }, // 14-30B: 过渡区间
       { maxParams: Infinity, decode: 0.57, decodeMin: 0.52, decodeMax: 0.62 }, // >30B: 实测约 0.57
-    ]
+    ],
+    // CUDA MoE 每层每个 active expert fragment 的 dispatch 额外延迟（微秒）
+    // 与 Apple 的 appleMoeDispatchUs 同模型，base 值更低（CUDA 实现效率更高）
+    cudaMoeDispatchUs: 30,
   },
 ]

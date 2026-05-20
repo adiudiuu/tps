@@ -36,3 +36,5 @@ pnpm-debug.log*
 package-lock.json
 
 .kiro
+
+.claude

@@ -62,35 +62,30 @@ export function calcAll({
   }
 
   // ─────────────────────────────────────────────
-  // EP（Expert Parallelism）预计算
+  // MoE non-expert 参数预计算（EP / CPU Offload 共用）
   // ─────────────────────────────────────────────
-  // EP 仅对 MoE 模型有效，epCount > 1 时启用
-  // 每卡只存 1/epCount 的 expert 权重，非 expert 权重（attention/embed/norm）每卡完整保留
-  //
-  // 推导非 expert 参数量（non_expert_params）：
-  //   non_expert_params = (params × experts_per_token - experts × active_params)
-  //                       / (experts_per_token - experts)
-  //   （与 CPU Offload 路径相同的代数推导）
-  // 每卡 expert 权重 = (active_params - non_expert_params) / epCount × experts
-  //   注意：active_params 里的 expert 部分 = active_params - non_expert_params
-  //         每卡存 experts/epCount 个 expert，每个 expert 的参数量 = expert_params / experts
-  //         所以每卡 expert 权重 = (active_params - non_expert_params) / epCount
-  //         （等价于总 expert 权重 / epCount）
-  const isEP = epCount > 1 && model.type === 'moe' && model.experts && model.experts_per_token
-  let epWeightGB = null  // EP 模式下每卡实际权重（GB）
+  // non_expert_params = (params × experts_per_token - experts × active_params)
+  //                     / (experts_per_token - experts)
+  // 代表 attention / embedding / normalization 等不参与 expert 路由的 dense 层
   let nonExpertParams = null
-  if (isEP) {
+  if (model.type === 'moe' && model.active_params != null && model.params != null) {
     nonExpertParams = getMoeNonExpertParams(model)
-    if (nonExpertParams == null) {
-      // experts_per_token === experts（top-all）：无 expert 分离，EP 退化为 TP
+    if (nonExpertParams == null && model.experts && model.experts_per_token && model.experts_per_token === model.experts) {
+      // experts_per_token === experts（top-all）：所有 expert 都激活，退化为 dense
       nonExpertParams = model.active_params
     }
-    nonExpertParams = Math.max(0, nonExpertParams)
-    // 总 expert 参数量（所有 expert 的 FFN 权重之和）
+    if (nonExpertParams != null) {
+      nonExpertParams = Math.max(0, nonExpertParams)
+    }
+  }
+
+  // EP（Expert Parallelism）：epCount > 1 且 nonExpertParams 可计算时启用
+  // 每卡只存 1/epCount 的 expert + 完整非 expert 权重
+  const isEP = epCount > 1 && model.type === 'moe' && nonExpertParams != null
+  let epWeightGB = null
+  if (isEP) {
     const totalExpertParams = model.params - nonExpertParams
-    // 每卡 expert 权重 = 总 expert 权重 / epCount
     const expertParamsPerCard = totalExpertParams / epCount
-    // 每卡权重 = 非 expert（完整）+ 本卡 expert 分片
     epWeightGB = (nonExpertParams + expertParamsPerCard) * quant.bytes
   }
 
@@ -100,14 +95,13 @@ export function calcAll({
 
   // 权重显存：总参数 × 每参数字节数
   // EP 模式：每卡只存 1/epCount 的 expert + 完整非 expert 权重
-  // MoE CPU Offload：expert 权重卸载到 CPU RAM，GPU 只需保留当前激活的 expert 块 + 非 MoE dense 层
-  // 估算：active_params × quant.bytes × 1.5
-  //   active_params × quant.bytes ≈ 当前激活 expert 权重
-  //   × 1.5 覆盖 attention / embedding / normalization 等始终驻留 GPU 的非 MoE 层
+  // MoE CPU Offload：expert 权重卸载到 CPU RAM，GPU 只需保留 non-expert dense 层
   const weightGB = isEP
     ? epWeightGB
-    : (cpuOffload && model.type === 'moe')  // 去掉 !== 'llamacpp' 的排除
-      ? model.active_params * quant.bytes * 1.5
+    : (cpuOffload && model.type === 'moe')
+      ? (nonExpertParams != null
+          ? nonExpertParams * quant.bytes
+          : model.active_params * 0.20 * quant.bytes)  // 无 experts 字段时按 active 的 20% 估算 non-expert
       : model.params * quant.bytes
   // Vision encoder：encoder 权重独立于 LLM backbone（如已包含在 params 内则不重复计算）
   // vision_encoder_params 已从 params 中独立出来的情况：视具体模型而定
@@ -152,10 +146,8 @@ export function calcAll({
   //   单层估算：batch × hidden_size × 4（FFN 中间层约 4× hidden）× 2 bytes（BF16）× 4（安全系数），上限 2GB
   const activationGB = Math.min(batch * (model.hidden_size ?? 4096) * 4 * 2 / 1e9 * 4, 2.0)
   const overheadGB  = Math.max(1.0, Math.min(weightGB * 0.03, 5.0)) + activationGB
-  // llama.cpp 混合推理：GPU 只持有前 nglCount 层的权重和 KV Cache
-  // MoE + llamacpp + offload → --cpu-moe，PCIe expert offload，不是 NGL 分层
-  const isLlamaCppMoeCpuOffload = cpuOffload && framework?.id === 'llamacpp' && model.type === 'moe'
-  // Dense + llamacpp + offload → NGL 分层，DDR 带宽（原逻辑不变）
+  // Dense + llamacpp + offload → NGL 分层，DDR 带宽
+  // MoE 不走 NGL 分层（expert 通过 PCIe 卸载，见 decode 带宽路径）
   const isLlamaCppHybrid = cpuOffload && framework?.id === 'llamacpp' && model.type !== 'moe'
   const _effectiveNgl = isLlamaCppHybrid ? (nglCount ?? Math.floor(model.layers / 2)) : model.layers
   const gpuLayerRatio = isLlamaCppHybrid ? Math.min(1, Math.max(0, _effectiveNgl / Math.max(model.layers, 1))) : 1.0
@@ -264,24 +256,11 @@ export function calcAll({
   } else if (cpuOffload && model.type === 'moe' && pcieBw != null) {
     // ── PCIe expert offload 路径（--cpu-moe，适用于所有框架包括 llamacpp）
     let expertIOPerStep
-    if (model.experts && model.experts_per_token) {
-      // 有字段时精确计算：代数推导非专家参数量
-      // non_expert_total = (params × experts_per_token - experts × active_params) / (experts_per_token - experts)
-      // 前提：experts_per_token < experts（正常 MoE 路由，每 token 只激活部分专家）
-      // 边界：experts_per_token === experts 时分母为零（top-all 或数据异常），回退到 70% 估算
-      const non_expert_total = getMoeNonExpertParams(model)
-      if (non_expert_total != null) {
-        const active_expert_params = model.active_params - non_expert_total
-        // active_expert_params 理论上应 > 0；若算出负值说明数据异常，同样回退
-        expertIOPerStep = active_expert_params > 0
-          ? active_expert_params * quant.bytes
-          : model.active_params * 0.70 * quant.bytes
-      } else {
-        // experts_per_token === experts：所有专家都激活，等同于 dense 层，无 expert IO 分离
-        expertIOPerStep = model.active_params * 0.70 * quant.bytes
-      }
+    if (nonExpertParams != null) {
+      const active_expert_params = Math.max(0, model.active_params - nonExpertParams)
+      expertIOPerStep = active_expert_params * quant.bytes
     } else {
-      // 无字段时：expert FFN 约占 active_params 的 70%
+      // 无 experts 字段时：expert FFN 约占 active_params 的 70%
       expertIOPerStep = model.active_params * 0.70 * quant.bytes
     }
     const nonExpertIOPerStep = model.active_params * quant.bytes - expertIOPerStep
@@ -374,7 +353,7 @@ export function calcAll({
     return (decodeBytesPerStep / ppCount / effectiveBw / ppBubbleEff) * 1000 / decodeFactor
   }
 
-  const moeExtraDecodeMs = getAppleMoeExtraDecodeMs({
+  const moeExtraDecodeMs = getMoeExtraDecodeMs({
     gpu,
     framework: adjustedFramework,
     model,
@@ -631,13 +610,20 @@ function getDecodeFactors({ framework }) {
   }
 }
 
-function getAppleMoeExtraDecodeMs({ gpu, framework, model, batch }) {
-  if (gpu?.vendor !== 'apple' || model?.type !== 'moe') return 0
-  if (framework.appleMoeDispatchUs == null) return 0
+// MoE expert dispatch 额外延迟，覆盖 Apple Metal 与 CUDA
+// 与 modelSizeScaling 互补：modelSizeScaling 处理 dense 部分的效率，此处处理 MoE 特有的碎片化 dispatch
+function getMoeExtraDecodeMs({ gpu, framework, model, batch }) {
+  if (model?.type !== 'moe') return 0
 
   const activeExperts = model.experts_per_token ?? 1
   const totalExperts = model.experts ?? activeExperts
   if (totalExperts <= 1) return 0
+
+  // 按 vendor 选择 dispatch 延迟基准值
+  const dispatchUsBase = gpu?.vendor === 'apple'
+    ? framework.appleMoeDispatchUs
+    : framework.cudaMoeDispatchUs
+  if (dispatchUsBase == null) return 0
 
   const executionMode = model.moe_execution ?? (activeExperts <= 1 ? 'top1_routed' : 'routed')
   const executionScaleMap = {
@@ -658,14 +644,13 @@ function getAppleMoeExtraDecodeMs({ gpu, framework, model, batch }) {
   }
 
   const fanoutScale = Math.sqrt(Math.max(1, totalExperts / 128))
-  const baseFragments = activeExperts - 1
-  const activeFragmentCount = baseFragments
+  const activeFragmentCount = activeExperts - 1
   const bwScale = Math.max(1.0, Math.sqrt(600 / (gpu.bw ?? 600)))
 
   const extraUs =
     (model.layers ?? 1) *
     activeFragmentCount *
-    framework.appleMoeDispatchUs *
+    dispatchUsBase *
     executionScale *
     fanoutScale *
     batchScale *
