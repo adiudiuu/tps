@@ -1,1 +1,1 @@
-export const UPDATED_AT_BEIJING = '2026/06/12 09:00'
+export const UPDATED_AT_BEIJING = '2026/06/12 13:30'

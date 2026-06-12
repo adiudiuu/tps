@@ -21,7 +21,7 @@ const router = useRouter()
 const _url = resolveUrlState(readUrlState())
 const defaultModel = ALL_MODELS.find(m => m.id === 'gemma4_12b_unified') ?? ALL_MODELS[0]
 
-const gpuSlots       = ref(_url.gpuSlots     ?? [{ gpu: GPU_LIST.find(g => g.id === 'h100_sxm') ?? GPU_LIST[0], count: 1 }])
+const gpuSlots       = ref(_url.gpuSlots     ?? [{ gpu: GPU_LIST.find(g => g.id === 'rtx4090') ?? GPU_LIST[0], count: 1 }])
 const gpuCount       = computed(() => gpuSlots.value.reduce((s, g) => s + g.count, 0))
 const interconnect   = ref(_url.interconnect ?? INTERCONNECT_MAP[0])
 const model          = ref(_url.model        ?? defaultModel)
