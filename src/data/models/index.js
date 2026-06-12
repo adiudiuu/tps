@@ -4,6 +4,15 @@
 import nemotron_cascade_2_30b from './nemotron_cascade_2_30b/index.js'
 import nemotron_cascade_8b from './nemotron_cascade_8b/index.js'
 import nemotron_cascade_14b from './nemotron_cascade_14b/index.js'
+import medgemma_1_5_4b from './medgemma_1_5_4b/index.js'
+import gemma4_12b_unified from './gemma4_12b_unified/index.js'
+import translategemma_27b from './translategemma_27b/index.js'
+import translategemma_12b from './translategemma_12b/index.js'
+import translategemma_4b from './translategemma_4b/index.js'
+import voxtral_small_24b from './voxtral_small_24b/index.js'
+import pixtral_large_124b from './pixtral_large_124b/index.js'
+import devstral_2_123b from './devstral_2_123b/index.js'
+import devstral_small_2_24b from './devstral_small_2_24b/index.js'
 import gpt_oss_120b from './gpt_oss_120b/index.js'
 import gpt_oss_20b from './gpt_oss_20b/index.js'
 import phi4_reasoning_14b from './phi4_reasoning_14b/index.js'
@@ -368,6 +377,7 @@ import linly_7b from './linly_7b/index.js'
 
 export const DENSE_MODELS = [
   // 2026
+  gemma4_12b_unified,
   nemotron_cascade_14b,
   nemotron_cascade_8b,
   qwen35_27b,
@@ -381,9 +391,16 @@ export const DENSE_MODELS = [
   ministral_3_14b,
   ministral_3_8b,
   ministral_3_3b,
+  translategemma_27b,
+  translategemma_12b,
+  translategemma_4b,
+  medgemma_1_5_4b,
   // 2025
   phi4_reasoning_14b,
   mistral_small_3_1_24b,
+  voxtral_small_24b,
+  devstral_small_2_24b,
+  devstral_2_123b,
   qwen25_vl_3b,
   qwen25_vl_7b,
   qwen25_vl_72b,
@@ -409,6 +426,7 @@ export const DENSE_MODELS = [
   deepseek_r1_distill_llama_8b,
   deepseek_r1_distill_qwen_7b,
   // 2024
+  pixtral_large_124b,
   llama_pro_8b,
   glm4_9b_chat,
   glm4_7b,

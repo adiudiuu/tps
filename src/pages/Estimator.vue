@@ -19,7 +19,7 @@ import { readUrlState, resolveUrlState, watchUrlState } from '../utils/useUrlSta
 const { t } = useI18n()
 const router = useRouter()
 const _url = resolveUrlState(readUrlState())
-const defaultModel = ALL_MODELS.find(m => m.id === 'qwen3_6_35b_a3b') ?? ALL_MODELS[0]
+const defaultModel = ALL_MODELS.find(m => m.id === 'gemma4_12b_unified') ?? ALL_MODELS[0]
 
 const gpuSlots       = ref(_url.gpuSlots     ?? [{ gpu: GPU_LIST.find(g => g.id === 'h100_sxm') ?? GPU_LIST[0], count: 1 }])
 const gpuCount       = computed(() => gpuSlots.value.reduce((s, g) => s + g.count, 0))
