@@ -222,19 +222,21 @@ async function probeAppleRamGB(adapter) {
   return null
 }
 
-// Apple Silicon 多维评分匹配
+// Apple Silicon 多维评分匹配（带宽 + 内存 + 同系列 SKU 细分）
 async function matchAppleSilicon({ adapter, measuredBW, estimatedRAM, chipFamily }) {
   if (estimatedRAM === null && adapter) {
     estimatedRAM = await probeAppleRamGB(adapter)
   }
   const appleGpus = GPU_LIST.filter(g => g.vendor === 'apple')
-  const candidates = chipFamily
-    ? appleGpus.filter(g => g.id.startsWith('apple_' + chipFamily.replace(/ /g, '_')))
+  const familyKey = chipFamily?.replace(/\s+/g, '_') ?? null
+  const candidates = familyKey
+    ? appleGpus.filter(g => g.id.startsWith('apple_' + familyKey))
     : appleGpus
 
+  const pool = candidates.length > 0 ? candidates : appleGpus
   let best = null
   let bestScore = -1
-  for (const g of (candidates.length > 0 ? candidates : appleGpus)) {
+  for (const g of pool) {
     let score = 0
     if (measuredBW !== null) {
       const ratio = measuredBW / g.bw
@@ -249,6 +251,23 @@ async function matchAppleSilicon({ adapter, measuredBW, estimatedRAM, chipFamily
       best = g
     }
   }
+
+  // 同分或接近时：按内存精确匹配 + 带宽最近 SKU（区分 Pro 16核/20核、Max 32核/40核）
+  if (estimatedRAM != null && best) {
+    const ramMatches = pool.filter(g => g.vram === estimatedRAM)
+    if (ramMatches.length > 1) {
+      if (measuredBW != null) {
+        ramMatches.sort((a, b) => Math.abs(a.bw - measuredBW) - Math.abs(b.bw - measuredBW))
+      } else if (best.gpuCores != null) {
+        ramMatches.sort((a, b) => (b.gpuCores ?? 0) - (a.gpuCores ?? 0))
+      }
+      best = ramMatches[0]
+      bestScore = Math.max(bestScore, 10)
+    } else if (ramMatches.length === 1) {
+      best = ramMatches[0]
+    }
+  }
+
   return bestScore > 5 ? best : null
 }
 
@@ -341,7 +360,7 @@ export async function detectLocalGpu() {
     const rawName = appleCandidate.raw
     const familyMatch = rawName.match(/\b(m[1-9])[\s-]*(ultra|max|pro)?\b/i)
     const chipFamily = familyMatch
-      ? (familyMatch[1] + (familyMatch[2] ? ' ' + familyMatch[2] : '')).toLowerCase()
+      ? (familyMatch[1] + (familyMatch[2] ? '_' + familyMatch[2].toLowerCase() : ''))
       : null
 
     let measuredBW = null

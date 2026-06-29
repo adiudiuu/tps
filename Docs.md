@@ -1,6 +1,6 @@
 ﻿# TPS Calculator 功能说明
 
-**最后更新**: 2026-04-30
+**最后更新**: 2026-06-29
 **模型数量**: 351 个
 **GPU 数量**: 230+
 
@@ -11,10 +11,10 @@
 | 参数 | 说明 |
 |------|------|
 | GPU 型号 | 支持 NVIDIA / AMD / Intel / Apple / 国产芯片 |
-| GPU 数量 | 预设 1/2/4/8/16，支持自定义（1-512） |
+| GPU 数量 | 预设 1/2/4/8/16，支持自定义（1-512）；多卡 TP 时显存按**每卡**展示 |
 | 互联方式 | NVLink / InfiniBand / PCIe |
 | 模型 | 351 个 Dense/MoE 模型，含 VLM |
-| 量化精度 | FP32 / BF16 / FP8 / INT8 / INT4 / GGUF 各档位 |
+| 量化精度 | FP32 / BF16 / FP8 / INT8 / INT4 / GGUF 各档位（Apple/llama.cpp 自动用 `gguf_bytes`） |
 | 上下文长度 | 任意设置 |
 | 并发请求数 | 预设 + 自定义 |
 | Prompt / 输出长度 | 影响 KV Cache 和延迟估算 |
@@ -29,14 +29,16 @@
 - Pipeline Parallel 阶段数
 - 图像数量（VLM 模型，影响 KV Cache）
 
+**Apple 默认**：选择 Apple Silicon 时框架默认 **MLX**（非 llama.cpp metal）。
+
 ---
 
 ## 计算输出
 
 | 输出 | 说明 |
 |------|------|
-| 显存占用 | 权重 / KV Cache / 激活值 / 系统开销 / 总需求 vs 可用 |
-| OOM 判断 | 是否能运行，差多少 GB |
+| 显存占用 | 权重 / KV Cache / 激活值 / 系统开销；多卡 TP 显示**每卡需求**与集群合计 |
+| OOM 判断 | 基于每卡显存（TP）或总显存（单卡） |
 | Decode 吞吐 | 总 tok/s（含上下界区间） |
 | 单请求速度 | 中位 tok/s，1 位小数 |
 | Prefill 吞吐 | 算力上限和实际估算 |
@@ -48,6 +50,27 @@
 | TP 通信效率 | 多卡时 all-reduce 效率损耗 |
 | PP 气泡效率 | Pipeline Parallel 流水线填充效率 |
 | 功耗估算 | GPU 总 TDP（kW） |
+| 精度评级 | Apple 等平台标注 high / mid / low 置信度 |
+
+---
+
+## 校准与回归
+
+核心估算经公开 benchmark 校准，典型场景误差约 **±15%**：
+
+| 平台 | 主要修正项 |
+|------|-----------|
+| Apple MLX | `weightReadRatio` 按代际/芯片分级、`decodeBwScale` 按 SKU、`gguf_bytes`、MoE dispatch 降权 |
+| NVIDIA BF16 | 小模型 decode 权重读取比例 ~0.34（L2/kernel fusion） |
+| 高 batch | `getBatchSchedulingEfficiency` 抑制聚合吞吐虚高 |
+| INT4 prefill | 走 BF16 算力而非 INT4 Tensor Core 峰值 |
+| 多卡 TP 显存 | `perCardNeeded` / `displayNeeded` 每卡判断 OOM |
+
+运行回归脚本：
+
+```bash
+npm run benchmark
+```
 
 ---
 
@@ -73,9 +96,11 @@
 | Apple | M1/M2/M3/M4/M5（含 Pro/Max/Ultra 各配置） |
 | 国产 | 华为昇腾 910B/C/D/E、壁仞 BR100、寒武纪 MLU370、摩尔线程 S4000 |
 
-GPU 字段支持 bwUtilization（实际带宽利用率，默认 0.80）和 usableRatio（可用显存比例）。
+GPU 字段支持 `bwUtilization`（实际带宽利用率）、`usableRatio`（可用显存比例）、`decodeBwScale`（同带宽不同 GPU 核数/代际的有效 decode 系数）、`gpuCores`（GPU 核数，用于检测匹配）。
 
 **默认配置**：RTX 4090 × 1 · BF16 · 16K ctx · Gemma 4 12B Unified（`src/pages/Estimator.vue`）。
+
+**本机检测**：WebGPU/WebGL 检测 Apple Silicon 时结合带宽测量 + 内存探测，同内存容量下按带宽区分 Pro 16核/20核等 SKU（`src/utils/detectGpu.js`）。
 
 ---
 
@@ -105,6 +130,8 @@ GPU 字段支持 bwUtilization（实际带宽利用率，默认 0.80）和 usabl
 | 文件 | 职责 |
 |------|------|
 | src/utils/calc.js | 核心计算（calcAll / calcBatchSweep / calcGpuSweep） |
+| src/utils/solver.js | 反向求解（显存剪枝对齐 getQuantBytes） |
+| scripts/benchmark-regression.mjs | 公开 benchmark 回归测试 |
 | src/utils/model.js | 模型 Attention 类型推断 |
 | src/utils/exportMd.js | Markdown 报告导出 |
 | src/data/constants.js | 量化精度 / 框架效率系数 / 互联方式常量 |

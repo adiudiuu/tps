@@ -501,11 +501,28 @@ export function calcAll({
     return 'mid'
   })()
 
+  const perCardVram = gpu.vram * (gpu.usableRatio ?? 1.0)
+  const weightKvPerCard = (() => {
+    const sharded = (weightGB + kvGB) * gpuLayerRatio / ppCount
+    if (gpuCount <= 1) return sharded
+    if (isEP) return weightGB / ppCount + kvGB * gpuLayerRatio / ppCount / gpuCount
+    return sharded / gpuCount
+  })()
+  const perCardNeeded = weightKvPerCard + overheadGB
+  const displayNeeded = gpuCount > 1 ? perCardNeeded : totalNeeded
+  const displayVram = gpuCount > 1 ? perCardVram : totalVram
+  const clusterNeeded = gpuCount > 1 ? perCardNeeded * gpuCount : totalNeeded
+  const vramOk = perCardNeeded <= perCardVram
+  const vramPct = perCardNeeded / perCardVram * 100
+
   return {
     // 显存
     weightGB, kvGB, overheadGB, activationGB, totalNeeded, totalVram,
-    vramOk:  totalNeeded <= totalVram,
-    vramPct: totalNeeded / totalVram * 100,
+    perCardNeeded, perCardVram, displayNeeded, displayVram, clusterNeeded,
+    gpuCount,
+    vramScope: gpuCount > 1 ? 'per_card' : 'total',
+    vramOk,
+    vramPct,
     // 速度
     bwLimit, computeLimit, decodeToks, prefillToks, kvReadGB, avgDecodeSeqLen,
     decodeToksMin, decodeToksMax, prefillToksMin, prefillToksMax,
@@ -613,7 +630,7 @@ function getMoeNonExpertParams(model) {
 }
 
 /** GGUF/Ollama 用 gguf_bytes；Apple 默认走 GGUF 体积 */
-function getQuantBytes(quant, gpu, framework) {
+export function getQuantBytes(quant, gpu, framework) {
   const useGguf = gpu?.vendor === 'apple'
     || framework?.id === 'llamacpp'
     || framework?.id === 'llamacpp_metal'
@@ -670,7 +687,11 @@ function getAppleDecodeBwScale(gpu) {
   if (/apple_m[45]/.test(id)) return 1.0
   if (/apple_m3/.test(id)) return 0.76
   if (/apple_m2/.test(id)) return 0.58
-  if (/apple_m1/.test(id)) return 1.12
+  if (/apple_m1/.test(id)) {
+    if (/_max_/.test(id)) return 0.44
+    if (/_pro_/.test(id)) return 0.63
+    return 1.0
+  }
   return 1.0
 }
 
@@ -763,9 +784,9 @@ function getFlashAttentionBoostRange({ enabled, promptLen, headDim = 128 }) {
     Math.log2(Math.max(2048, promptLen) / 2048) / Math.log2(65536 / 2048)
   ))
   const base = {
-    min: 1.2 + (3.0 - 1.2) * logScale,
-    mid: 1.3 + (4.0 - 1.3) * logScale,
-    max: 1.5 + (5.0 - 1.5) * logScale,
+    min: 1.08 + (1.55 - 1.08) * logScale,
+    mid: 1.12 + (2.00 - 1.12) * logScale,
+    max: 1.18 + (2.45 - 1.18) * logScale,
   }
 
   return {
@@ -783,6 +804,8 @@ export function getWarnings(result, t) {
   const {
     vramOk,
     vramPct,
+    displayNeeded,
+    displayVram,
     totalNeeded,
     totalVram,
     tpEfficiency,
@@ -804,7 +827,7 @@ export function getWarnings(result, t) {
     warnings.push({
       level: 'error',
       key: 'vram_oom',
-      diff: (totalNeeded - totalVram).toFixed(1),
+      diff: (displayNeeded - displayVram).toFixed(1),
     })
   } else if (vramPct > 95) {
     warnings.push({ level: 'warn', key: 'vram_high' })

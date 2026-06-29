@@ -104,10 +104,15 @@ export function generateMarkdown({
   // ── 4. 显存分析 ──────────────────────────────────────
   lines.push(isZh ? '## 显存分析' : '## VRAM Analysis')
   lines.push('')
+  const needed = result.displayNeeded ?? result.totalNeeded
+  const avail = result.displayVram ?? result.totalVram
   const vramStatus = result.vramOk
     ? (isZh ? '✅ 显存充足' : '✅ VRAM OK')
-    : (isZh ? `❌ 显存不足 ${(result.totalNeeded - result.totalVram).toFixed(1)} GB` : `❌ VRAM insufficient by ${(result.totalNeeded - result.totalVram).toFixed(1)} GB`)
+    : (isZh ? `❌ 显存不足 ${(needed - avail).toFixed(1)} GB` : `❌ VRAM insufficient by ${(needed - avail).toFixed(1)} GB`)
   lines.push(`**${isZh ? '状态' : 'Status'}**: ${vramStatus}`)
+  if (result.vramScope === 'per_card') {
+    lines.push(`> ${isZh ? `Tensor Parallel ×${result.gpuCount}：以下为每卡显存` : `Tensor Parallel ×${result.gpuCount}: per-GPU VRAM shown below`}`)
+  }
   lines.push('')
   // 显存评级
   let vramRatingStr
@@ -116,16 +121,20 @@ export function generateMarkdown({
   else                             vramRatingStr = isZh ? '🟢 宽裕 — 显存充足'       : '🟢 Comfortable — Plenty of headroom'
   lines.push(`**${isZh ? '体验评级' : 'Rating'}**: ${vramRatingStr}`)
   lines.push('')
+  const vramDenom = avail || result.totalVram || 1
   lines.push(`| ${isZh ? '项目' : 'Item'} | ${isZh ? '显存' : 'Memory'} | ${isZh ? '占比' : 'Ratio'} |`)
   lines.push('|---|---|---|')
-  lines.push(`| ${isZh ? '模型权重' : 'Model Weights'} | ${fmtGB(result.weightGB)} | ${fmtPct(result.weightGB / result.totalVram * 100)} |`)
-  lines.push(`| KV Cache | ${fmtGB(result.kvGB)} | ${fmtPct(result.kvGB / result.totalVram * 100)} |`)
+  lines.push(`| ${isZh ? '模型权重' : 'Model Weights'} | ${fmtGB(result.weightGB)} | ${fmtPct(result.weightGB / vramDenom * 100)} |`)
+  lines.push(`| KV Cache | ${fmtGB(result.kvGB)} | ${fmtPct(result.kvGB / vramDenom * 100)} |`)
   if (result.activationGB > 0) {
-    lines.push(`| ${isZh ? '激活内存' : 'Activation Mem'} | ${fmtGB(result.activationGB)} | ${fmtPct(result.activationGB / result.totalVram * 100)} |`)
+    lines.push(`| ${isZh ? '激活内存' : 'Activation Mem'} | ${fmtGB(result.activationGB)} | ${fmtPct(result.activationGB / vramDenom * 100)} |`)
   }
-  lines.push(`| ${isZh ? '系统开销' : 'Overhead'} | ${fmtGB(result.overheadGB)} | ${fmtPct(result.overheadGB / result.totalVram * 100)} |`)
-  lines.push(`| **${isZh ? '总需求' : 'Total Needed'}** | **${fmtGB(result.totalNeeded)}** | **${fmtPct(result.vramPct)}** |`)
-  lines.push(`| ${isZh ? '可用显存' : 'Available'} | ${fmtGB(result.totalVram)} | — |`)
+  lines.push(`| ${isZh ? '系统开销' : 'Overhead'} | ${fmtGB(result.overheadGB)} | ${fmtPct(result.overheadGB / vramDenom * 100)} |`)
+  lines.push(`| **${result.vramScope === 'per_card' ? (isZh ? '每卡需求' : 'Per-GPU Needed') : (isZh ? '总需求' : 'Total Needed')}** | **${fmtGB(needed)}** | **${fmtPct(result.vramPct)}** |`)
+  lines.push(`| ${result.vramScope === 'per_card' ? (isZh ? '每卡可用' : 'Per-GPU Available') : (isZh ? '可用显存' : 'Available')} | ${fmtGB(avail)} | — |`)
+  if (result.vramScope === 'per_card' && result.clusterNeeded != null) {
+    lines.push(`| ${isZh ? '集群合计' : 'Cluster Total'} | ${fmtGB(result.clusterNeeded)} / ${fmtGB(result.totalVram)} | — |`)
+  }
   lines.push('')
 
   // 量化对比矩阵
@@ -150,7 +159,8 @@ export function generateMarkdown({
       })
       const isCurrent = q.id === quant.id
       const label = isCurrent ? `**${q.label}**` : q.label
-      const vram = isCurrent ? `**${fmtGB(r.totalNeeded)}**` : fmtGB(r.totalNeeded)
+      const vramNeeded = r.displayNeeded ?? r.totalNeeded
+      const vram = isCurrent ? `**${fmtGB(vramNeeded)}**` : fmtGB(vramNeeded)
       // OOM 时检查 MoE CPU offload 可行性
       let status
       if (r.vramOk) {
@@ -165,7 +175,7 @@ export function generateMarkdown({
             speculativeDecoding: _speculativeDecoding, acceptanceRate: _acceptanceRate, draftLen: _draftLen,
           })
           status = ro.vramOk
-            ? `⚡ ${fmtGB(ro.totalNeeded)} ${isZh ? '(可卸载)' : '(offloadable)'}`
+            ? `⚡ ${fmtGB(ro.displayNeeded ?? ro.totalNeeded)} ${isZh ? '(可卸载)' : '(offloadable)'}`
             : `❌ OOM`
         } catch { status = `❌ OOM` }
       } else {

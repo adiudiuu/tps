@@ -38,7 +38,7 @@ export default [
   { id: 'apple_m4_max_128g', name: 'Apple M4 Max (128GB, 40-core GPU)', vendor: 'apple', tier: 'consumer', released: '2024-11', vram: 128, bw: 546, bwUtilization: 0.90, bf16: 21.2, int8: 42.4, int4: null, nvlink_bw: null, tdp: 70, unifiedMemory: true, usableRatio: 0.85, decodeBwScale: 1.0, gpuCores: 40 },
   { id: 'apple_m4_max_64g',  name: 'Apple M4 Max (64GB, 40-core GPU)',  vendor: 'apple', tier: 'consumer', released: '2024-11', vram: 64,  bw: 546, bwUtilization: 0.90, bf16: 21.2, int8: 42.4, int4: null, nvlink_bw: null, tdp: 70, unifiedMemory: true, usableRatio: 0.85, decodeBwScale: 1.0, gpuCores: 40 },
   { id: 'apple_m4_max_48g',  name: 'Apple M4 Max (48GB, 40-core GPU)',  vendor: 'apple', tier: 'consumer', released: '2024-11', vram: 48,  bw: 546, bwUtilization: 0.90, bf16: 21.2, int8: 42.4, int4: null, nvlink_bw: null, tdp: 70, unifiedMemory: true, usableRatio: 0.85, decodeBwScale: 1.0, gpuCores: 40 },
-  { id: 'apple_m4_max_36g',  name: 'Apple M4 Max (36GB, 32-core GPU)', vendor: 'apple', tier: 'consumer', released: '2024-11', vram: 36,  bw: 410, bwUtilization: 0.90, bf16: 16.0, int8: 32.0, int4: null, nvlink_bw: null, tdp: 62, unifiedMemory: true, usableRatio: 0.85, decodeBwScale: 1.0, gpuCores: 32 },
+  { id: 'apple_m4_max_36g',  name: 'Apple M4 Max (36GB, 32-core GPU)', vendor: 'apple', tier: 'consumer', released: '2024-11', vram: 36,  bw: 410, bwUtilization: 0.90, bf16: 16.0, int8: 32.0, int4: null, nvlink_bw: null, tdp: 62, unifiedMemory: true, usableRatio: 0.85, decodeBwScale: 1.09, gpuCores: 32 },
   // ── M4 Ultra ────────────────────────────────────────
   // 80-core GPU, 1092 GB/s (2 × M4 Max 40-core)
   { id: 'apple_m4_ultra_384g', name: 'Apple M4 Ultra (384GB)', vendor: 'apple', tier: 'consumer', released: '2026-03', vram: 384, bw: 1092, bwUtilization: 0.67, bf16: 42.4, int8: 84.8, int4: null, nvlink_bw: null, tdp: 140, unifiedMemory: true, usableRatio: 0.85 },
@@ -63,11 +63,11 @@ export default [
   { id: 'apple_m3_max_128g', name: 'Apple M3 Max (128GB)', vendor: 'apple', tier: 'consumer', released: '2023-11', vram: 128, bw: 400, bwUtilization: 0.90, bf16: 17.2, int8: 34.4, int4: null, nvlink_bw: null, tdp: 78, unifiedMemory: true, usableRatio: 0.85 },
   { id: 'apple_m3_max_96g',  name: 'Apple M3 Max (96GB)',  vendor: 'apple', tier: 'consumer', released: '2023-11', vram: 96,  bw: 400, bwUtilization: 0.90, bf16: 17.2, int8: 34.4, int4: null, nvlink_bw: null, tdp: 78, unifiedMemory: true, usableRatio: 0.85 },
   // 30-core GPU, 300 GB/s
-  { id: 'apple_m3_max_64g',  name: 'Apple M3 Max (64GB)',  vendor: 'apple', tier: 'consumer', released: '2023-11', vram: 64,  bw: 300, bwUtilization: 0.90, bf16: 12.9, int8: 25.8, int4: null, nvlink_bw: null, tdp: 78, unifiedMemory: true, usableRatio: 0.85 },
+  { id: 'apple_m3_max_64g',  name: 'Apple M3 Max (64GB, 30-core GPU)',  vendor: 'apple', tier: 'consumer', released: '2023-11', vram: 64,  bw: 300, bwUtilization: 0.90, bf16: 12.9, int8: 25.8, int4: null, nvlink_bw: null, tdp: 78, unifiedMemory: true, usableRatio: 0.85, decodeBwScale: 0.87, gpuCores: 30 },
   // ── M3 Pro ──────────────────────────────────────────
   // 18-core GPU, 153 GB/s
-  { id: 'apple_m3_pro_36g',  name: 'Apple M3 Pro (36GB)',  vendor: 'apple', tier: 'consumer', released: '2023-11', vram: 36,  bw: 153, bwUtilization: 0.82, bf16: 6.2,  int8: 12.4, int4: null, nvlink_bw: null, tdp: 27, unifiedMemory: true, usableRatio: 0.85 },
-  { id: 'apple_m3_pro_18g',  name: 'Apple M3 Pro (18GB)',  vendor: 'apple', tier: 'consumer', released: '2023-11', vram: 18,  bw: 153, bwUtilization: 0.82, bf16: 6.2,  int8: 12.4, int4: null, nvlink_bw: null, tdp: 27, unifiedMemory: true, usableRatio: 0.85 },
+  { id: 'apple_m3_pro_36g',  name: 'Apple M3 Pro (36GB, 18-core GPU)',  vendor: 'apple', tier: 'consumer', released: '2023-11', vram: 36,  bw: 153, bwUtilization: 0.82, bf16: 6.2,  int8: 12.4, int4: null, nvlink_bw: null, tdp: 27, unifiedMemory: true, usableRatio: 0.85, decodeBwScale: 1.28, gpuCores: 18 },
+  { id: 'apple_m3_pro_18g',  name: 'Apple M3 Pro (18GB, 18-core GPU)',  vendor: 'apple', tier: 'consumer', released: '2023-11', vram: 18,  bw: 153, bwUtilization: 0.82, bf16: 6.2,  int8: 12.4, int4: null, nvlink_bw: null, tdp: 27, unifiedMemory: true, usableRatio: 0.85, decodeBwScale: 1.28, gpuCores: 18 },
   // ── M3 ──────────────────────────────────────────────
   // 10-core GPU, 100 GB/s
   { id: 'apple_m3_24g',      name: 'Apple M3 (24GB)',      vendor: 'apple', tier: 'consumer', released: '2023-11', vram: 24,  bw: 100, bwUtilization: 0.82, bf16: 4.1,  int8: 8.2,  int4: null, nvlink_bw: null, tdp: 20, unifiedMemory: true, usableRatio: 0.85 },
@@ -92,12 +92,12 @@ export default [
   { id: 'apple_m1_ultra_128g', name: 'Apple M1 Ultra (128GB)', vendor: 'apple', tier: 'consumer', released: '2022-03', vram: 128, bw: 800, bwUtilization: 0.67, bf16: 21.0, int8: 42.0, int4: null, nvlink_bw: null, tdp: 150, unifiedMemory: true, usableRatio: 0.85 },
   // ── M1 Max ──────────────────────────────────────────
   // 32-core GPU, 400 GB/s
-  { id: 'apple_m1_max_64g',  name: 'Apple M1 Max (64GB)',  vendor: 'apple', tier: 'consumer', released: '2021-10', vram: 64,  bw: 400, bwUtilization: 0.90, bf16: 10.4, int8: 20.8, int4: null, nvlink_bw: null, tdp: 92, unifiedMemory: true, usableRatio: 0.85 },
-  { id: 'apple_m1_max_32g',  name: 'Apple M1 Max (32GB)',  vendor: 'apple', tier: 'consumer', released: '2021-10', vram: 32,  bw: 400, bwUtilization: 0.90, bf16: 10.4, int8: 20.8, int4: null, nvlink_bw: null, tdp: 92, unifiedMemory: true, usableRatio: 0.85 },
+  { id: 'apple_m1_max_64g',  name: 'Apple M1 Max (64GB, 32-core GPU)',  vendor: 'apple', tier: 'consumer', released: '2021-10', vram: 64,  bw: 400, bwUtilization: 0.90, bf16: 10.4, int8: 20.8, int4: null, nvlink_bw: null, tdp: 92, unifiedMemory: true, usableRatio: 0.85, decodeBwScale: 0.44, gpuCores: 32 },
+  { id: 'apple_m1_max_32g',  name: 'Apple M1 Max (32GB, 32-core GPU)',  vendor: 'apple', tier: 'consumer', released: '2021-10', vram: 32,  bw: 400, bwUtilization: 0.90, bf16: 10.4, int8: 20.8, int4: null, nvlink_bw: null, tdp: 92, unifiedMemory: true, usableRatio: 0.85, decodeBwScale: 0.44, gpuCores: 32 },
   // ── M1 Pro ──────────────────────────────────────────
   // 16-core GPU, 200 GB/s
-  { id: 'apple_m1_pro_32g',  name: 'Apple M1 Pro (32GB)',  vendor: 'apple', tier: 'consumer', released: '2021-10', vram: 32,  bw: 200, bwUtilization: 0.82, bf16: 5.2,  int8: 10.4, int4: null, nvlink_bw: null, tdp: 67, unifiedMemory: true, usableRatio: 0.85 },
-  { id: 'apple_m1_pro_16g',  name: 'Apple M1 Pro (16GB)',  vendor: 'apple', tier: 'consumer', released: '2021-10', vram: 16,  bw: 200, bwUtilization: 0.82, bf16: 5.2,  int8: 10.4, int4: null, nvlink_bw: null, tdp: 67, unifiedMemory: true, usableRatio: 0.85 },
+  { id: 'apple_m1_pro_32g',  name: 'Apple M1 Pro (32GB, 16-core GPU)',  vendor: 'apple', tier: 'consumer', released: '2021-10', vram: 32,  bw: 200, bwUtilization: 0.82, bf16: 5.2,  int8: 10.4, int4: null, nvlink_bw: null, tdp: 67, unifiedMemory: true, usableRatio: 0.85, decodeBwScale: 0.63, gpuCores: 16 },
+  { id: 'apple_m1_pro_16g',  name: 'Apple M1 Pro (16GB, 16-core GPU)',  vendor: 'apple', tier: 'consumer', released: '2021-10', vram: 16,  bw: 200, bwUtilization: 0.82, bf16: 5.2,  int8: 10.4, int4: null, nvlink_bw: null, tdp: 67, unifiedMemory: true, usableRatio: 0.85, decodeBwScale: 0.63, gpuCores: 16 },
   // ── M1 ──────────────────────────────────────────────
   // 8-core GPU, 68 GB/s
   { id: 'apple_m1_16g',      name: 'Apple M1 (16GB)',      vendor: 'apple', tier: 'consumer', released: '2020-11', vram: 16,  bw: 68,  bwUtilization: 0.82, bf16: 2.6,  int8: 5.2,  int4: null, nvlink_bw: null, tdp: 20, unifiedMemory: true, usableRatio: 0.85 },

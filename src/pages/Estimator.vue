@@ -209,10 +209,10 @@ const quantMatrix = computed(() => {
             ppCount: ppCount.value,
           })
           cpuOffloadFeasible = ro.vramOk
-          offloadVramGB = ro.totalNeeded
+          offloadVramGB = ro.displayNeeded ?? ro.totalNeeded
         } catch { /* ignore */ }
       }
-      return { quant: q, vramGB: r.totalNeeded, vramOk: r.vramOk, vramPct: r.vramPct, decodeToks: r.decodeToks, cpuOffloadFeasible, offloadVramGB }
+      return { quant: q, vramGB: r.displayNeeded ?? r.totalNeeded, vramOk: r.vramOk, vramPct: r.vramPct, decodeToks: r.decodeToks, cpuOffloadFeasible, offloadVramGB }
     } catch { return null }
   }).filter(Boolean)
 })
@@ -247,10 +247,10 @@ const pinnedQuantMatrix = computed(() => {
             ppCount: c.ppCount,
           })
           cpuOffloadFeasible = ro.vramOk
-          offloadVramGB = ro.totalNeeded
+          offloadVramGB = ro.displayNeeded ?? ro.totalNeeded
         } catch { /* ignore */ }
       }
-      return { quant: q, vramGB: r.totalNeeded, vramOk: r.vramOk, vramPct: r.vramPct, decodeToks: r.decodeToks, cpuOffloadFeasible, offloadVramGB }
+      return { quant: q, vramGB: r.displayNeeded ?? r.totalNeeded, vramOk: r.vramOk, vramPct: r.vramPct, decodeToks: r.decodeToks, cpuOffloadFeasible, offloadVramGB }
     } catch { return null }
   }).filter(Boolean)
 })

@@ -89,7 +89,7 @@ const quant = defineModel('quant', { required: true })
       </div>
     </div>
     <WarningList :result="result" />
-    <VramCard :result="result" :quant-matrix="quantMatrix" :current-quant-id="result?.quantId" @select-quant="quant = $event" />
+    <VramCard :result="result" :quant-matrix="quantMatrix" :current-quant-id="result?.quantId" :gpu-count="gpuCount" @select-quant="quant = $event" />
 
     <SpeedCard
       :result="result"

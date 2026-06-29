@@ -4,7 +4,7 @@
 
 import { GPU_LIST } from '../data/gpus/index.js'
 import { QUANT_MAP, FRAMEWORK_MAP, INTERCONNECT_MAP } from '../data/constants.js'
-import { calcAll } from './calc.js'
+import { calcAll, getQuantBytes } from './calc.js'
 
 // Solver 使用的量化列表（跳过 fp32，保留 bf16/fp8/int8/int6/int5/int4）
 export const SOLVER_QUANTS = QUANT_MAP.filter(q => q.id !== 'fp32' && q.id !== 'int3' && q.id !== 'int2')
@@ -165,8 +165,8 @@ export async function solveForModel(opts) {
     ? Math.min(model.experts, maxGpuCount)
     : 1
   const minWeightPerCardGB = (nonExpertParams != null)
-    ? ((nonExpertParams + (model.params - nonExpertParams) / maxPossibleEp) * 0.5) / maxGpuCount  // EP+TP 最大分片
-    : (model.params * 0.5) / maxGpuCount  // dense: TP 分片
+    ? ((nonExpertParams + (model.params - nonExpertParams) / maxPossibleEp) * (QUANT_MAP.find(q => q.id === 'int4')?.gguf_bytes ?? 0.615)) / maxGpuCount
+    : (model.params * (QUANT_MAP.find(q => q.id === 'int4')?.gguf_bytes ?? 0.615)) / maxGpuCount
 
   // 构建任务列表（提前剪枝）
   const tasks = []
@@ -189,12 +189,13 @@ export async function solveForModel(opts) {
           for (const epCount of epOptions) {
             // 第二层剪枝：计算 EP 感知的每卡权重
             let perCardWeightGB
+            const quantBytes = getQuantBytes(quant, gpu, framework)
             if (epCount > 1 && totalExpertParams != null) {
               // MoE + EP: 每卡存完整 non-expert + 1/epCount 的 expert，再除以 TP 分片数
-              perCardWeightGB = ((nonExpertParams + totalExpertParams / epCount) * quant.bytes) / gpuCount
+              perCardWeightGB = ((nonExpertParams + totalExpertParams / epCount) * quantBytes) / gpuCount
             } else {
               // Dense 或 EP=1: 总参数 / TP 分片数
-              perCardWeightGB = (model.params * quant.bytes) / gpuCount
+              perCardWeightGB = (model.params * quantBytes) / gpuCount
             }
 
             // 与单卡可用显存比较（而非总显存）

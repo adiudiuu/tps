@@ -4,9 +4,13 @@ import { useI18n } from 'vue-i18n'
 import { fmtGB, fmtPct } from '../../utils/format.js'
 
 const { t } = useI18n()
-const props = defineProps({ result: Object, quantMatrix: Array, currentQuantId: String, readonly: Boolean })
+const props = defineProps({ result: Object, quantMatrix: Array, currentQuantId: String, readonly: Boolean, gpuCount: { type: Number, default: 1 } })
 const emit = defineEmits(['selectQuant'])
 const showMatrix = ref(true) // 默认展开
+
+const displayNeeded = computed(() => props.result?.displayNeeded ?? props.result?.totalNeeded ?? 0)
+const displayVram = computed(() => props.result?.displayVram ?? props.result?.totalVram ?? 0)
+const isPerCard = computed(() => (props.result?.vramScope ?? (props.gpuCount > 1 ? 'per_card' : 'total')) === 'per_card')
 
 const barColor = computed(() => {
   if (!props.result) return 'bg-emerald-500'
@@ -56,8 +60,11 @@ const pieData = computed(() => {
 
     <!-- 进度条 -->
     <div v-if="result" class="space-y-1">
+      <div v-if="isPerCard" class="text-xs text-blue-600 bg-blue-50 rounded px-2 py-1 border border-blue-100">
+        {{ t('result.vram_per_card_note', { count: gpuCount }) }}
+      </div>
       <div class="flex justify-between text-xs text-gray-500">
-        <span>{{ fmtGB(result.totalNeeded) }} / {{ fmtGB(result.totalVram) }}</span>
+        <span>{{ fmtGB(displayNeeded) }} / {{ fmtGB(displayVram) }}</span>
         <span>{{ fmtPct(result.vramPct) }}</span>
       </div>
       <div class="h-2 bg-gray-200 rounded-full overflow-hidden">
@@ -78,8 +85,12 @@ const pieData = computed(() => {
         <span class="text-gray-800 font-medium">{{ fmtGB(item.value) }}</span>
       </div>
       <div class="flex items-center justify-between text-xs pt-1 border-t border-gray-200">
-        <span class="text-gray-500">{{ t('result.available') }}</span>
-        <span class="text-gray-800 font-medium">{{ fmtGB(result.totalVram) }}</span>
+        <span class="text-gray-500">{{ isPerCard ? t('result.available_per_card') : t('result.available') }}</span>
+        <span class="text-gray-800 font-medium">{{ fmtGB(displayVram) }}</span>
+      </div>
+      <div v-if="isPerCard && result.clusterNeeded != null" class="flex items-center justify-between text-xs text-gray-400">
+        <span>{{ t('result.cluster_vram_total') }}</span>
+        <span>{{ fmtGB(result.clusterNeeded) }} / {{ fmtGB(result.totalVram) }}</span>
       </div>
     </div>
     <!-- 理论估算注释 -->
