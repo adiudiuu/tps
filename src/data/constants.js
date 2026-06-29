@@ -1,20 +1,22 @@
 // src/data/constants.js
 
-// bytes: 权重每参数字节数
+// bytes: 权重每参数字节数（GPTQ/AWQ 等紧凑格式）
+// gguf_bytes: GGUF Q*_K 典型值（llama.cpp / Ollama 常用，略高于 bytes）
 // kv_bytes: KV Cache 每元素字节数（通常比权重精度高，独立于权重量化）
-// flops_key: 对应 GPU 算力字段
+// flops_key: Decode 算力字段（Roofline 参考）
+// prefill_flops_key: Prefill 算力字段（量化权重 prefill 通常仍走 BF16/INT8 路径）
 // ppl_loss: 量化困惑度损失参考值（相对 BF16 基准的 PPL 增量，基于 llama.cpp 实测数据）
 //           数值越小质量越好，0 = 无损，来源：llama.cpp wiki quantization comparison
 export const QUANT_MAP = [
-  { id: 'fp32',  label: 'FP32',          bytes: 4.00, kv_bytes: 4.0, flops_key: 'bf16', quality: 'best',  ppl_loss: 0.00 },
-  { id: 'bf16',  label: 'BF16/FP16',     bytes: 2.00, kv_bytes: 2.0, flops_key: 'bf16', quality: 'great', ppl_loss: 0.00 },
-  { id: 'fp8',   label: 'FP8',           bytes: 1.00, kv_bytes: 1.0, flops_key: 'fp8',  quality: 'great', ppl_loss: 0.10 },
-  { id: 'int8',  label: 'INT8/Q8',       bytes: 1.00, kv_bytes: 2.0, flops_key: 'int8', quality: 'good',  ppl_loss: 0.10 },
-  { id: 'int6',  label: 'Q6_K',          bytes: 0.75, kv_bytes: 2.0, flops_key: 'bf16', quality: 'good',  ppl_loss: 0.20 },
-  { id: 'int5',  label: 'Q5_K',          bytes: 0.625,kv_bytes: 2.0, flops_key: 'bf16', quality: 'ok',    ppl_loss: 0.40 },
-  { id: 'int4',  label: 'INT4/GPTQ/AWQ', bytes: 0.50, kv_bytes: 2.0, flops_key: 'int4', quality: 'ok',    ppl_loss: 0.80 },
-  { id: 'int3',  label: 'Q3_K',          bytes: 0.375,kv_bytes: 2.0, flops_key: 'int4', quality: 'poor',  ppl_loss: 2.00 },
-  { id: 'int2',  label: 'INT2/NF2',      bytes: 0.25, kv_bytes: 2.0, flops_key: 'int4', quality: 'bad',   ppl_loss: 8.00 },
+  { id: 'fp32',  label: 'FP32',          bytes: 4.00, gguf_bytes: 4.00, kv_bytes: 4.0, flops_key: 'bf16', prefill_flops_key: 'bf16', quality: 'best',  ppl_loss: 0.00 },
+  { id: 'bf16',  label: 'BF16/FP16',     bytes: 2.00, gguf_bytes: 2.00, kv_bytes: 2.0, flops_key: 'bf16', prefill_flops_key: 'bf16', quality: 'great', ppl_loss: 0.00 },
+  { id: 'fp8',   label: 'FP8',           bytes: 1.00, gguf_bytes: 1.00, kv_bytes: 1.0, flops_key: 'fp8',  prefill_flops_key: 'fp8',  quality: 'great', ppl_loss: 0.10 },
+  { id: 'int8',  label: 'INT8/Q8',       bytes: 1.00, gguf_bytes: 1.05, kv_bytes: 2.0, flops_key: 'int8', prefill_flops_key: 'int8', quality: 'good',  ppl_loss: 0.10 },
+  { id: 'int6',  label: 'Q6_K',          bytes: 0.75, gguf_bytes: 0.80, kv_bytes: 2.0, flops_key: 'bf16', prefill_flops_key: 'bf16', quality: 'good',  ppl_loss: 0.20 },
+  { id: 'int5',  label: 'Q5_K',          bytes: 0.625,gguf_bytes: 0.69, kv_bytes: 2.0, flops_key: 'bf16', prefill_flops_key: 'bf16', quality: 'ok',    ppl_loss: 0.40 },
+  { id: 'int4',  label: 'INT4/GPTQ/AWQ', bytes: 0.50, gguf_bytes: 0.615,kv_bytes: 2.0, flops_key: 'int4', prefill_flops_key: 'bf16', quality: 'ok',    ppl_loss: 0.80 },
+  { id: 'int3',  label: 'Q3_K',          bytes: 0.375,gguf_bytes: 0.42, kv_bytes: 2.0, flops_key: 'int4', prefill_flops_key: 'bf16', quality: 'poor',  ppl_loss: 2.00 },
+  { id: 'int2',  label: 'INT2/NF2',      bytes: 0.25, gguf_bytes: 0.28, kv_bytes: 2.0, flops_key: 'int4', prefill_flops_key: 'bf16', quality: 'bad',   ppl_loss: 8.00 },
 ]
 
 export const INTERCONNECT_MAP = [
@@ -64,7 +66,8 @@ export const FRAMEWORK_MAP = [
     // Apple batch=1 下的大专家数 MoE 常被 expert dispatch / gather 的小块串行开销拖慢。
     // 这里记录的是“每层每个 routed expert fragment 的额外延迟（微秒）”基准值，
     // 由 calc.js 再按 experts、top-k、batch、执行形态缩放。
-    appleMoeDispatchUs: 60,
+    // MLX 原生 MoE kernel 碎片化开销远低于 GGML Metal
+    appleMoeDispatchUs: 22,
   },
   {
     id: 'llamacpp_metal',
@@ -75,7 +78,7 @@ export const FRAMEWORK_MAP = [
     prefillMin: 0.42, prefillMax: 0.58,
     vendors: ['apple'],
     schedulingMode: 'serial',
-    appleMoeDispatchUs: 50,
+    appleMoeDispatchUs: 38,
     // 模型规模效率缩放系数（Apple Metal 后端相比 CUDA 略高）
     modelSizeScaling: [
       { maxParams: 14, decode: 0.57, decodeMin: 0.52, decodeMax: 0.65 },  // <14B

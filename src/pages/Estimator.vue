@@ -138,8 +138,8 @@ watch(model, (m, prev) => {
 
 watch(() => gpuSlots.value[0]?.gpu, (g) => {
   if (g?.vendor === 'apple') {
-    const metal = FRAMEWORK_MAP.find(f => f.id === 'llamacpp_metal')
-    if (metal) framework.value = metal
+    const mlxFw = FRAMEWORK_MAP.find(f => f.id === 'mlx')
+    if (mlxFw) framework.value = mlxFw
   }
 })
 

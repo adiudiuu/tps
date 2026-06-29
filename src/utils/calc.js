@@ -36,8 +36,9 @@ export function calcAll({
   imageCount = 0,
 }) {
   const totalVram = gpu.vram * gpuCount * (gpu.usableRatio ?? 1.0)
-  const totalBw   = gpu.bw   * gpuCount * (gpu.bwUtilization ?? 0.80)
-  const tflops    = (gpu[quant.flops_key] ?? gpu.bf16) * gpuCount
+  const totalBw   = gpu.bw   * gpuCount * (gpu.bwUtilization ?? 0.80) * getAppleDecodeBwScale(gpu)
+  const quantBytes = getQuantBytes(quant, gpu, framework)
+  const tflops    = getPrefillTflops(gpu, quant) * gpuCount
   const attentionType = getAttentionType(model)
   const attentionSummary = getAttentionSummary(model)
   const totalHeads = getTotalHeads(model) ?? model.kv_heads ?? 1
@@ -86,7 +87,7 @@ export function calcAll({
   if (isEP) {
     const totalExpertParams = model.params - nonExpertParams
     const expertParamsPerCard = totalExpertParams / epCount
-    epWeightGB = (nonExpertParams + expertParamsPerCard) * quant.bytes
+    epWeightGB = (nonExpertParams + expertParamsPerCard) * quantBytes
   }
 
   // ─────────────────────────────────────────────
@@ -100,9 +101,9 @@ export function calcAll({
     ? epWeightGB
     : (cpuOffload && model.type === 'moe')
       ? (nonExpertParams != null
-          ? nonExpertParams * quant.bytes
-          : model.active_params * 0.20 * quant.bytes)  // 无 experts 字段时按 active 的 20% 估算 non-expert
-      : model.params * quant.bytes
+          ? nonExpertParams * quantBytes
+          : model.active_params * 0.20 * quantBytes)  // 无 experts 字段时按 active 的 20% 估算 non-expert
+      : model.params * quantBytes
   // Vision encoder：encoder 权重独立于 LLM backbone（如已包含在 params 内则不重复计算）
   // vision_encoder_params 已从 params 中独立出来的情况：视具体模型而定
   // 当前约定：vision_encoder_params 已包含在 params 内，无需额外加；
@@ -161,9 +162,9 @@ export function calcAll({
   // MoE CPU Offload: expert 权重放 CPU RAM，non-expert + KV Cache 在 GPU HBM
   const cpuRamNeededGB = (() => {
     if (pureCpu) return weightGB + kvGB + overheadGB
-    if (isLlamaCppHybrid) return (1 - gpuLayerRatio) * (model.params * quant.bytes + kvGB)
+    if (isLlamaCppHybrid) return (1 - gpuLayerRatio) * (model.params * quantBytes + kvGB)
     if (cpuOffload && model.type === 'moe') {  // 去掉 !== 'llamacpp'，MoE offload 统一计算
-      return Math.max(0, model.params * quant.bytes - weightGB)
+      return Math.max(0, model.params * quantBytes - weightGB)
     }
     return 0
   })()
@@ -181,11 +182,13 @@ export function calcAll({
   // EP 模式：每卡只读自己那份 expert 权重（1/epCount），带宽需求大幅降低
   //   每卡 IO = 非 expert 权重 + 本卡 expert 权重 + KV Cache
   //   all-to-all 通信开销由 epCommLatencyMs 单独建模
-  const activeWeight = isEP
+  const activeWeightRaw = isEP
     ? epWeightGB  // EP 下每卡只读自己那份权重
     : model.type === 'moe'
-      ? model.active_params * quant.bytes
+      ? model.active_params * quantBytes
       : weightGB
+  const decodeWeightReadRatio = getDecodeWeightReadRatio(gpu, quant, model, framework)
+  const activeWeight = activeWeightRaw * decodeWeightReadRatio
 
   const decodeFactors = getDecodeFactors({ framework: adjustedFramework })
   const decodeFactorMin = decodeFactors.min
@@ -258,12 +261,12 @@ export function calcAll({
     let expertIOPerStep
     if (nonExpertParams != null) {
       const active_expert_params = Math.max(0, model.active_params - nonExpertParams)
-      expertIOPerStep = active_expert_params * quant.bytes
+      expertIOPerStep = active_expert_params * quantBytes
     } else {
       // 无 experts 字段时：expert FFN 约占 active_params 的 70%
-      expertIOPerStep = model.active_params * 0.70 * quant.bytes
+      expertIOPerStep = model.active_params * 0.70 * quantBytes
     }
-    const nonExpertIOPerStep = model.active_params * quant.bytes - expertIOPerStep
+    const nonExpertIOPerStep = model.active_params * quantBytes - expertIOPerStep
     const gpuIOPerStep = nonExpertIOPerStep + kvReadGB
     // pcieBw.bw = PCIe x16 单向理论峰值（见 runtime.js）
     // pcieWidth.ratio 决定实际带宽占 x16 的比例（x4=0.25, x8=0.5, x16=1.0）
@@ -279,6 +282,8 @@ export function calcAll({
     // PP：decodeBytesPerStep / ppCount 是单个 stage 的 IO 量；流水满载再乘气泡效率
     bwLimit = (effectiveBw / (decodeBytesPerStep / ppCount)) * batch * ppBubbleEff
   }
+  bwLimit *= getBatchSchedulingEfficiency(batch, adjustedFramework)
+
   // Speculative Decoding 加速：每步尝试验证 draftLen 个 token，接受率为 acceptanceRate
   // 期望接受 token 数：mean_accepted = (1 - α^(γ+1)) / (1 - α)，其中 α=acceptanceRate，γ=draftLen
   // 例：α=0.7, γ=4 → mean_accepted ≈ 2.83
@@ -293,7 +298,7 @@ export function calcAll({
 
     if (draftModelParams != null && draftModelParams > 0) {
       // draft model 读 draftLen 次权重，target model 读 1 次，共用同一 HBM 带宽
-      const draftWeightGB = draftModelParams * quant.bytes
+      const draftWeightGB = draftModelParams * quantBytes * decodeWeightReadRatio
       const totalIOPerVerifyStep = decodeBytesPerStep + draftWeightGB * draftLen
       bwLimit = (effectiveBw / (totalIOPerVerifyStep / ppCount)) * batch * ppBubbleEff
     }
@@ -334,7 +339,7 @@ export function calcAll({
   // serial 模式（llama.cpp）下请求串行排队，TTFT × batch
   // 实际 FLOPs/token = prefillAttentionFactor × 2 × activeParams × 1e9
   const isContinuousBatching = (framework.schedulingMode ?? 'continuous') === 'continuous'
-  const ttft = (effectivePromptLen * prefillAttentionFactor * 2 * activeParams * 1e9) / (tflops * 1e12) * 1000 / (flashFactor * framework.prefill) * (isContinuousBatching ? 1 : Math.max(1, batch))
+  const ttft = (effectivePromptLen * prefillAttentionFactor * 2 * activeParams * 1e9) / (tflops * 1e12) * 1000 / (flashFactor * framework.prefill) * (isContinuousBatching ? 1 : Math.max(1, batch)) * getAppleTtftScale(gpu)
 
   // 单 token 生成时间（ms），batch=1 时的延迟基准
   // offload 模式：bwLimit 已包含串行 IO，从 bwLimit 反推 tpot 保持一致
@@ -368,6 +373,11 @@ export function calcAll({
   let decodeToks = batch / Math.max((tpotBase + moeExtraDecodeMs) / 1000, 1e-9) * speculativeSpeedup
   let decodeToksMin = batch / Math.max((tpotBaseMin + moeExtraDecodeMs) / 1000, 1e-9) * speculativeSpeedup
   let decodeToksMax = batch / Math.max((tpotBaseMax + moeExtraDecodeMs) / 1000, 1e-9) * speculativeSpeedup
+
+  const batchSchedEff = getBatchSchedulingEfficiency(batch, adjustedFramework)
+  decodeToks *= batchSchedEff
+  decodeToksMin *= batchSchedEff
+  decodeToksMax *= batchSchedEff
 
   const tpot = tpotBase + moeExtraDecodeMs + ppP2pMs
 
@@ -602,6 +612,81 @@ function getMoeNonExpertParams(model) {
   return (model.params * model.experts_per_token - model.experts * model.active_params) / denom
 }
 
+/** GGUF/Ollama 用 gguf_bytes；Apple 默认走 GGUF 体积 */
+function getQuantBytes(quant, gpu, framework) {
+  const useGguf = gpu?.vendor === 'apple'
+    || framework?.id === 'llamacpp'
+    || framework?.id === 'llamacpp_metal'
+  return useGguf ? (quant?.gguf_bytes ?? quant?.bytes ?? 0.5) : (quant?.bytes ?? 0.5)
+}
+
+/** Prefill 算力：量化权重通常不走 INT4 Tensor Core 峰值 */
+function getPrefillTflops(gpu, quant) {
+  const key = quant?.prefill_flops_key ?? quant?.flops_key ?? 'bf16'
+  return gpu?.[key] ?? gpu?.bf16 ?? 1
+}
+
+/**
+ * Decode 每步实际读取的权重比例（相对存储量）
+ * - Apple M4/M5：Metal/MLX 片上缓存显著降低有效 IO
+ * - NVIDIA BF16：小模型 kernel fusion / L2 缓存
+ */
+function getDecodeWeightReadRatio(gpu, quant, model, framework) {
+  const quantId = quant?.id ?? 'bf16'
+  const isGgufQuant = ['int2', 'int3', 'int4', 'int5', 'int6'].includes(quantId)
+  const chipId = gpu?.id ?? ''
+
+  if (gpu?.vendor === 'apple') {
+    const isM4M5 = /apple_m[45]/.test(chipId)
+    if (isM4M5) {
+      if (framework?.id === 'mlx') {
+        if (/_(max|ultra)_/.test(chipId)) return isGgufQuant ? 0.52 : 0.70
+        if (/_pro_/.test(chipId)) return isGgufQuant ? 0.44 : 0.66
+        return isGgufQuant ? 0.62 : 0.68
+      }
+      if (/_(max|ultra)_/.test(chipId)) return isGgufQuant ? 0.60 : 0.78
+      if (/_pro_/.test(chipId)) return isGgufQuant ? 0.52 : 0.72
+      return isGgufQuant ? 0.70 : 0.78
+    }
+    return isGgufQuant ? 0.84 : 0.88
+  }
+
+  if (quantId === 'bf16' || quantId === 'fp32') {
+    const params = model?.params ?? 8
+    if (params < 15) return 0.34
+    if (params < 30) return 0.55
+    return 0.82
+  }
+
+  if (isGgufQuant) return 0.96
+  return 1.0
+}
+
+/** Apple 代际 decode 有效带宽缩放（M2/M3 Max 实测低于理论带宽上限） */
+function getAppleDecodeBwScale(gpu) {
+  if (gpu?.vendor !== 'apple') return 1.0
+  if (gpu.decodeBwScale != null) return gpu.decodeBwScale
+  const id = gpu.id ?? ''
+  if (/apple_m[45]/.test(id)) return 1.0
+  if (/apple_m3/.test(id)) return 0.76
+  if (/apple_m2/.test(id)) return 0.58
+  if (/apple_m1/.test(id)) return 1.12
+  return 1.0
+}
+
+/** Continuous batching 高 batch 调度效率衰减（batch>8 后显著） */
+function getBatchSchedulingEfficiency(batch, framework) {
+  if ((framework?.schedulingMode ?? 'continuous') !== 'continuous') return 1.0
+  if (batch <= 8) return 1.0
+  return 1 / (1 + (batch - 8) * 0.048)
+}
+
+/** Apple TTFT 修正：Metal prefill 效率低于 Roofline 估算 */
+function getAppleTtftScale(gpu) {
+  if (gpu?.vendor !== 'apple') return 1.0
+  return /apple_m[45]/.test(gpu.id ?? '') ? 1.28 : 1.12
+}
+
 function getDecodeFactors({ framework }) {
   return {
     mid: framework.decode,
@@ -635,12 +720,16 @@ function getMoeExtraDecodeMs({ gpu, framework, model, batch }) {
   const executionScale = executionScaleMap[executionMode] ?? 0.55
   const batchScale = 1 / Math.sqrt(Math.max(1, batch))
 
+  // MLX 原生 MoE kernel 碎片化远小于 GGML Metal
+  const moeDispatchScale = framework?.id === 'mlx' ? 0.20
+    : (gpu?.vendor === 'apple' ? 0.45 : 1.0)
+
   // top-1 routing（如 Llama 4 Scout）存在显著固定 gate/dispatch 开销，
   // 不应被 fanoutScale 和 activeFragments 稀释。
   if (activeExperts <= 1) {
     const top1FixedUsPerLayer = 450
     const bwScale = Math.max(1.0, Math.sqrt(600 / (gpu.bw ?? 600)))
-    return ((model.layers ?? 1) * top1FixedUsPerLayer * batchScale * bwScale) / 1000
+    return ((model.layers ?? 1) * top1FixedUsPerLayer * batchScale * bwScale * moeDispatchScale) / 1000
   }
 
   const fanoutScale = Math.sqrt(Math.max(1, totalExperts / 128))
@@ -654,7 +743,8 @@ function getMoeExtraDecodeMs({ gpu, framework, model, batch }) {
     executionScale *
     fanoutScale *
     batchScale *
-    bwScale
+    bwScale *
+    moeDispatchScale
 
   return extraUs / 1000
 }
