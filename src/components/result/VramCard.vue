@@ -24,9 +24,13 @@ const barWidth = computed(() => {
   return Math.min(100, props.result.vramPct).toFixed(1) + '%'
 })
 
+// 系统内存不足（纯 CPU / CPU 卸载）同样算跑不起来
+const ramOk = computed(() => props.result?.ramOk ?? true)
+
 const vramRating = computed(() => {
   if (!props.result) return null
   if (!props.result.vramOk)          return { dot: 'bg-red-500',    label: t('result.vram_rating_oom'),         desc: t('result.vram_rating_oom_desc') }
+  if (!ramOk.value)                  return { dot: 'bg-red-500',    label: t('result.ram_rating_oom'),          desc: t('result.ram_rating_oom_desc') }
   if (props.result.vramPct > 95)     return { dot: 'bg-yellow-400', label: t('result.vram_rating_tight'),       desc: t('result.vram_rating_tight_desc') }
   return                                    { dot: 'bg-green-500',  label: t('result.vram_rating_comfortable'), desc: t('result.vram_rating_comfortable_desc') }
 })
@@ -46,8 +50,8 @@ const pieData = computed(() => {
   <div class="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
     <div class="flex items-center justify-between">
       <h3 class="text-sm font-semibold text-gray-700">{{ t('result.vram') }}</h3>
-      <span v-if="result" :class="['text-xs font-medium px-2 py-0.5 rounded-full', result.vramOk ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700']">
-        {{ result.vramOk ? t('result.vram_ok') : t('result.vram_oom') }}
+      <span v-if="result" :class="['text-xs font-medium px-2 py-0.5 rounded-full', result.vramOk && ramOk ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700']">
+        {{ !result.vramOk ? t('result.vram_oom') : !ramOk ? t('result.ram_oom') : t('result.vram_ok') }}
       </span>
     </div>
 

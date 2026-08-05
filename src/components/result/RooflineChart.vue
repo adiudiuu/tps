@@ -34,7 +34,7 @@ const chartData = computed(() => {
   return {
     datasets: [
       {
-        label: 'Roofline',
+        label: t('result.roofline_curve'),
         data: rooflinePoints,
         type: 'line',
         borderColor: '#059669',
@@ -61,12 +61,12 @@ const chartOptions = computed(() => ({
   scales: {
     x: {
       type: 'linear',
-      title: { display: true, text: 'Arithmetic Intensity (FLOP/byte)', color: '#4b5563' },
+      title: { display: true, text: t('result.roofline_x_axis'), color: '#4b5563' },
       ticks: { color: '#6b7280' },
       grid: { color: '#e5e7eb' },
     },
     y: {
-      title: { display: true, text: 'Performance (tok/s)', color: '#4b5563' },
+      title: { display: true, text: t('result.roofline_y_axis'), color: '#4b5563' },
       ticks: { color: '#6b7280' },
       grid: { color: '#e5e7eb' },
     },

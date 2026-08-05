@@ -1,12 +1,23 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
 import TopBar from '../components/layout/TopBar.vue'
 import TimelineChart from '../components/result/TimelineChart.vue'
 import { ALL_MODELS } from '../data/models/index.js'
 import { GPU_LIST } from '../data/gpus/index.js'
 import { fmtParams, fmtCtx, isNew } from '../utils/format.js'
 const { t } = useI18n()
+const router = useRouter()
+
+const SESSION_KEY = 'tps_estimator_query'
+const LEGACY_SESSION_KEY = 'tps_calc_query'
+
+/** 读取计算器上次的配置，跳转时带回去，避免只换模型/显卡就丢掉其他设置 */
+function getSavedQuery() {
+  const saved = sessionStorage.getItem(SESSION_KEY) ?? sessionStorage.getItem(LEGACY_SESSION_KEY) ?? ''
+  return Object.fromEntries(new URLSearchParams(saved))
+}
 
 const activeTab = ref('models')
 const viewMode = ref('list') // 'list' or 'timeline'
@@ -20,9 +31,10 @@ const hoverPosition = ref({ x: 0, y: 0 })
 const detailModel = ref(null)  // 点击查看详情的模型
 const detailGpu = ref(null)    // 点击查看详情的 GPU
 
-// 从 URL 或 sessionStorage 获取当前选中的模型和 GPU
-const currentModelId = ref(null)
-const currentGpuId = ref(null)
+// 计算器当前选中的模型 / GPU，用于在列表里高亮
+const _savedQuery = getSavedQuery()
+const currentModelId = ref(_savedQuery.model ?? null)
+const currentGpuId = ref(_savedQuery.gpus?.split(',')[0]?.split(':')[0] ?? _savedQuery.gpu ?? null)
 
 // ── 模型分组 ──────────────────────────────────────
 const MODEL_FAMILIES = [
@@ -111,20 +123,17 @@ const gpuGroups = computed(() => {
   return groups
 })
 
-const SESSION_KEY = 'tps_estimator_query'
-const LEGACY_SESSION_KEY = 'tps_calc_query'
-
-function getSavedQuery() {
-  const saved = sessionStorage.getItem(SESSION_KEY) ?? sessionStorage.getItem(LEGACY_SESSION_KEY) ?? ''
-  return Object.fromEntries(new URLSearchParams(saved))
-}
-
+/** 带着计算器已有配置跳转到估算页，只替换模型 */
 function selectModel(m) {
-  // 点击跳转功能已移除
+  router.push({ path: '/', query: { ...getSavedQuery(), model: m.id } })
 }
 
+/** 带着计算器已有配置跳转到估算页，只替换显卡（清掉旧的单卡参数写法） */
 function selectGpu(g) {
-  // 点击跳转功能已移除
+  const query = { ...getSavedQuery(), gpus: `${g.id}:1` }
+  delete query.gpu
+  delete query.n
+  router.push({ path: '/', query })
 }
 
 function handleModelHover(m, event) {
@@ -372,7 +381,10 @@ function closeDetail() {
                   :data-model-id="m.id"
                   @mouseenter="handleModelHover(m, $event)"
                   @mouseleave="clearHover"
-                  class="group flex items-center justify-between backdrop-blur-sm border rounded-lg px-3 py-2.5 text-left hover:border-emerald-400 hover:shadow-md transition-all bg-white/90 border-gray-200 shadow-sm"
+                  @click="selectModel(m)"
+                  :title="t('library.apply_to_calculator')"
+                  :class="['group flex items-center justify-between backdrop-blur-sm border rounded-lg px-3 py-2.5 text-left hover:border-emerald-400 hover:shadow-md transition-all shadow-sm',
+                    currentModelId === m.id ? 'bg-emerald-50 border-emerald-400' : 'bg-white/90 border-gray-200']"
                 >
                   <div class="flex items-center gap-2 min-w-0 flex-1">
                     <span
@@ -434,7 +446,10 @@ function closeDetail() {
                 :data-gpu-id="g.id"
                 @mouseenter="handleGpuHover(g, $event)"
                 @mouseleave="clearHover"
-                class="group flex items-center justify-between backdrop-blur-sm border rounded-lg px-3 py-2.5 text-left hover:border-emerald-400 hover:shadow-md transition-all bg-white/90 border-gray-200 shadow-sm"
+                @click="selectGpu(g)"
+                :title="t('library.apply_to_calculator')"
+                :class="['group flex items-center justify-between backdrop-blur-sm border rounded-lg px-3 py-2.5 text-left hover:border-emerald-400 hover:shadow-md transition-all shadow-sm',
+                  currentGpuId === g.id ? 'bg-emerald-50 border-emerald-400' : 'bg-white/90 border-gray-200']"
               >
                 <div class="flex items-center gap-2 min-w-0 flex-1">
                   <span
@@ -735,6 +750,13 @@ function closeDetail() {
                 {{ t('library.window') }}: {{ detailModel.sliding_window }} · Local: {{ detailModel.local_layers }}
               </div>
             </div>
+
+            <button
+              @click="selectModel(detailModel)"
+              class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-700 text-white text-sm font-semibold rounded-xl transition-colors"
+            >
+              {{ t('library.apply_to_calculator') }}
+            </button>
           </div>
         </div>
       </div>
@@ -824,6 +846,13 @@ function closeDetail() {
             <div v-if="detailGpu.usableRatio && detailGpu.usableRatio < 1" class="text-xs text-gray-700 bg-amber-100 rounded px-2 py-1.5 border border-amber-300">
               ⚠️ {{ t('library.usable_vram') }} {{ (detailGpu.usableRatio * 100).toFixed(0) }}%
             </div>
+
+            <button
+              @click="selectGpu(detailGpu)"
+              class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-700 text-white text-sm font-semibold rounded-xl transition-colors"
+            >
+              {{ t('library.apply_to_calculator') }}
+            </button>
           </div>
         </div>
       </div>

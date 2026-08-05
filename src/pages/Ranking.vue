@@ -110,6 +110,11 @@ function resetFilters() {
 }
 
 // ── URL 同步 ─────────────────────────────────────────
+// 本页管理的 query 键：同步时先清掉这些，其余（如 lang）原样保留
+const RANKING_QUERY_KEYS = [
+  'gpus', 'gpu', 'n', 'ic', 'ctx', 'b', 'fw', 'sort', 'type', 'runnable', 'sv',
+  'params', 'minspeed', 'minquant', 'hideoffload', 'legacy',
+]
 watch(
   [gpuSlots, interconnect, ctx, batch, framework, sortBy, filterType, showOnlyRunnable, sharedVram,
    filterParams, filterMinSpeed, filterMinQuant, hideOffload, filterLegacy],
@@ -129,7 +134,10 @@ watch(
     if (minquant !== '') query.minquant = minquant
     if (offload) query.hideoffload = '1'
     if (legacy) query.legacy = '1'
-    router.replace({ query })
+    // 保留 lang 等与排行无关的 query，只覆写本页管理的键
+    const preserved = { ...route.query }
+    for (const k of RANKING_QUERY_KEYS) delete preserved[k]
+    router.replace({ query: { ...preserved, ...query } })
   }
 )
 
@@ -310,7 +318,10 @@ const modelResults = computed(() => {
 // ── 虚拟化：分页渲染（每次加载 50 条，滚动到底部追加）──
 const PAGE_SIZE = 50
 const visibleCount = ref(PAGE_SIZE)
+// 桌面表格和移动卡片各有一个哨兵，两个都要 observe：
+// 未命中的断点下节点被 `hidden` 隐藏，永远不会 intersect
 const sentinelRef = ref(null)
+const mobileSentinelRef = ref(null)
 let observer = null
 
 // 筛选条件变化时重置可见数量
@@ -325,10 +336,11 @@ function loadMore() {
 
 onMounted(() => {
   observer = new IntersectionObserver(
-    (entries) => { if (entries[0].isIntersecting && hasMore.value) loadMore() },
+    (entries) => { if (entries.some(e => e.isIntersecting) && hasMore.value) loadMore() },
     { rootMargin: '200px' }
   )
   if (sentinelRef.value) observer.observe(sentinelRef.value)
+  if (mobileSentinelRef.value) observer.observe(mobileSentinelRef.value)
 })
 
 onUnmounted(() => { observer?.disconnect() })
@@ -521,7 +533,7 @@ function useThisModel(modelData) {
               >
                 <td class="px-4 py-3">
                   <div class="text-sm font-medium text-gray-900">{{ item.model.name }}</div>
-                  <div v-if="item.cpuOffload" class="text-[10px] text-amber-600 mt-0.5">CPU offload</div>
+                  <div v-if="item.cpuOffload" class="text-[10px] text-amber-600 mt-0.5">{{ t('ranking.cpu_offload_badge') }}</div>
                 </td>
                 <td class="px-4 py-3">
                   <span
@@ -610,7 +622,7 @@ function useThisModel(modelData) {
                     class="text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0"
                   >{{ item.model.type === 'moe' ? 'MoE' : 'Dense' }}</span>
                   <span v-if="isNew(item.model.released)" class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-100 text-red-600 flex-shrink-0">NEW</span>
-                  <span v-if="item.cpuOffload" class="text-[10px] font-medium px-1.5 py-0.5 rounded bg-amber-50 text-amber-600 border border-amber-200 flex-shrink-0">CPU offload</span>
+                  <span v-if="item.cpuOffload" class="text-[10px] font-medium px-1.5 py-0.5 rounded bg-amber-50 text-amber-600 border border-amber-200 flex-shrink-0">{{ t('ranking.cpu_offload_badge') }}</span>
                 </div>
                 <h3 class="text-base font-bold text-gray-900 leading-tight">{{ item.model.name }}</h3>
                 <!-- 参数量 / 上下文 / 激活参数 -->
@@ -693,8 +705,17 @@ function useThisModel(modelData) {
           </div>
         </div>
         <!-- 加载更多哨兵（移动端） -->
-        <div v-if="hasMore" class="text-center py-3 text-xs text-gray-400">
-          {{ t('ranking.loading_more', { shown: visibleResults.length, total: modelResults.length }) }}
+        <div ref="mobileSentinelRef" class="h-4" />
+        <div v-if="hasMore" class="flex flex-col items-center gap-2 py-3">
+          <p class="text-xs text-gray-400">
+            {{ t('ranking.loading_more', { shown: visibleResults.length, total: modelResults.length }) }}
+          </p>
+          <button
+            @click="loadMore"
+            class="px-4 py-2 rounded-lg text-xs font-medium border border-gray-300 bg-white text-gray-700 active:bg-gray-100"
+          >
+            {{ t('ranking.load_more') }}
+          </button>
         </div>
       </div>
     </div>

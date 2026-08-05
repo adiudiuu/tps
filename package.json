@@ -6,8 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview",
-    "benchmark": "node scripts/benchmark-regression.mjs"
+    "preview": "vite preview"
   },
   "dependencies": {
     "autoprefixer": "^10.5.0",

@@ -29,6 +29,9 @@ const props = defineProps({
 })
 const framework = defineModel('framework', { required: true })
 
+// 显存 + 系统内存都装得下才算跑得起来
+const isRunnable = computed(() => props.result?.runnable ?? props.result?.vramOk ?? true)
+
 const speedRating = computed(() => {
   const toks = props.result?.singleToksMax
   if (toks == null) return null
@@ -102,16 +105,16 @@ async function copyCmd() {
 <template>
   <div class="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
 
-    <!-- 显存不足时：OOM 提示条（替换速度评级） -->
+    <!-- 内存/显存不足时：不可运行提示条（替换速度评级） -->
     <div
-      v-if="result && !result.vramOk"
+      v-if="result && !isRunnable"
       class="rounded-xl overflow-hidden flex items-center gap-3 px-4 py-3"
       style="background:linear-gradient(135deg,#fef2f215 0%,#fee2e206 100%);border:1px solid #fca5a528"
     >
       <div class="w-1 self-stretch flex-shrink-0 rounded-full" style="background:linear-gradient(to bottom,#f87171,#dc2626)" />
       <div class="flex-1 min-w-0">
-        <div class="text-sm font-bold text-red-600">{{ t('result.oom_no_speed_title') }}</div>
-        <div class="text-xs text-red-400 leading-snug mt-0.5">{{ t('result.oom_no_speed_desc') }}</div>
+        <div class="text-sm font-bold text-red-600">{{ t(result.vramOk ? 'result.ram_oom_no_speed_title' : 'result.oom_no_speed_title') }}</div>
+        <div class="text-xs text-red-400 leading-snug mt-0.5">{{ t(result.vramOk ? 'result.ram_oom_no_speed_desc' : 'result.oom_no_speed_desc') }}</div>
       </div>
       <div class="flex flex-col items-end flex-shrink-0">
         <div class="text-2xl font-black leading-none text-red-300 line-through tabular-nums">

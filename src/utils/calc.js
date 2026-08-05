@@ -554,6 +554,11 @@ export function calcAll({
   const clusterNeeded = gpuCount > 1 ? perCardNeeded * gpuCount : totalNeeded
   const vramOk = perCardNeeded <= perCardVram
   const vramPct = perCardNeeded / perCardVram * 100
+  // 纯 CPU / llama.cpp 混合 / MoE offload 会把权重压到系统内存，
+  // 此时显存够用不等于跑得起来，需要额外校验 DDR 容量。
+  // sysRam 未提供（如 solver / 排行榜路径）时不做判定，保持既有行为。
+  const ramOk = !(sysRam != null && cpuRamNeededGB > 0 && cpuRamNeededGB > sysRam)
+  const runnable = vramOk && ramOk
 
   return {
     // 显存
@@ -562,6 +567,8 @@ export function calcAll({
     gpuCount,
     vramScope: gpuCount > 1 ? 'per_card' : 'total',
     vramOk,
+    ramOk,
+    runnable,
     vramPct,
     // 速度
     bwLimit, computeLimit, decodeToks, prefillToks, kvReadGB, avgDecodeSeqLen,
@@ -954,6 +961,8 @@ export function calcBatchSweep(params, batches = [1, 2, 4, 8, 16, 32, 64, 128, 2
         ttft:          r.ttft,
         totalLatency:  r.totalLatency,
         vramOk:        r.vramOk,
+        ramOk:         r.ramOk,
+        runnable:      r.runnable,
         ppBubbleEff:   r.ppBubbleEff,
         bottleneck:    r.bottleneck,
       }

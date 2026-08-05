@@ -52,7 +52,7 @@
 - 🎯 **精准建模** — 权重、KV Cache、系统开销全覆盖，OOM 风险预警
 - ⚡ **性能分析** — Decode/Prefill token/s 精确计算，TTFT/TPOT/总延迟全面评估
 - 📊 **Roofline 模型** — 科学识别带宽/算力瓶颈
-- 🌍 **广泛覆盖** — 250+ GPU 型号，375+ 主流模型（Dense 305 + MoE 70）
+- 🌍 **广泛覆盖** — 250+ GPU 型号，382+ 主流模型（Dense 298 + MoE 84）
 - 🔗 **高级特性** — Tensor Parallel、Flash Attention、KV Cache 量化、Prefix Cache
 - 🎨 **多框架支持** — vLLM、TensorRT-LLM、SGLang、LMDeploy、TGI、llama.cpp、ExLlamaV2、MLX
 
@@ -60,7 +60,7 @@
 
 | 类别 | 详细信息 |
 | --- | --- |
-| **模型** | 375+ 主流模型（Dense 305 + MoE 70）· 0.5B - 2.8T 参数 · 2022-2026 年发布 |
+| **模型** | 382+ 主流模型（Dense 298 + MoE 84）· 0.5B - 2.8T 参数 · 2022-2026 年发布 |
 | **架构** | Dense · MoE · MLA (DeepSeek) · 混合注意力 (Gemma) · Mamba (SSM) |
 | **GPU** | 250+ 型号 · NVIDIA (RTX/Tesla/H100/B200/B300) · AMD (RX/MI) · Intel Arc · Apple Silicon · 国产芯片 |
 | **量化** | FP32 · BF16 · FP8 · INT8 · INT4 · Q6_K · Q5_K · Q3_K · INT2 |
@@ -125,7 +125,7 @@ src/
 │   └── ui/          # 通用 UI 组件
 ├── data/            # 数据定义
 │   ├── gpus/        # GPU 规格数据（按厂商分类）
-│   ├── models/      # 模型参数数据（375+ 模型）
+│   ├── models/      # 模型参数数据（382+ 模型）
 │   ├── constants.js # 量化/框架/互联常量
 │   └── runtime.js   # 运行时配置选项
 ├── utils/           # 工具函数
@@ -220,8 +220,6 @@ graph TD
 - 基于真实 benchmark 的框架效率区间
 - 多卡 TP 通信开销（NVLink/PCIe）
 
-详细算法和公式请参阅 [Docs.md](Docs.md)。
-
 </details>
 
 ## 贡献指南
@@ -268,7 +266,7 @@ graph TD
 
 - **模型参数** — [HuggingFace](https://huggingface.co)、[Ollama](https://ollama.com)、[ModelScope](https://modelscope.cn) 等官方资源库
 - **GPU 规格** — 各厂商官方技术文档
-- **模型覆盖** — 375+ 模型，涵盖 2022-2026 年主流开源模型，参数规模从 0.5B 到 2.8T
+- **模型覆盖** — 382+ 模型，涵盖 2022-2026 年主流开源模型，参数规模从 0.5B 到 2.8T
 
 ### 理论基础
 
@@ -298,7 +296,6 @@ graph TD
 
 ## 文档
 
-- **[算法文档 (Docs.md)](Docs.md)** — 详细的计算公式、数据流和实现细节
 - **[English README](README.en.md)** — English version of this document
 - **[README en Español](README.es-ES.md)** — Versión en español
 

@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { fmtGB, fmtToks, fmtMs } from '../../utils/format.js'
 
-const { t, locale } = useI18n()
+const { t } = useI18n()
 
 const props = defineProps({
   row: { type: Object, required: true },
@@ -46,6 +46,19 @@ const gpuDesc = computed(() => {
 })
 
 const totalGpuCount = computed(() => props.row.totalGpuCount ?? props.row.gpuCount ?? 1)
+
+// 洞察建议：solver 返回结构化 key，这里按当前语言渲染
+const insightText = computed(() => {
+  const list = props.row.insight
+  if (!Array.isArray(list) || list.length === 0) return null
+  return list.map(i => t(i.key, i.params ?? {})).join(t('solver.insight_separator'))
+})
+
+// 升级模式的改动说明
+const changeText = computed(() => {
+  if (!props.row.changeKey) return null
+  return t(props.row.changeKey, props.row.changeParams ?? {})
+})
 </script>
 
 <template>
@@ -61,6 +74,11 @@ const totalGpuCount = computed(() => props.row.totalGpuCount ?? props.row.gpuCou
         <span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600">{{ frameworkLabel }}</span>
         <span v-if="row.ppCount > 1" class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-violet-100 text-violet-700">PP{{ row.ppCount }}</span>
         <span v-if="row.epCount > 1" class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-fuchsia-100 text-fuchsia-700">EP{{ row.epCount }}</span>
+      </div>
+
+      <!-- 升级路径改动说明 -->
+      <div v-if="changeText" class="mb-1.5 text-xs font-medium text-emerald-700">
+        {{ changeText }}
       </div>
 
       <!-- 指标行 -->
@@ -96,8 +114,8 @@ const totalGpuCount = computed(() => props.row.totalGpuCount ?? props.row.gpuCou
       </div>
 
       <!-- 洞察建议 -->
-      <div v-if="row.insight" class="mt-1.5 text-xs text-gray-500 leading-relaxed">
-        {{ row.insight }}
+      <div v-if="insightText" class="mt-1.5 text-xs text-gray-500 leading-relaxed">
+        {{ insightText }}
       </div>
     </div>
 

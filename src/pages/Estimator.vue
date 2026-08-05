@@ -13,7 +13,7 @@ import { GPU_LIST } from '../data/gpus/index.js'
 import { ALL_MODELS } from '../data/models/index.js'
 import { QUANT_MAP, INTERCONNECT_MAP, FRAMEWORK_MAP } from '../data/constants.js'
 import { KV_CACHE_MAP, PCIE_BW_OPTIONS, CPU_MEM_BW_OPTIONS, PCIE_WIDTH_OPTIONS } from '../data/runtime.js'
-import { calcAll, calcBatchSweep, aggregateGpuSlots } from '../utils/calc.js'
+import { calcAll, calcBatchSweep, aggregateGpuSlots, getQuantBytes } from '../utils/calc.js'
 import { readUrlState, resolveUrlState, watchUrlState } from '../utils/useUrlState.js'
 
 const { t } = useI18n()
@@ -36,19 +36,6 @@ const kvCacheQuant   = ref(_url.kvCacheQuant ?? KV_CACHE_MAP[0])
 const prefixCacheHit = ref(_url.prefixCacheHit ?? 0)
 // 共享内存（iGPU 专用）
 const sharedVram     = ref(_url.sharedVram    ?? 16)
-// 只有 MoE 模型放不下显存时（INT4 权重 > 可用显存）才自动开启 CPU 卸载
-function needsCpuOffload(m, g, n) {
-  if (!m || m.type !== 'moe' || !m.active_params) return false
-  const weightGB = m.params * 0.5  // INT4 bytes per param
-  const totalVram = (g?.vram ?? 0) * (n ?? 1) * (g?.usableRatio ?? 1.0)
-  return weightGB > totalVram
-}
-const cpuOffload     = ref(_url.cpuOffload   ?? needsCpuOffload(model.value, gpuSlots.value[0]?.gpu, gpuCount.value))
-const pcieBw         = ref(_url.pcieBw       ?? PCIE_BW_OPTIONS[1])
-const pcieWidth      = ref(_url.pcieWidth     ?? PCIE_WIDTH_OPTIONS[1])  // 默认 x8
-const pureCpu        = ref(_url.pureCpu      ?? false)
-const cpuMemBw       = ref(_url.cpuMemBw     ?? CPU_MEM_BW_OPTIONS[3])  // 默认 DDR5-4800
-const sysRam         = ref(_url.sysRam       ?? 64)  // 默认 64 GB
 
 // 共享内存 iGPU：用用户设置的共享内存大小覆盖 vram=0
 const effectiveGpu = computed(() => {
@@ -59,6 +46,21 @@ const effectiveGpu = computed(() => {
   })
   return slots.length === 1 ? slots[0].gpu : aggregateGpuSlots(slots)
 })
+
+// 只有 MoE 模型放不下显存时才自动开启 CPU 卸载。
+// 按当前量化（含 GGUF/Apple 口径）的实际权重体积判断，而不是写死 INT4。
+function needsCpuOffload(m, g, n, q, fw) {
+  if (!m || m.type !== 'moe' || !m.active_params) return false
+  const weightGB = m.params * getQuantBytes(q, g, fw)
+  const totalVram = (g?.vram ?? 0) * (n ?? 1) * (g?.usableRatio ?? 1.0)
+  return weightGB > totalVram
+}
+const cpuOffload     = ref(_url.cpuOffload   ?? needsCpuOffload(model.value, effectiveGpu.value, gpuCount.value, quant.value, framework.value))
+const pcieBw         = ref(_url.pcieBw       ?? PCIE_BW_OPTIONS[1])
+const pcieWidth      = ref(_url.pcieWidth     ?? PCIE_WIDTH_OPTIONS[1])  // 默认 x8
+const pureCpu        = ref(_url.pureCpu      ?? false)
+const cpuMemBw       = ref(_url.cpuMemBw     ?? CPU_MEM_BW_OPTIONS[3])  // 默认 DDR5-4800
+const sysRam         = ref(_url.sysRam       ?? 64)  // 默认 64 GB
 const speculativeDecoding = ref(_url.speculativeDecoding ?? false)
 const acceptanceRate = ref(_url.acceptanceRate ?? 0.7)
 const draftLen       = ref(_url.draftLen       ?? 4)
@@ -94,11 +96,14 @@ function pinCurrentResult() {
     acceptanceRate: acceptanceRate.value,
     draftLen: draftLen.value,
     ppCount: ppCount.value,
+    epCount: epCount.value,
     imageCount: imageCount.value,
     promptLen: promptLen.value,
     outputLen: outputLen.value,
     nglCount: nglCount.value,
     sysRam: sysRam.value,
+    pureCpu: pureCpu.value,
+    cpuMemBw: cpuMemBw.value,
   }
 }
 
@@ -127,10 +132,11 @@ function goToUpgrade() {
 }
 
 watch(model, (m, prev) => {
-  if (m?.max_ctx) ctx.value = Math.min(m.max_ctx, 16384)
+  // 只在超出新模型上限时收敛，保留用户已设置的长上下文
+  if (m?.max_ctx && ctx.value > m.max_ctx) ctx.value = m.max_ctx
   // MoE 模型：仅在放不下显存时才自动开启 CPU 卸载；能放下则关闭；切换到非 MoE 时关闭
   if (m?.type === 'moe' && m?.active_params) {
-    cpuOffload.value = needsCpuOffload(m, effectiveGpu.value, gpuCount.value)
+    cpuOffload.value = needsCpuOffload(m, effectiveGpu.value, gpuCount.value, quant.value, framework.value)
   } else if (prev?.type === 'moe') {
     cpuOffload.value = false
   }
@@ -153,61 +159,92 @@ watchUrlState({ gpuSlots, interconnect, model, quant, ctx, batch,
   prefixCacheHit, cpuOffload, pcieBw, pcieWidth, pureCpu, cpuMemBw, sysRam,
   speculativeDecoding, acceptanceRate, draftLen, ppCount, epCount, imageCount, sharedVram, nglCount })
 
+// 主结果、量化矩阵、batch sweep 共用同一份参数，避免各处漏传导致数字互相打架
+const calcParams = computed(() => ({
+  gpu: effectiveGpu.value,
+  gpuCount: gpuCount.value,
+  interconnect: interconnect.value,
+  model: model.value,
+  quant: quant.value,
+  ctx: ctx.value,
+  batch: batch.value,
+  promptLen: promptLen.value,
+  outputLen: outputLen.value,
+  framework: framework.value,
+  flashAttention: flashAttention.value,
+  kvCacheQuant: kvCacheQuant.value,
+  prefixCacheHit: prefixCacheHit.value,
+  cpuOffload: cpuOffload.value,
+  pcieBw: pcieBw.value,
+  pcieWidth: pcieWidth.value,
+  pureCpu: pureCpu.value,
+  cpuMemBw: cpuMemBw.value,
+  sysRam: sysRam.value,
+  speculativeDecoding: speculativeDecoding.value,
+  acceptanceRate: acceptanceRate.value,
+  draftLen: draftLen.value,
+  ppCount: ppCount.value,
+  epCount: epCount.value,
+  imageCount: imageCount.value,
+  nglCount: nglCount.value,
+}))
+
+// 固定列快照对应的参数集合（结构与 calcParams 完全一致）
+const pinnedCalcParams = computed(() => {
+  const c = pinnedConfig.value
+  if (!c) return null
+  return {
+    gpu: c.gpu,
+    gpuCount: c.gpuCount,
+    interconnect: c.interconnect,
+    model: c.model,
+    quant: c.quant,
+    ctx: c.ctx,
+    batch: c.batch,
+    promptLen: c.promptLen,
+    outputLen: c.outputLen,
+    framework: c.framework,
+    flashAttention: c.flashAttention,
+    kvCacheQuant: c.kvCacheQuant,
+    prefixCacheHit: c.prefixCacheHit,
+    cpuOffload: c.cpuOffload,
+    pcieBw: c.pcieBw,
+    pcieWidth: c.pcieWidth,
+    pureCpu: c.pureCpu,
+    cpuMemBw: c.cpuMemBw,
+    sysRam: c.sysRam,
+    speculativeDecoding: c.speculativeDecoding,
+    acceptanceRate: c.acceptanceRate,
+    draftLen: c.draftLen,
+    ppCount: c.ppCount,
+    epCount: c.epCount,
+    imageCount: c.imageCount,
+    nglCount: c.nglCount,
+  }
+})
+
 const result = computed(() => {
   if (!effectiveGpu.value || !model.value || !quant.value || !framework.value) return null
   try {
-    return { ...calcAll({
-      gpu: effectiveGpu.value, gpuCount: gpuCount.value, interconnect: interconnect.value,
-      model: model.value, quant: quant.value, ctx: ctx.value, batch: batch.value,
-      promptLen: promptLen.value, outputLen: outputLen.value, framework: framework.value,
-      flashAttention: flashAttention.value, kvCacheQuant: kvCacheQuant.value,
-      prefixCacheHit: prefixCacheHit.value, cpuOffload: cpuOffload.value, pcieBw: pcieBw.value,
-      pcieWidth: pcieWidth.value,
-      pureCpu: pureCpu.value, cpuMemBw: cpuMemBw.value,
-      sysRam: sysRam.value,
-      speculativeDecoding: speculativeDecoding.value, acceptanceRate: acceptanceRate.value, draftLen: draftLen.value,
-      ppCount: ppCount.value,
-      epCount: epCount.value,
-      imageCount: imageCount.value,
-      nglCount: nglCount.value,
-    }), quantId: quant.value.id }
+    return { ...calcAll(calcParams.value), quantId: quant.value.id }
   } catch (e) {
     if (import.meta.env.DEV) console.error('[calcAll error]', e)
     return null
   }
 })
 
-const quantMatrix = computed(() => {
-  if (!effectiveGpu.value || !model.value || !framework.value) return []
+/** 按给定参数集合构建量化对比矩阵（OOM 行额外试算 CPU 卸载后能否容纳） */
+function buildQuantMatrix(params) {
+  if (!params?.gpu || !params.model || !params.framework) return []
   return QUANT_MAP.map(q => {
     try {
-      const r = calcAll({
-        gpu: effectiveGpu.value, gpuCount: gpuCount.value, interconnect: interconnect.value,
-        model: model.value, quant: q, ctx: ctx.value, batch: batch.value,
-        promptLen: promptLen.value, outputLen: outputLen.value, framework: framework.value,
-        flashAttention: flashAttention.value, kvCacheQuant: kvCacheQuant.value,
-        prefixCacheHit: prefixCacheHit.value, cpuOffload: cpuOffload.value, pcieBw: pcieBw.value,
-        pcieWidth: pcieWidth.value,
-        pureCpu: pureCpu.value, cpuMemBw: cpuMemBw.value,
-        speculativeDecoding: speculativeDecoding.value, acceptanceRate: acceptanceRate.value, draftLen: draftLen.value,
-        ppCount: ppCount.value,        nglCount: nglCount.value,      })
-      // 当前行 OOM 且未开启 CPU 卸载时，额外计算"启用卸载后能否容纳"
+      const r = calcAll({ ...params, quant: q })
       let cpuOffloadFeasible = false
       let offloadVramGB = null
-      if (!r.vramOk && !cpuOffload.value && model.value?.type === 'moe' && model.value?.active_params) {
+      if (!r.vramOk && !params.cpuOffload && params.model?.type === 'moe' && params.model?.active_params) {
         try {
-          const fallbackPcie = pcieBw.value ?? INTERCONNECT_MAP.find(x => x.id === 'pcie4')
-          const ro = calcAll({
-            gpu: effectiveGpu.value, gpuCount: gpuCount.value, interconnect: interconnect.value,
-            model: model.value, quant: q, ctx: ctx.value, batch: batch.value,
-            promptLen: promptLen.value, outputLen: outputLen.value, framework: framework.value,
-            flashAttention: flashAttention.value, kvCacheQuant: kvCacheQuant.value,
-            prefixCacheHit: prefixCacheHit.value, cpuOffload: true, pcieBw: fallbackPcie,
-            pcieWidth: pcieWidth.value,
-            pureCpu: false, cpuMemBw: cpuMemBw.value,
-            speculativeDecoding: speculativeDecoding.value, acceptanceRate: acceptanceRate.value, draftLen: draftLen.value,
-            ppCount: ppCount.value,
-          })
+          const fallbackPcie = params.pcieBw ?? INTERCONNECT_MAP.find(x => x.id === 'pcie4')
+          const ro = calcAll({ ...params, quant: q, cpuOffload: true, pcieBw: fallbackPcie, pureCpu: false })
           cpuOffloadFeasible = ro.vramOk
           offloadVramGB = ro.displayNeeded ?? ro.totalNeeded
         } catch { /* ignore */ }
@@ -215,91 +252,19 @@ const quantMatrix = computed(() => {
       return { quant: q, vramGB: r.displayNeeded ?? r.totalNeeded, vramOk: r.vramOk, vramPct: r.vramPct, decodeToks: r.decodeToks, cpuOffloadFeasible, offloadVramGB }
     } catch { return null }
   }).filter(Boolean)
-})
+}
 
-// 固定列的量化对比矩阵
-const pinnedQuantMatrix = computed(() => {
-  if (!pinnedConfig.value) return []
-  const c = pinnedConfig.value
-  return QUANT_MAP.map(q => {
-    try {
-      const r = calcAll({
-        gpu: c.gpu, gpuCount: c.gpuCount, interconnect: c.interconnect,
-        model: c.model, quant: q, ctx: c.ctx, batch: c.batch,
-        promptLen: c.promptLen, outputLen: c.outputLen, framework: c.framework,
-        flashAttention: c.flashAttention, kvCacheQuant: c.kvCacheQuant,
-        prefixCacheHit: c.prefixCacheHit, cpuOffload: c.cpuOffload, pcieBw: c.pcieBw,
-        speculativeDecoding: c.speculativeDecoding, acceptanceRate: c.acceptanceRate, draftLen: c.draftLen,
-        ppCount: c.ppCount,        nglCount: c.nglCount,      })
-      // 当前行 OOM 且未开启 CPU 卸载时，额外计算"启用卸载后能否容纳"
-      let cpuOffloadFeasible = false
-      let offloadVramGB = null
-      if (!r.vramOk && !c.cpuOffload && c.model?.type === 'moe' && c.model?.active_params) {
-        try {
-          const ro = calcAll({
-            gpu: c.gpu, gpuCount: c.gpuCount, interconnect: c.interconnect,
-            model: c.model, quant: q, ctx: c.ctx, batch: c.batch,
-            promptLen: c.promptLen, outputLen: c.outputLen, framework: c.framework,
-            flashAttention: c.flashAttention, kvCacheQuant: c.kvCacheQuant,
-            prefixCacheHit: c.prefixCacheHit, cpuOffload: true, pcieBw: c.pcieBw,
-            pureCpu: false, cpuMemBw: null,
-            speculativeDecoding: c.speculativeDecoding, acceptanceRate: c.acceptanceRate, draftLen: c.draftLen,
-            ppCount: c.ppCount,
-          })
-          cpuOffloadFeasible = ro.vramOk
-          offloadVramGB = ro.displayNeeded ?? ro.totalNeeded
-        } catch { /* ignore */ }
-      }
-      return { quant: q, vramGB: r.displayNeeded ?? r.totalNeeded, vramOk: r.vramOk, vramPct: r.vramPct, decodeToks: r.decodeToks, cpuOffloadFeasible, offloadVramGB }
-    } catch { return null }
-  }).filter(Boolean)
-})
-
-const pinnedBatchSweepData = computed(() => {
-  if (!pinnedConfig.value) return []
-  const c = pinnedConfig.value
-  return calcBatchSweep({
-    gpu: c.gpu, gpuCount: c.gpuCount, model: c.model, quant: c.quant,
-    ctx: c.ctx, batch: c.batch, framework: c.framework,
-    interconnect: c.interconnect,
-    promptLen: c.promptLen, outputLen: c.outputLen,
-    flashAttention: c.flashAttention, kvCacheQuant: c.kvCacheQuant,
-    prefixCacheHit: c.prefixCacheHit, cpuOffload: c.cpuOffload,
-    pcieBw: c.pcieBw, speculativeDecoding: c.speculativeDecoding,
-    acceptanceRate: c.acceptanceRate, draftLen: c.draftLen,
-    ppCount: c.ppCount, imageCount: c.imageCount,
-    nglCount: c.nglCount,
-    pcieWidth: c.pcieWidth,
-  })
-})
+const quantMatrix = computed(() => buildQuantMatrix(calcParams.value))
+const pinnedQuantMatrix = computed(() => buildQuantMatrix(pinnedCalcParams.value))
 
 const batchSweepData = computed(() => {
   if (!effectiveGpu.value || !model.value || !quant.value) return []
-  return calcBatchSweep({
-    gpu: effectiveGpu.value,
-    gpuCount: gpuCount.value,
-    interconnect: interconnect.value,
-    model: model.value,
-    quant: quant.value,
-    ctx: ctx.value,
-    promptLen: promptLen.value,
-    outputLen: outputLen.value,
-    framework: framework.value,
-    flashAttention: flashAttention.value,
-    kvCacheQuant: kvCacheQuant.value,
-    prefixCacheHit: prefixCacheHit.value,
-    cpuOffload: cpuOffload.value,
-    pcieBw: pcieBw.value,
-    pcieWidth: pcieWidth.value,
-    pureCpu: pureCpu.value,
-    cpuMemBw: cpuMemBw.value,
-    speculativeDecoding: speculativeDecoding.value,
-    acceptanceRate: acceptanceRate.value,
-    draftLen: draftLen.value,
-    ppCount: ppCount.value,
-    imageCount: imageCount.value,
-    nglCount: nglCount.value,
-  })
+  return calcBatchSweep(calcParams.value)
+})
+
+const pinnedBatchSweepData = computed(() => {
+  if (!pinnedCalcParams.value) return []
+  return calcBatchSweep(pinnedCalcParams.value)
 })
 </script>
 
@@ -374,16 +339,17 @@ const batchSweepData = computed(() => {
                   :current-batch="pinnedConfig.batch"
                   v-model:framework="pinnedConfig.framework"
                   v-model:quant="pinnedConfig.quant"
-                  :ctx="ctx"
+                  :ctx="pinnedConfig.ctx"
                   :batch="pinnedConfig.batch"
-                  :pp-count="ppCount"
-                  :ep-count="epCount"
-                  :kv-cache-quant="kvCacheQuant"
-                  :prefix-cache-hit="prefixCacheHit"
-                  :speculative-decoding="speculativeDecoding"
-                  :draft-len="draftLen"
-                  :cpu-offload="cpuOffload"
-                  :pure-cpu="pureCpu"
+                  :pp-count="pinnedConfig.ppCount"
+                  :ep-count="pinnedConfig.epCount"
+                  :kv-cache-quant="pinnedConfig.kvCacheQuant"
+                  :prefix-cache-hit="pinnedConfig.prefixCacheHit"
+                  :speculative-decoding="pinnedConfig.speculativeDecoding"
+                  :draft-len="pinnedConfig.draftLen"
+                  :cpu-offload="pinnedConfig.cpuOffload"
+                  :pure-cpu="pinnedConfig.pureCpu"
+                  :ngl-count="pinnedConfig.nglCount"
                 />
               </div>
             </div>

@@ -30,7 +30,12 @@ const props = defineProps({
   compact: { type: Boolean, default: false },
 })
 
-const validPoints = computed(() => (props.sweepData ?? []).filter(d => !d.error))
+// 「可运行」既要显存放得下，也要系统内存装得下（CPU 卸载 / 纯 CPU 路径）
+const validPoints = computed(() =>
+  (props.sweepData ?? [])
+    .filter(d => !d.error)
+    .map(d => ({ ...d, vramOk: d.runnable ?? d.vramOk }))
+)
 
 const labels = computed(() => validPoints.value.map(d => d.batch))
 

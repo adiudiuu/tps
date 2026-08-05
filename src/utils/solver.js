@@ -188,8 +188,9 @@ export async function solveForModel(opts) {
           // EP 循环提前到 quant 同层，让剪枝能感知 EP 分片
           for (const epCount of epOptions) {
             // 第二层剪枝：计算 EP 感知的每卡权重
+            // 剪枝先于 framework 循环，按 GPU 厂商默认口径取字节数（Apple 走 GGUF）
             let perCardWeightGB
-            const quantBytes = getQuantBytes(quant, gpu, framework)
+            const quantBytes = getQuantBytes(quant, gpu, null)
             if (epCount > 1 && totalExpertParams != null) {
               // MoE + EP: 每卡存完整 non-expert + 1/epCount 的 expert，再除以 TP 分片数
               perCardWeightGB = ((nonExpertParams + totalExpertParams / epCount) * quantBytes) / gpuCount
@@ -281,83 +282,127 @@ export async function solveForModel(opts) {
 
 /**
  * 为每条结果生成洞察建议
+ *
+ * 返回结构化的 i18n key 列表，由 UI 用 t() 渲染，避免在引擎层写死语言。
+ *
  * @param {object} row - 单条 solver 结果
- * @returns {string|null} - 洞察文本，多条用分号分隔
+ * @returns {Array<{key: string, params?: object}>|null}
  */
 function generateInsight(row) {
   const lines = []
 
   // 显存余量检查
   if (row.vramPct > 85) {
-    lines.push('显存余量不足 15%，不建议增加上下文')
+    lines.push({ key: 'solver.insight_vram_tight' })
   }
   if (row.vramPct < 30) {
-    lines.push('显存充裕，可大幅增加上下文或 batch')
+    lines.push({ key: 'solver.insight_vram_ample' })
   }
 
   // 多卡效率检查
   if (row.gpuCount > 1 && row.tpEfficiency != null) {
     if (row.tpEfficiency < 0.75) {
-      lines.push('多卡通信效率偏低，带宽是瓶颈')
+      lines.push({ key: 'solver.insight_tp_low' })
     } else if (row.tpEfficiency > 0.95) {
-      lines.push('多卡扩展效率优秀')
+      lines.push({ key: 'solver.insight_tp_good' })
     }
   }
 
   // 量化质量检查
   if (row.quant?.quality === 'ok' || row.quant?.quality === 'poor') {
-    lines.push('当前量化对质量有明显影响')
+    lines.push({ key: 'solver.insight_quant_loss' })
   }
 
   // 瓶颈检查
   if (row.bottleneck === 'compute') {
-    lines.push('算力瓶颈，增加 GPU 数量收益有限')
+    lines.push({ key: 'solver.insight_compute_bound' })
   }
 
-  return lines.length > 0 ? lines.join('；') : null
+  return lines.length > 0 ? lines : null
 }
 
 /**
- * 计算 Pareto 前沿
- * 目标：速度越大越好，显存越小越好，GPU 数量越少越好
+ * 计算 Pareto 前沿（真 Pareto，非 Top-N 近似）
+ * 目标：速度越大越好，显存越小越好，GPU 总数越少越好
+ *
+ * 算法：按速度降序扫描（相同速度归为一个 block），维护"已处理点在每个卡数档位上的
+ * 最小显存"。卡数取值只有 1/2/4/8 几档，因此前缀最小值可 O(1) 查表，
+ * 整体复杂度 O(n log n)，替代原来的 O(n²) 双重循环，无需再做 Top-N 近似。
  *
  * @param {object[]} results
  */
 function computePareto(results) {
   if (results.length === 0) return []
 
-  // 大结果集时跳过全量 O(n^2) Pareto，避免长时间卡在 100% 进度。
-  // 保留按速度排序，并将前若干条标记为 Pareto 候选，确保界面可快速返回可用结果。
-  if (results.length > 2000) {
-    const sorted = [...results].sort((a, b) => b.decodeSpeed - a.decodeSpeed)
-    const paretoCap = Math.min(200, sorted.length)
-    return sorted.map((r, i) => ({ ...r, isPareto: i < paretoCap }))
-  }
+  const totalCountOf = r => r.totalGpuCount ?? r.gpuCount ?? 1
 
-  // 标记每个方案是否被支配
-  const dominated = new Array(results.length).fill(false)
+  // 卡数档位（升序去重），用于前缀最小显存查表
+  const countLevels = [...new Set(results.map(totalCountOf))].sort((a, b) => a - b)
+  const levelIndex = new Map(countLevels.map((c, i) => [c, i]))
 
-  for (let i = 0; i < results.length; i++) {
-    if (dominated[i]) continue
-    const a = results[i]
-    for (let j = 0; j < results.length; j++) {
-      if (i === j || dominated[j]) continue
-      const b = results[j]
-      // b 支配 a：b 在所有维度上不差于 a，且至少一个维度更好
-      const bDominatesA =
-        b.decodeSpeed >= a.decodeSpeed &&
-        b.vramNeeded  <= a.vramNeeded  &&
-        (b.totalGpuCount ?? b.gpuCount) <= (a.totalGpuCount ?? a.gpuCount) &&
-        (b.decodeSpeed > a.decodeSpeed || b.vramNeeded < a.vramNeeded || (b.totalGpuCount ?? b.gpuCount) < (a.totalGpuCount ?? a.gpuCount))
-      if (bDominatesA) {
-        dominated[i] = true
-        break
-      }
+  // minVramUpTo[i] = 已处理点中，卡数 <= countLevels[i] 的最小显存
+  const minVramAtLevel = new Array(countLevels.length).fill(Infinity)
+
+  const sorted = [...results].sort((a, b) => b.decodeSpeed - a.decodeSpeed)
+  const dominated = new Array(sorted.length).fill(false)
+
+  const prefixMinVram = (levelIdx) => {
+    let min = Infinity
+    for (let i = 0; i <= levelIdx; i++) {
+      if (minVramAtLevel[i] < min) min = minVramAtLevel[i]
     }
+    return min
   }
 
-  return results.map((r, i) => ({ ...r, isPareto: !dominated[i] }))
-    .sort((a, b) => b.decodeSpeed - a.decodeSpeed)
+  let blockStart = 0
+  while (blockStart < sorted.length) {
+    // 收集速度相同的一段
+    let blockEnd = blockStart + 1
+    while (blockEnd < sorted.length && sorted[blockEnd].decodeSpeed === sorted[blockStart].decodeSpeed) blockEnd++
+
+    // ① 与"速度严格更高"的已处理点比较：卡数不多于且显存不多于即被支配
+    for (let i = blockStart; i < blockEnd; i++) {
+      const li = levelIndex.get(totalCountOf(sorted[i]))
+      if (prefixMinVram(li) <= sorted[i].vramNeeded) dominated[i] = true
+    }
+
+    // ② block 内部（速度相同）比较：需要卡数或显存至少一维严格更优
+    //    按 (卡数升序, 显存升序) 扫描，记录更低卡数档位上出现过的最小显存
+    const blockIdx = []
+    for (let i = blockStart; i < blockEnd; i++) blockIdx.push(i)
+    blockIdx.sort((a, b) => {
+      const ca = totalCountOf(sorted[a]), cb = totalCountOf(sorted[b])
+      if (ca !== cb) return ca - cb
+      return sorted[a].vramNeeded - sorted[b].vramNeeded
+    })
+
+    let minVramLowerCount = Infinity   // 卡数严格更小的点里的最小显存
+    let curCount = null
+    let curGroupMinVram = Infinity     // 当前卡数档位内已扫描到的最小显存
+    for (const idx of blockIdx) {
+      const count = totalCountOf(sorted[idx])
+      if (count !== curCount) {
+        if (curCount !== null && curGroupMinVram < minVramLowerCount) minVramLowerCount = curGroupMinVram
+        curCount = count
+        curGroupMinVram = Infinity
+      }
+      // 卡数严格更小 + 显存不劣 → 被支配
+      if (minVramLowerCount <= sorted[idx].vramNeeded) dominated[idx] = true
+      // 同卡数下显存严格更小 → 被支配
+      else if (curGroupMinVram < sorted[idx].vramNeeded) dominated[idx] = true
+      if (sorted[idx].vramNeeded < curGroupMinVram) curGroupMinVram = sorted[idx].vramNeeded
+    }
+
+    // ③ block 处理完后并入查表
+    for (let i = blockStart; i < blockEnd; i++) {
+      const li = levelIndex.get(totalCountOf(sorted[i]))
+      if (sorted[i].vramNeeded < minVramAtLevel[li]) minVramAtLevel[li] = sorted[i].vramNeeded
+    }
+
+    blockStart = blockEnd
+  }
+
+  return sorted.map((r, i) => ({ ...r, isPareto: !dominated[i] }))
 }
 
 /**
@@ -452,7 +497,8 @@ export async function solveUpgrade(opts) {
             vramPct: r.vramPct,
             tpEfficiency: r.tpEfficiency,
             bottleneck: r.bottleneck,
-            changeDesc: `增加到 ${newCount} 张 ${currentGpu.name}`,
+            changeKey: 'solver.change_add_gpu',
+            changeParams: { count: newCount, gpu: currentGpu.name },
             costMultiplier: newCount / currentGpuCount,
           })
         }
@@ -505,7 +551,8 @@ export async function solveUpgrade(opts) {
             vramPct: r.vramPct,
             tpEfficiency: r.tpEfficiency,
             bottleneck: r.bottleneck,
-            changeDesc: `升级量化到 ${quant.label}`,
+            changeKey: 'solver.change_upgrade_quant',
+            changeParams: { quant: quant.label },
             costMultiplier: 1,
           })
         }
@@ -563,7 +610,8 @@ export async function solveUpgrade(opts) {
             vramPct: r.vramPct,
             tpEfficiency: r.tpEfficiency,
             bottleneck: r.bottleneck,
-            changeDesc: `换成 ${newGpu.name}`,
+            changeKey: 'solver.change_upgrade_gpu',
+            changeParams: { gpu: newGpu.name },
             costMultiplier: newGpu.vram / currentGpu.vram, // 粗略估算成本比例
           })
         }

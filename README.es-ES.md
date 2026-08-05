@@ -53,7 +53,7 @@
 - 🎯 **Modelado preciso** — Cobertura completa de pesos, KV Cache y sobrecarga del sistema, con alerta de riesgo OOM
 - ⚡ **Análisis de rendimiento** — Cálculo preciso de tokens/s en Decode/Prefill; evaluación de TTFT/TPOT/latencia total
 - 📊 **Modelo Roofline** — Identificación científica de cuellos de botella de ancho de banda y cómputo
-- 🌍 **Amplia cobertura** — 250+ GPUs, 375+ modelos principales (Dense 305 + MoE 70)
+- 🌍 **Amplia cobertura** — 250+ GPUs, 382+ modelos principales (Dense 298 + MoE 84)
 - 🔗 **Funciones avanzadas** — Tensor Parallel, Flash Attention, cuantización de KV Cache, Prefix Cache
 - 🎨 **Multi-framework** — vLLM, TensorRT-LLM, SGLang, LMDeploy, TGI, llama.cpp, ExLlamaV2, MLX
 
@@ -61,7 +61,7 @@
 
 | Categoría | Detalles |
 | --- | --- |
-| **Modelos** | 375+ modelos principales (Dense 305 + MoE 70) · 0.5B - 2.8T parámetros · Publicados 2022-2026 |
+| **Modelos** | 382+ modelos principales (Dense 298 + MoE 84) · 0.5B - 2.8T parámetros · Publicados 2022-2026 |
 | **Arquitecturas** | Dense · MoE · MLA (DeepSeek) · Atención híbrida (Gemma) · Mamba (SSM) |
 | **GPU** | 250+ modelos · NVIDIA (RTX/Tesla/H100/B200/B300) · AMD (RX/MI) · Intel Arc · Apple Silicon · Chips chinos |
 | **Cuantización** | FP32 · BF16 · FP8 · INT8 · INT4 · Q6_K · Q5_K · Q3_K · INT2 |
@@ -126,7 +126,7 @@ src/
 │   └── ui/          # UI genérica
 ├── data/            # Datos
 │   ├── gpus/        # Especificaciones GPU (por fabricante)
-│   ├── models/      # Parámetros de modelos (375+)
+│   ├── models/      # Parámetros de modelos (382+)
 │   ├── constants.js # Constantes de cuantización / framework / interconexión
 │   └── runtime.js   # Opciones de configuración en runtime
 ├── utils/           # Utilidades
@@ -221,8 +221,6 @@ graph TD
 - Intervalos de eficiencia de framework basados en benchmarks reales
 - Overhead de comunicación TP multi-GPU (NVLink/PCIe)
 
-Consulta algoritmos y fórmulas en [Docs.md](Docs.md).
-
 </details>
 
 ## Guía de contribución
@@ -269,7 +267,7 @@ Este proyecto usa una **licencia personalizada de uso no comercial**. Consulta [
 
 - **Parámetros de modelo** — [HuggingFace](https://huggingface.co), [Ollama](https://ollama.com), [ModelScope](https://modelscope.cn) y otros repositorios oficiales
 - **Especificaciones de GPU** — Documentación técnica oficial de los fabricantes
-- **Cobertura de modelos** — 375+ modelos open source principales (2022-2026), de 0.5B a 2.8T parámetros
+- **Cobertura de modelos** — 382+ modelos open source principales (2022-2026), de 0.5B a 2.8T parámetros
 
 ### Base teórica
 
@@ -299,7 +297,6 @@ Este proyecto usa una **licencia personalizada de uso no comercial**. Consulta [
 
 ## Documentación
 
-- **[Documentación de algoritmos (Docs.md)](Docs.md)** — Fórmulas, flujos de datos y detalles de implementación
 - **[中文 README](README.md)** — Versión en chino
 - **[English README](README.en.md)** — Versión en inglés
 

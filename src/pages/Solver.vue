@@ -157,12 +157,13 @@ async function runSolver() {
           new Promise((_, reject) => setTimeout(() => reject(new Error('solver-timeout')), HARD_TIMEOUT_MS)),
         ])
       } catch {
-        outcome = await solveUpgrade({ ...upgradeParams, shouldCancel: () => runToken.cancelled })
+        // 超时重试：保留全部推理参数，仅此路径仍需进度回调
+        outcome = await solveUpgrade({ ...upgradeParams, ...commonParams })
       }
 
-      // 兜底：若首轮意外返回空结果，进行一次无进度回调的重算
+      // 兜底：若首轮意外返回空结果，进行一次重算（同样保留全部推理参数）
       if (!outcome?.cancelled && (outcome?.results?.length ?? 0) === 0) {
-        const retry = await solveUpgrade(upgradeParams)
+        const retry = await solveUpgrade({ ...upgradeParams, ...commonParams })
         if (!retry?.cancelled && (retry?.results?.length ?? 0) > 0) {
           outcome = retry
         }
@@ -179,18 +180,21 @@ async function runSolver() {
         disableYield: true,
       }
 
+      // 超时/空结果重试时不再挂进度回调，但推理参数必须完整带上
+      const retryParams = { ...solverParams, ...commonParams, onProgress: undefined }
+
       try {
         outcome = await Promise.race([
           solveForModel({ ...solverParams, ...commonParams }),
           new Promise((_, reject) => setTimeout(() => reject(new Error('solver-timeout')), HARD_TIMEOUT_MS)),
         ])
       } catch {
-        outcome = await solveForModel({ ...solverParams, shouldCancel: () => runToken.cancelled })
+        outcome = await solveForModel(retryParams)
       }
 
-      // 兜底：若首轮意外返回空结果，进行一次无进度回调的重算
+      // 兜底：若首轮意外返回空结果，进行一次重算
       if (!outcome?.cancelled && (outcome?.results?.length ?? 0) === 0) {
-        const retry = await solveForModel(solverParams)
+        const retry = await solveForModel(retryParams)
         if (!retry?.cancelled && (retry?.results?.length ?? 0) > 0) {
           outcome = retry
         }
@@ -257,6 +261,12 @@ function progressPct() {
 }
 
 // ── 常量 ──────────────────────────────────────────────
+// solver 自己管理的 query 键：同步 URL 时先清掉这些，其余（如 lang）原样保留
+const SOLVER_QUERY_KEYS = [
+  'model', 'upgrade', 'gpu', 'n', 'quant', 'target',
+  'maxg', 'vendor', 'excl_dc', 'qf', 'minds', 'mttft',
+  'ctx', 'b', 'pl', 'ol',
+]
 const GPU_COUNT_OPTIONS = [1, 2, 4, 8]
 const VENDOR_OPTIONS = [
   { id: 'all',      labelKey: 'solver.vendor_all' },
@@ -282,7 +292,9 @@ watch(
     const normalizedBatch = clampInt(batchValue, LIMITS.batch)
     const normalizedPrompt = clampInt(promptValue, LIMITS.promptLen)
     const normalizedOutput = clampInt(outputValue, LIMITS.outputLen)
+    const normalizedTarget = clampInt(tgtSpeed, { ...LIMITS.minDecodeSpeed, def: 100 })
 
+    if (targetSpeed.value !== normalizedTarget) targetSpeed.value = normalizedTarget
     if (minDecodeSpeedA.value !== normalizedMinds) minDecodeSpeedA.value = normalizedMinds
     if (maxTtft.value !== normalizedMttft) maxTtft.value = normalizedMttft
     if (ctx.value !== normalizedCtx) ctx.value = normalizedCtx
@@ -297,7 +309,7 @@ watch(
       if (curGpu?.id) query.gpu = curGpu.id
       if (curGpuCount !== 1) query.n = String(curGpuCount)
       if (curQuant?.id) query.quant = curQuant.id
-      if (tgtSpeed !== 100) query.target = String(tgtSpeed)
+      if (normalizedTarget !== 100) query.target = String(normalizedTarget)
     } else {
       if (maxg !== 4) query.maxg = String(maxg)
       if (vendor !== 'all') query.vendor = vendor
@@ -310,7 +322,10 @@ watch(
     if (normalizedBatch !== LIMITS.batch.def) query.b = String(normalizedBatch)
     if (normalizedPrompt !== LIMITS.promptLen.def) query.pl = String(normalizedPrompt)
     if (normalizedOutput !== LIMITS.outputLen.def) query.ol = String(normalizedOutput)
-    router.replace({ query })
+    // 保留 lang 等与求解无关的 query，只覆写 solver 自己管理的键
+    const preserved = { ...route.query }
+    for (const k of SOLVER_QUERY_KEYS) delete preserved[k]
+    router.replace({ query: { ...preserved, ...query } })
   },
   { immediate: true }
 )
@@ -359,8 +374,13 @@ onMounted(() => {
           <div class="bg-white rounded-xl border border-gray-200 p-4 space-y-4">
             <h2 class="text-sm font-semibold text-gray-700">{{ t('solver.constraints') }}</h2>
 
+            <!-- 升级模式下 solveUpgrade 只在当前 GPU 基础上枚举，以下筛选项不参与求解 -->
+            <p v-if="isUpgradeMode" class="text-xs text-gray-400 leading-relaxed">
+              {{ t('solver.upgrade_constraints_hint') }}
+            </p>
+
             <!-- 最大 GPU 数量 -->
-            <div>
+            <div v-if="!isUpgradeMode">
               <label class="block text-xs text-gray-500 mb-1.5">{{ t('solver.max_gpu_count') }}</label>
               <div class="flex gap-2">
                 <button
@@ -375,7 +395,7 @@ onMounted(() => {
             </div>
 
             <!-- GPU 厂商过滤 -->
-            <div>
+            <div v-if="!isUpgradeMode">
               <label class="block text-xs text-gray-500 mb-1.5">{{ t('solver.vendor_filter') }}</label>
               <div class="flex flex-wrap gap-1.5">
                 <button
@@ -390,7 +410,7 @@ onMounted(() => {
             </div>
 
             <!-- GPU 层级过滤 -->
-            <div>
+            <div v-if="!isUpgradeMode">
               <label class="block text-xs text-gray-500 mb-1.5">{{ t('solver.gpu_type') }}</label>
               <div class="flex gap-1.5">
                 <button
@@ -412,7 +432,7 @@ onMounted(() => {
             </div>
 
             <!-- 量化质量下限 -->
-            <div>
+            <div v-if="!isUpgradeMode">
               <label class="block text-xs text-gray-500 mb-1.5">{{ t('solver.quant_floor') }}</label>
               <div class="flex flex-wrap gap-1.5">
                 <button
@@ -426,8 +446,18 @@ onMounted(() => {
               </div>
             </div>
 
+            <!-- 目标速度（仅升级模式，solveUpgrade 的唯一速度约束） -->
+            <div v-if="isUpgradeMode">
+              <label class="block text-xs text-gray-500 mb-1.5">{{ t('solver.target_speed') }}</label>
+              <div class="relative">
+                <input v-model.number="targetSpeed" type="number" :min="LIMITS.minDecodeSpeed.min" :max="LIMITS.minDecodeSpeed.max"
+                  class="w-full px-3 py-1.5 pr-14 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent" />
+                <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">tok/s</span>
+              </div>
+            </div>
+
             <!-- 最低 Decode 速度 -->
-            <div>
+            <div v-if="!isUpgradeMode">
               <label class="block text-xs text-gray-500 mb-1.5">
                 {{ t('solver.min_decode_speed') }}
                 <span class="text-gray-400 font-normal">{{ t('solver.optional') }}</span>
@@ -440,7 +470,7 @@ onMounted(() => {
             </div>
 
             <!-- TTFT 上限 -->
-            <div>
+            <div v-if="!isUpgradeMode">
               <label class="block text-xs text-gray-500 mb-1.5">
                 {{ t('solver.max_ttft') }}
                 <span class="text-gray-400 font-normal">{{ t('solver.optional') }}</span>

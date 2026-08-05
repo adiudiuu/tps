@@ -4,6 +4,12 @@
 import nemotron_cascade_2_30b from './nemotron_cascade_2_30b/index.js'
 import nemotron_cascade_8b from './nemotron_cascade_8b/index.js'
 import nemotron_cascade_14b from './nemotron_cascade_14b/index.js'
+import nemotron_3_nano from './nemotron_3_nano/index.js'
+import nemotron_3_super from './nemotron_3_super/index.js'
+import nemotron_3_ultra from './nemotron_3_ultra/index.js'
+import leanstral_1_5 from './leanstral_1_5/index.js'
+import olmo3_7b from './olmo3_7b/index.js'
+import olmo3_1_32b from './olmo3_1_32b/index.js'
 import medgemma_1_5_4b from './medgemma_1_5_4b/index.js'
 import gemma4_12b_unified from './gemma4_12b_unified/index.js'
 import translategemma_27b from './translategemma_27b/index.js'
@@ -29,6 +35,7 @@ import yi_1_5_34b from './yi_1_5_34b/index.js'
 import llama3_2_vision_11b_instruct from './llama3_2_vision_11b/index.js'
 import exaone_deep_7_8b from './exaone_deep_7_8b/index.js'
 import exaone_deep_32b from './exaone_deep_32b/index.js'
+import glm5_2 from './glm5_2/index.js'
 import glm5_1 from './glm5_1/index.js'
 import glm5 from './glm5/index.js'
 import glm4_7 from './glm4_7/index.js'
@@ -378,6 +385,7 @@ import llama_pro_8b from './llama_pro_8b/index.js'
 import llama2_chinese_13b from './llama2_chinese_13b/index.js'
 import linly_7b from './linly_7b/index.js'
 
+// Registered model counts: Dense 298 + MoE 84 = 382 unique models
 export const DENSE_MODELS = [
   // 2026
   qwen38_27b,
@@ -429,6 +437,8 @@ export const DENSE_MODELS = [
   deepseek_r1_distill_qwen_14b,
   deepseek_r1_distill_llama_8b,
   deepseek_r1_distill_qwen_7b,
+  olmo3_1_32b,
+  olmo3_7b,
   // 2024
   pixtral_large_124b,
   llama_pro_8b,
@@ -689,11 +699,16 @@ export const DENSE_MODELS = [
 
 export const MOE_MODELS = [
   // 2026
+  leanstral_1_5,
+  glm5_2,
+  nemotron_3_ultra,
+  nemotron_3_super,
   qwen38_max,
   kimi_k3,
   nemotron_cascade_2_30b,
   mistral_small_4,
-  // 2024
+  // 2025
+  nemotron_3_nano,
   gpt4o,
   glm5_1,
   glm5,

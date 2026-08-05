@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { generateMarkdown, downloadMarkdown, buildFilename } from '../../utils/exportMd.js'
 import { UPDATED_AT_BEIJING } from '../../data/appMeta.js'
+import LanguageSelect from './LanguageSelect.vue'
 
 const { t, locale } = useI18n()
 const route = useRoute()
@@ -21,7 +22,10 @@ function parseBeijingTime(input) {
 const updatedAtText = computed(() => {
   const sourceDate = parseBeijingTime(UPDATED_AT_BEIJING)
   if (!sourceDate) return UPDATED_AT_BEIJING
-  const localeTag = locale.value === 'zh' ? 'zh-CN' : locale.value === 'es' ? 'es-ES' : 'en-CA'
+  const localeTag = locale.value === 'zh' ? 'zh-CN'
+    : locale.value === 'es' ? 'es-ES'
+    : locale.value === 'ja' ? 'ja-JP'
+    : 'en-CA'
   const formatter = new Intl.DateTimeFormat(localeTag, {
     year: 'numeric',
     month: '2-digit',
@@ -58,34 +62,26 @@ const props = defineProps({
 })
 
 const githubUrl = 'https://github.com/adiudiuu/tps'
-const copied = ref(false)
+const shareState = ref('idle') // 'idle' | 'copied' | 'error'
 
-const LANG_CYCLE = ['zh', 'en', 'es']
-// 按钮显示的是"下一个"要切换到的语言
-const nextLangLabel = computed(() => {
-  const next = LANG_CYCLE[(LANG_CYCLE.indexOf(locale.value) + 1) % LANG_CYCLE.length]
-  return { zh: '中文', en: 'EN', es: 'ES' }[next]
-})
-
-function toggleLang() {
-  const idx = LANG_CYCLE.indexOf(locale.value)
-  const newLang = LANG_CYCLE[(idx + 1) % LANG_CYCLE.length]
-  locale.value = newLang
-  localStorage.setItem('lang', newLang)
-  const url = new URL(window.location.href)
-  if (newLang === 'zh') {
-    url.searchParams.delete('lang')
-  } else {
-    url.searchParams.set('lang', newLang)
+async function shareUrl() {
+  try {
+    if (navigator.clipboard) {
+      await navigator.clipboard.writeText(window.location.href)
+    } else {
+      // 降级方案（非 HTTPS / 旧浏览器）
+      const el = document.createElement('textarea')
+      el.value = window.location.href
+      document.body.appendChild(el)
+      el.select()
+      document.execCommand('copy')
+      document.body.removeChild(el)
+    }
+    shareState.value = 'copied'
+  } catch {
+    shareState.value = 'error'
   }
-  window.history.replaceState({}, '', url.toString())
-}
-
-function shareUrl() {
-  navigator.clipboard.writeText(window.location.href).then(() => {
-    copied.value = true
-    setTimeout(() => { copied.value = false }, 2000)
-  })
+  setTimeout(() => { shareState.value = 'idle' }, 2000)
 }
 
 function exportMarkdown() {
@@ -184,16 +180,23 @@ function exportMarkdown() {
       <!-- 分享 -->
       <button
         @click="shareUrl"
-        class="inline-flex items-center gap-1 text-xs font-medium px-2 py-1.5 sm:px-3 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-gray-900 transition-colors border border-gray-300"
-        :title="t('nav.share')"
+        class="inline-flex items-center gap-1 text-xs font-medium px-2 py-1.5 sm:px-3 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-gray-900 transition-colors border"
+        :class="shareState === 'error' ? 'border-red-400 text-red-600' : 'border-gray-300'"
+        :title="shareState === 'error' ? t('nav.share_failed') : t('nav.share')"
+        aria-live="polite"
       >
-        <svg v-if="!copied" viewBox="0 0 16 16" class="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" aria-hidden="true">
+        <svg v-if="shareState === 'idle'" viewBox="0 0 16 16" class="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" aria-hidden="true">
           <path d="M11 2.5a2.5 2.5 0 1 1 .603 1.628l-6.718 3.12a2.499 2.499 0 0 1 0 1.504l6.718 3.12a2.5 2.5 0 1 1-.488.876l-6.718-3.12a2.5 2.5 0 1 1 0-3.256l6.718-3.12A2.5 2.5 0 0 1 11 2.5z"/>
         </svg>
-        <svg v-else viewBox="0 0 16 16" class="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" fill="currentColor" aria-hidden="true">
+        <svg v-else-if="shareState === 'copied'" viewBox="0 0 16 16" class="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" fill="currentColor" aria-hidden="true">
           <path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/>
         </svg>
-        <span class="hidden sm:inline" :class="copied ? 'text-emerald-600' : ''">{{ copied ? t('nav.copied') : t('nav.share') }}</span>
+        <svg v-else viewBox="0 0 16 16" class="w-3.5 h-3.5 text-red-600 flex-shrink-0" fill="currentColor" aria-hidden="true">
+          <path d="M8 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13zM7.5 4h1v5h-1V4zm0 6.5h1v1h-1v-1z"/>
+        </svg>
+        <span class="hidden sm:inline" :class="shareState === 'copied' ? 'text-emerald-600' : shareState === 'error' ? 'text-red-600' : ''">
+          {{ shareState === 'copied' ? t('nav.copied') : shareState === 'error' ? t('nav.share_failed') : t('nav.share') }}
+        </span>
       </button>
       <a
         :href="githubUrl"
@@ -207,12 +210,7 @@ function exportMarkdown() {
         </svg>
         <span class="hidden sm:inline">GitHub</span>
       </a>
-      <button
-        @click="toggleLang"
-        class="text-xs font-medium px-2 py-1.5 sm:px-3 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-gray-900 transition-colors border border-gray-300 whitespace-nowrap"
-      >
-        {{ nextLangLabel }}
-      </button>
+      <LanguageSelect />
     </div>
   </header>
 </template>

@@ -1,14 +1,21 @@
 <script setup>
-import { ref, computed, nextTick, onMounted } from 'vue'
+import { ref, computed, nextTick, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ALL_MODELS } from '../../data/models/index.js'
 import { fmtParams, fmtCtx } from '../../utils/format.js'
 import { isNew } from '../../utils/format.js'
 import { getAttentionSummary } from '../../utils/model.js'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 
 const model = defineModel('model', { required: true })
+
+// 已应用的自定义模型：切换语言时同步刷新展示名
+watch(locale, () => {
+  if (model.value?.id === 'custom') {
+    model.value = { ...model.value, name: t('model.custom_name') }
+  }
+})
 
 const searchQuery = ref('')
 const activeTab = ref('all')
@@ -24,10 +31,9 @@ function onScroll(e) {
   scrollTop.value = e.target.scrollTop
 }
 
-// 自定义模型状态
+// 自定义模型状态（name 在应用时才取当前语言，避免切换语言后仍显示旧语言名称）
 const customModel = ref({
   id: 'custom',
-  name: t('model.custom_name'),
   type: 'dense',
   params: 7,
   active_params: 7,
@@ -81,7 +87,7 @@ function selectModel(m) {
 }
 
 function applyCustom() {
-  const m = { ...customModel.value }
+  const m = { ...customModel.value, name: t('model.custom_name') }
   m.type = customIsMoe.value ? 'moe' : 'dense'
   if (!customIsMoe.value) {
     m.active_params = m.params

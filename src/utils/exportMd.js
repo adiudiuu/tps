@@ -5,13 +5,13 @@ import { calcAll, getWarnings } from './calc.js'
 import { QUANT_MAP } from '../data/constants.js'
 import { PCIE_BW_OPTIONS } from '../data/runtime.js'
 
-const LOCALE_TAGS = { zh: 'zh-CN', en: 'en-US', es: 'es-ES' }
+const LOCALE_TAGS = { zh: 'zh-CN', en: 'en-US', es: 'es-ES', ja: 'ja-JP' }
 
 /**
  * 生成 Markdown 报告字符串
  * @param {object} opts
  * @param {function} opts.t           - i18n t()
- * @param {string} opts.locale        - 'zh' | 'en' | 'es'
+ * @param {string} opts.locale        - 'zh' | 'en' | 'es' | 'ja'
  */
 export function generateMarkdown({
   gpu, gpuCount, interconnect, model, quant, framework,
