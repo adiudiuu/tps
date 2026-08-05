@@ -87,7 +87,7 @@ const chartOptions = computed(() => ({
     <h3 class="text-sm font-semibold text-gray-700 mb-3">{{ t('result.roofline_title') }}</h3>
     <div class="h-52 min-w-0">
       <Scatter v-if="result" :data="chartData" :options="chartOptions" />
-      <div v-else class="h-full flex items-center justify-center text-gray-400 text-sm">选择模型和显卡后显示</div>
+      <div v-else class="h-full flex items-center justify-center text-gray-400 text-sm">{{ t('result.chart_empty') }}</div>
     </div>
   </div>
 </template>

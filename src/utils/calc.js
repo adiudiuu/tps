@@ -152,9 +152,18 @@ export function calcAll({
 
   // 系统开销（CUDA context、激活值、临时 buffer 等）
   // 基础部分：小模型固定 1GB，大模型按权重 3% 计算，上限 5GB
-  // 激活值部分：纯推理不保留中间层激活，峰值仅为当前层
-  //   单层估算：batch × hidden_size × 4（FFN 中间层约 4× hidden）× 2 bytes（BF16）× 4（安全系数），上限 2GB
-  const activationGB = Math.min(batch * (model.hidden_size ?? 4096) * 4 * 2 / 1e9 * 4, 2.0)
+  // 激活值部分：纯推理不保留中间层激活，峰值仅为当前层，但需区分两个阶段：
+  //   decode  ：每步每请求只算 1 token → batch 个 token
+  //   prefill ：一次前向处理多个 token；主流框架启用 chunked prefill，
+  //             单批 token 数受 max_num_batched_tokens（llama.cpp 为 n_batch）约束
+  //   单 token 估算：hidden_size × 4（FFN 中间层约 4× hidden）× 2 bytes（BF16）× 4（安全系数）
+  // token 数上限即"单次前向的最大 token 数"，由调度模式决定，因此无需再额外硬顶容量：
+  //   continuous batching（vLLM/SGLang/TRT-LLM/TGI）：max_num_batched_tokens 默认量级 8192
+  //   serial（llama.cpp/MLX）：请求串行，受 n_batch 默认 2048 约束
+  const isContinuousBatching = (framework?.schedulingMode ?? 'continuous') === 'continuous'
+  const maxFwdTokens = isContinuousBatching ? 8192 : 2048
+  const actTokens = Math.max(batch, Math.min(batch * effectivePromptLen, maxFwdTokens))
+  const activationGB = actTokens * (model.hidden_size ?? 4096) * 4 * 2 / 1e9 * 4
   const overheadGB  = Math.max(1.0, Math.min(weightGB * 0.03, 5.0)) + activationGB
   // Dense + llamacpp + offload → NGL 分层，DDR 带宽
   // MoE 不走 NGL 分层（expert 通过 PCIe 卸载，见 decode 带宽路径）
@@ -240,7 +249,24 @@ export function calcAll({
   }
   if (model.mla_ratio) kvReadGB *= model.mla_ratio
   if (model.mamba_ratio) kvReadGB *= model.mamba_ratio
-  const decodeBytesPerStep = activeWeight + kvReadGB
+
+  // Speculative Decoding 加速：每步尝试验证 draftLen 个 token，接受率为 acceptanceRate
+  // 期望接受 token 数：mean_accepted = (1 - α^(γ+1)) / (1 - α)，其中 α=acceptanceRate，γ=draftLen
+  // 例：α=0.7, γ=4 → mean_accepted ≈ 2.83
+  // draftModelParams（可选）：draft model 每步读 draftLen 次权重，与 target 共用同一条内存通道，
+  //   因此并入 decodeBytesPerStep，使 bwLimit / tpot / 吞吐三者口径一致
+  let speculativeSpeedup = 1.0
+  let draftIOPerStep = 0
+  if (speculativeDecoding && acceptanceRate > 0 && draftLen > 0) {
+    // 期望每步接受的 token 数（含 target model 强制接受的最后一个 token）
+    const alpha = Math.min(0.999, acceptanceRate)
+    speculativeSpeedup = (1 - Math.pow(alpha, draftLen + 1)) / (1 - alpha)  // ≤ draftLen + 1
+    if (draftModelParams != null && draftModelParams > 0) {
+      draftIOPerStep = draftModelParams * quantBytes * decodeWeightReadRatio * draftLen
+    }
+  }
+
+  const decodeBytesPerStep = activeWeight + kvReadGB + draftIOPerStep
 
   // MoE CPU Offload：精细 IO 分拆 + 串行时序模型
   // - expert FFN 权重在 CPU RAM，每步经 PCIe 读到 GPU
@@ -283,7 +309,8 @@ export function calcAll({
       expertIOPerStep = model.active_params * 0.70 * quantBytes
     }
     const nonExpertIOPerStep = model.active_params * quantBytes - expertIOPerStep
-    const gpuIOPerStep = nonExpertIOPerStep + kvReadGB
+    // draft model 常驻 HBM，与非专家权重、KV 一起计入 GPU 侧 IO
+    const gpuIOPerStep = nonExpertIOPerStep + kvReadGB + draftIOPerStep
     // pcieBw.bw = PCIe x16 单向理论峰值（见 runtime.js）
     // pcieWidth.ratio 决定实际带宽占 x16 的比例（x4=0.25, x8=0.5, x16=1.0）
     // 未指定 pcieWidth 时按 x8（台式机最常见）
@@ -298,27 +325,9 @@ export function calcAll({
     // PP：decodeBytesPerStep / ppCount 是单个 stage 的 IO 量；流水满载再乘气泡效率
     bwLimit = (effectiveBw / (decodeBytesPerStep / ppCount)) * batch * ppBubbleEff
   }
-  bwLimit *= getBatchSchedulingEfficiency(batch, adjustedFramework)
-
-  // Speculative Decoding 加速：每步尝试验证 draftLen 个 token，接受率为 acceptanceRate
-  // 期望接受 token 数：mean_accepted = (1 - α^(γ+1)) / (1 - α)，其中 α=acceptanceRate，γ=draftLen
-  // 例：α=0.7, γ=4 → mean_accepted ≈ 2.83
-  // draftModelParams（可选）：draft model 每步读 draftLen 次权重，与 target 共用 HBM 带宽，
-  //   需重算 bwLimit = effectiveBw / (target_IO + draft_IO) × batch
-  let speculativeSpeedup = 1.0
-  if (speculativeDecoding && acceptanceRate > 0 && draftLen > 0) {
-    // 期望每步接受的 token 数（含 target model 强制接受的最后一个 token）
-    const alpha = Math.min(0.999, acceptanceRate)
-    const meanAccepted = (1 - Math.pow(alpha, draftLen + 1)) / (1 - alpha)
-    speculativeSpeedup = meanAccepted  // ≤ draftLen + 1
-
-    if (draftModelParams != null && draftModelParams > 0) {
-      // draft model 读 draftLen 次权重，target model 读 1 次，共用同一 HBM 带宽
-      const draftWeightGB = draftModelParams * quantBytes * decodeWeightReadRatio
-      const totalIOPerVerifyStep = decodeBytesPerStep + draftWeightGB * draftLen
-      bwLimit = (effectiveBw / (totalIOPerVerifyStep / ppCount)) * batch * ppBubbleEff
-    }
-  }
+  // bwLimit 保持为纯物理带宽上限（不含框架效率 / 调度效率），
+  // 供 Roofline 对比与 offload 串行时序反推使用；
+  // 框架系数、batch 调度效率、TP/EP 通信损耗统一在 tpot 链路上施加，避免重复折扣。
 
   // ─────────────────────────────────────────────
   // Prefill 速度（算力瓶颈）
@@ -346,7 +355,8 @@ export function calcAll({
   // 推导：prefill_speed = tflops × 1e12 / (prefillAttentionFactor × 2 × activeParams × 1e9)
   const computeBaseLimit = (tflops * 1e12) / (2 * activeParams * 1e9)
   const computeLimit = (computeBaseLimit / prefillAttentionFactor) * flashFactor
-  const prefillToks  = computeLimit * framework.prefill
+  const prefillFactor = adjustedFramework.prefill
+  const prefillToks  = computeLimit * prefillFactor
   const prefillToksMin = (computeBaseLimit / prefillAttentionFactor) * prefillFactorMin * scaledFlashRange.min
   const prefillToksMax = (computeBaseLimit / prefillAttentionFactor) * prefillFactorMax * scaledFlashRange.max
 
@@ -354,13 +364,13 @@ export function calcAll({
   // continuous batching 模式（vLLM/TRT-LLM/TGI）下请求并发处理，TTFT 不随 batch 线性增加
   // serial 模式（llama.cpp）下请求串行排队，TTFT × batch
   // 实际 FLOPs/token = prefillAttentionFactor × 2 × activeParams × 1e9
-  const isContinuousBatching = (framework.schedulingMode ?? 'continuous') === 'continuous'
-  const ttft = (effectivePromptLen * prefillAttentionFactor * 2 * activeParams * 1e9) / (tflops * 1e12) * 1000 / (flashFactor * framework.prefill) * (isContinuousBatching ? 1 : Math.max(1, batch)) * getAppleTtftScale(gpu)
+  const ttft = (effectivePromptLen * prefillAttentionFactor * 2 * activeParams * 1e9) / (tflops * 1e12) * 1000 / (flashFactor * prefillFactor) * (isContinuousBatching ? 1 : Math.max(1, batch)) * getAppleTtftScale(gpu)
 
-  // 单 token 生成时间（ms），batch=1 时的延迟基准
-  // offload 模式：bwLimit 已包含串行 IO，从 bwLimit 反推 tpot 保持一致
+  // 单 token 生成时间（ms）基准：物理 IO 时间 + 框架效率系数
+  // 此处只含物理带宽与框架系数；调度效率 / speculative / TP·EP 通信损耗在后面统一施加，
+  // 保证 tpot 与 decodeToks / singleToks 始终可以互相换算（singleToks === 1000 / tpot）
+  // offload 模式：bwLimit 为物理串行上限，从 bwLimit 反推 tpot 保持口径一致
   // PP 模式：batch / bwLimit 已包含 ppCount 和 ppBubbleEff，反推出每请求 tpot
-  // 再叠加 PP 阶段间 P2P 通信延迟 ppP2pMs
   const getDecodeTpotBaseMs = (decodeFactor) => {
     if (pureCpu && cpuMemBw != null) {
       return (decodeBytesPerStep / effectiveBw) * 1000 / decodeFactor
@@ -384,18 +394,28 @@ export function calcAll({
   const tpotBaseMin = getDecodeTpotBaseMs(decodeFactorMin)
   const tpotBaseMax = getDecodeTpotBaseMs(decodeFactorMax)
 
-  // decodeToks 在 tpotBase 最终确定后统一计算。
-  // Apple MoE 的额外 dispatch 延迟体现在每 token 的串行时间上，而不是简单吞吐折扣。
-  let decodeToks = batch / Math.max((tpotBase + moeExtraDecodeMs) / 1000, 1e-9) * speculativeSpeedup
-  let decodeToksMin = batch / Math.max((tpotBaseMin + moeExtraDecodeMs) / 1000, 1e-9) * speculativeSpeedup
-  let decodeToksMax = batch / Math.max((tpotBaseMax + moeExtraDecodeMs) / 1000, 1e-9) * speculativeSpeedup
+  // 每 decode step 的串行墙钟时间（ms）：
+  //   物理 IO 时间 + MoE dispatch 额外延迟 + PP 阶段间 P2P 传输
+  // Apple / CUDA MoE 的 dispatch 开销是每 token 的串行时间，不是简单吞吐折扣。
+  const stepMs    = tpotBase    + moeExtraDecodeMs + ppP2pMs
+  const stepMsMin = tpotBaseMin + moeExtraDecodeMs + ppP2pMs
+  const stepMsMax = tpotBaseMax + moeExtraDecodeMs + ppP2pMs
 
+  // batch 调度效率：continuous batching 在高 batch 下的排队/调度损耗
+  // speculative decoding：每步平均产出 speculativeSpeedup 个 token
+  // 两者都折算成"每 token 有效时间"，使延迟与吞吐同源
   const batchSchedEff = getBatchSchedulingEfficiency(batch, adjustedFramework)
-  decodeToks *= batchSchedEff
-  decodeToksMin *= batchSchedEff
-  decodeToksMax *= batchSchedEff
+  const perTokenScale = Math.max(batchSchedEff * speculativeSpeedup, 1e-9)
 
-  const tpot = tpotBase + moeExtraDecodeMs + ppP2pMs
+  // TP/EP 通信损耗之前的每 token 时间（ms）
+  const tpotPreComm    = stepMs    / perTokenScale
+  const tpotPreCommMin = stepMsMin / perTokenScale
+  const tpotPreCommMax = stepMsMax / perTokenScale
+
+  // 通信损耗前的聚合吞吐（tok/s），与 tpotPreComm 严格互为倒数
+  const decodeToks    = batch / Math.max(tpotPreComm    / 1000, 1e-12)
+  const decodeToksMin = batch / Math.max(tpotPreCommMin / 1000, 1e-12)
+  const decodeToksMax = batch / Math.max(tpotPreCommMax / 1000, 1e-12)
 
   // ─────────────────────────────────────────────
   // Roofline 分析
@@ -493,7 +513,7 @@ export function calcAll({
   // ─────────────────────────────────────────────
   // 综合结果
   // ─────────────────────────────────────────────
-  // EP 和 TP 效率叠加：两者都会降低有效吞吐
+  // EP 和 TP 效率叠加：两者都会降低有效吞吐，同时等价地拉长每 token 时间
   const combinedEfficiency = tpEfficiency * epEfficiency
   const effectiveToks = decodeToks * combinedEfficiency
   const effectiveToksMin = decodeToksMin * combinedEfficiency
@@ -501,6 +521,10 @@ export function calcAll({
   const singleToks    = effectiveToks / batch
   const singleToksMin = effectiveToksMin / batch
   const singleToksMax = effectiveToksMax / batch
+
+  // 对外暴露的 TPOT 与吞吐同源：tpot === 1000 / singleToks，
+  // 因此调度效率、speculative、TP/EP 通信损耗都已反映在延迟里。
+  const tpot = tpotPreComm / Math.max(combinedEfficiency, 1e-9)
   // 总延迟 = TTFT + 输出 token 数 × 单 token 时间
   const totalLatency  = ttft + outputLen * tpot  // ms
 

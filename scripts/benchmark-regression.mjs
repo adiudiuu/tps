@@ -62,6 +62,50 @@ for (const r of results) {
 }
 
 console.log(`\n${results.length - failed.length}/${results.length} passed`)
-if (failed.length) {
+
+// ── 不变量检查：tpot 必须与 singleToks 同源（singleToks === 1000 / tpot）──
+// 高 batch 的调度效率、TP/EP 通信损耗、speculative 若只作用在吞吐上，
+// 会让"单请求速度"和"TPOT/总延迟"互相矛盾，这里覆盖各条计算路径守住该口径。
+const INVARIANT_CASES = []
+for (const gpuId of ['rtx4090', 'h100_sxm', 'apple_m4_max_48g']) {
+  for (const modelId of ['llama3_8b', 'llama3_3_70b', 'mixtral_8x7b']) {
+    for (const fwId of ['vllm', 'llamacpp', 'mlx']) {
+      for (const gpuCount of [1, 8]) {
+        for (const batch of [1, 32, 128]) {
+          INVARIANT_CASES.push({ gpuId, modelId, fwId, gpuCount, batch })
+        }
+      }
+    }
+  }
+}
+
+const invariantFailures = []
+for (const c of INVARIANT_CASES) {
+  const r = calcAll({
+    gpu: GPU_LIST.find(g => g.id === c.gpuId),
+    gpuCount: c.gpuCount,
+    interconnect: ic,
+    model: ALL_MODELS.find(m => m.id === c.modelId),
+    quant: int4,
+    ctx: 8192,
+    batch: c.batch,
+    promptLen: 512,
+    outputLen: 128,
+    framework: FRAMEWORK_MAP.find(f => f.id === c.fwId),
+    flashAttention: true,
+  })
+  const fromTpot = 1000 / r.tpot
+  if (!Number.isFinite(fromTpot) || Math.abs(r.singleToks / fromTpot - 1) > 1e-6) {
+    invariantFailures.push(
+      `${c.gpuId}/${c.modelId}/${c.fwId} n=${c.gpuCount} b=${c.batch}: ` +
+      `singleToks=${r.singleToks.toFixed(2)} vs 1000/tpot=${fromTpot.toFixed(2)}`
+    )
+  }
+}
+
+console.log(`\nlatency/throughput consistency: ${INVARIANT_CASES.length - invariantFailures.length}/${INVARIANT_CASES.length} passed`)
+for (const msg of invariantFailures) console.log(`[FAIL] ${msg}`)
+
+if (failed.length || invariantFailures.length) {
   process.exitCode = 1
 }

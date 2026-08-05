@@ -39,6 +39,9 @@
   <a href="README.md">
     <img src="https://img.shields.io/badge/lang-中文-orange" alt="Chinese">
   </a>
+  <a href="README.es-ES.md">
+    <img src="https://img.shields.io/badge/lang-Español-blue" alt="Español">
+  </a>
 </p>
 
 <br/>
@@ -49,7 +52,7 @@
 - 🎯 **Accurate Modeling** — Weights, KV Cache, system overhead fully covered with OOM risk warnings
 - ⚡ **Performance Analysis** — Precise Decode/Prefill token/s calculation, comprehensive TTFT/TPOT/total latency evaluation
 - 📊 **Roofline Model** — Scientific bandwidth/compute bottleneck identification
-- 🌍 **Wide Coverage** — 170+ GPU models, 351+ mainstream models (Dense 280 + MoE 71)
+- 🌍 **Wide Coverage** — 250+ GPU models, 375+ mainstream models (Dense 305 + MoE 70)
 - 🔗 **Advanced Features** — Tensor Parallel, Flash Attention, KV Cache quantization, Prefix Cache
 - 🎨 **Multi-Framework** — vLLM, TensorRT-LLM, SGLang, LMDeploy, TGI, llama.cpp, ExLlamaV2, MLX
 
@@ -57,9 +60,9 @@
 
 | Category | Details |
 | --- | --- |
-| **Models** | 351+ mainstream models (Dense 280 + MoE 71) · 0.5B - 671B parameters · 2022-2026 releases |
+| **Models** | 375+ mainstream models (Dense 305 + MoE 70) · 0.5B - 2.8T parameters · 2022-2026 releases |
 | **Architectures** | Dense · MoE · MLA (DeepSeek) · Hybrid Attention (Gemma) · Mamba (SSM) |
-| **GPUs** | 170+ models · NVIDIA (RTX/Tesla/H100/B200/B300) · AMD (RX/MI) · Intel Arc · Apple Silicon · Domestic chips |
+| **GPUs** | 250+ models · NVIDIA (RTX/Tesla/H100/B200/B300) · AMD (RX/MI) · Intel Arc · Apple Silicon · Domestic chips |
 | **Quantization** | FP32 · BF16 · FP8 · INT8 · INT4 · Q6_K · Q5_K · Q3_K · INT2 |
 | **Frameworks** | vLLM · TensorRT-LLM · SGLang · LMDeploy · TGI · llama.cpp · ExLlamaV2 · MLX |
 | **Advanced** | Flash Attention · KV Cache Quantization · Prefix Cache · MoE CPU Offload |
@@ -122,7 +125,7 @@ src/
 │   └── ui/          # Generic UI components
 ├── data/            # Data definitions
 │   ├── gpus/        # GPU specifications (by vendor)
-│   ├── models/      # Model parameters (348+ models)
+│   ├── models/      # Model parameters (375+ models)
 │   ├── constants.js # Quantization/Framework/Interconnect constants
 │   └── runtime.js   # Runtime configuration options
 ├── utils/           # Utility functions
@@ -265,7 +268,7 @@ This project uses a **Custom Non-Commercial License**. See [LICENSE](LICENSE) fo
 
 - **Model Parameters** — [HuggingFace](https://huggingface.co), [Ollama](https://ollama.com), [ModelScope](https://modelscope.cn) and other official model repositories
 - **GPU Specifications** — Official technical documentation from various vendors
-- **Model Coverage** — 351+ models spanning 2022-2026 mainstream open-source models, parameter scales from 0.5B to 671B
+- **Model Coverage** — 375+ models spanning 2022-2026 mainstream open-source models, parameter scales from 0.5B to 2.8T
 
 ### Theoretical Foundation
 
@@ -297,6 +300,7 @@ This project uses a **Custom Non-Commercial License**. See [LICENSE](LICENSE) fo
 
 - **[Algorithm Documentation (Docs.md)](Docs.md)** — Detailed formulas, data flow, and implementation details
 - **[中文文档 (README.md)](README.md)** — Chinese version of this document
+- **[README en Español](README.es-ES.md)** — Spanish version of this document
 
 ## Contact
 

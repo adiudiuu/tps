@@ -43,12 +43,14 @@ const customIsMoe = ref(false)
 
 const filteredModels = computed(() => {
   let list = ALL_MODELS
-  // Filter out legacy models
-  list = list.filter(m => m.status !== 'legacy')
+  const q = searchQuery.value.trim().toLowerCase()
+  // 默认隐藏 2025-01 之前的模型；有搜索词时放开，便于找回旧型号
+  if (!q) {
+    list = list.filter(m => m.status !== 'legacy')
+  }
   if (activeTab.value === 'dense') list = list.filter(m => m.type === 'dense')
   else if (activeTab.value === 'moe') list = list.filter(m => m.type === 'moe')
-  if (searchQuery.value.trim()) {
-    const q = searchQuery.value.toLowerCase()
+  if (q) {
     list = list.filter(m => m.name.toLowerCase().includes(q))
   }
   return list
@@ -136,7 +138,7 @@ function switchTab(tab) {
         v-if="model && activeTab !== 'custom'"
         @click="scrollToSelected(model.id)"
         class="shrink-0 px-2.5 py-2 bg-gray-100 hover:bg-emerald-50 border border-gray-300 hover:border-emerald-400 rounded-lg text-gray-500 hover:text-emerald-600 transition-colors"
-        title="回到已选模型"
+        :title="t('model.scroll_to_selected')"
       >
         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="3"/>
@@ -253,7 +255,7 @@ function switchTab(tab) {
                   v-if="m.links?.ollama"
                   @click="copyOllama(m.links.ollama)"
                   class="flex-1 text-xs px-3 py-1.5 rounded-lg bg-white hover:bg-gray-50 text-gray-600 hover:text-gray-900 transition-colors font-normal border border-gray-200"
-                  title="点击复制命令"
+                  :title="t('model.copy_ollama_cmd')"
                 >Ollama</button>
                 <a
                   v-if="m.links?.hf"

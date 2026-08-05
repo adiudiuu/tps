@@ -15,7 +15,7 @@ import {
 } from '../utils/solver.js'
 import { fmtGB, fmtToks, fmtMs } from '../utils/format.js'
 
-const { t, locale } = useI18n()
+const { t } = useI18n()
 const router = useRouter()
 const route = useRoute()
 
@@ -259,12 +259,12 @@ function progressPct() {
 // ── 常量 ──────────────────────────────────────────────
 const GPU_COUNT_OPTIONS = [1, 2, 4, 8]
 const VENDOR_OPTIONS = [
-  { id: 'all',      label_zh: '全部',   label_en: 'All'      },
-  { id: 'nvidia',   label_zh: 'NVIDIA', label_en: 'NVIDIA'   },
-  { id: 'amd',      label_zh: 'AMD',    label_en: 'AMD'      },
-  { id: 'apple',    label_zh: 'Apple',  label_en: 'Apple'    },
-  { id: 'intel',    label_zh: 'Intel',  label_en: 'Intel'    },
-  { id: 'domestic', label_zh: '国产',   label_en: 'Domestic' },
+  { id: 'all',      labelKey: 'solver.vendor_all' },
+  { id: 'nvidia',   label: 'NVIDIA' },
+  { id: 'amd',      label: 'AMD' },
+  { id: 'apple',    label: 'Apple' },
+  { id: 'intel',    label: 'Intel' },
+  { id: 'domestic', labelKey: 'solver.vendor_domestic' },
 ]
 const SORT_OPTIONS = computed(() => [
   { id: 'speed',       label: t('solver.sort_speed')       },
@@ -385,13 +385,13 @@ onMounted(() => {
                   :class="vendorFilter === v.id
                     ? 'bg-emerald-600 text-white border-emerald-600'
                     : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'"
-                >{{ locale === 'zh' ? v.label_zh : v.label_en }}</button>
+                >{{ v.labelKey ? t(v.labelKey) : v.label }}</button>
               </div>
             </div>
 
             <!-- GPU 层级过滤 -->
             <div>
-              <label class="block text-xs text-gray-500 mb-1.5">{{ locale === 'zh' ? '显卡类型' : 'GPU Type' }}</label>
+              <label class="block text-xs text-gray-500 mb-1.5">{{ t('solver.gpu_type') }}</label>
               <div class="flex gap-1.5">
                 <button
                   @click="excludeDatacenterGpu = false"
@@ -399,16 +399,16 @@ onMounted(() => {
                   :class="!excludeDatacenterGpu
                     ? 'bg-emerald-600 text-white border-emerald-600'
                     : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'"
-                >{{ locale === 'zh' ? '全部' : 'All' }}</button>
+                >{{ t('solver.gpu_type_all') }}</button>
                 <button
                   @click="excludeDatacenterGpu = true"
                   class="flex-1 px-2.5 py-1 rounded-md text-xs font-medium border transition-colors"
                   :class="excludeDatacenterGpu
                     ? 'bg-emerald-600 text-white border-emerald-600'
                     : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'"
-                >{{ locale === 'zh' ? '消费级' : 'Consumer' }}</button>
+                >{{ t('solver.gpu_type_consumer') }}</button>
               </div>
-              <p class="text-xs text-gray-400 mt-1.5">{{ locale === 'zh' ? '消费级：排除数据中心卡(H100/A100等)' : 'Consumer: Exclude datacenter GPUs (H100/A100/etc)' }}</p>
+              <p class="text-xs text-gray-400 mt-1.5">{{ t('solver.gpu_type_consumer_hint') }}</p>
             </div>
 
             <!-- 量化质量下限 -->
@@ -422,7 +422,7 @@ onMounted(() => {
                   :class="quantFloor === q.id
                     ? 'bg-emerald-600 text-white border-emerald-600'
                     : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'"
-                >{{ locale === 'zh' ? q.label_zh : q.label_en }}</button>
+                >{{ t(q.labelKey) }}</button>
               </div>
             </div>
 

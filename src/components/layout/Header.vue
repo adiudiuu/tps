@@ -21,7 +21,8 @@ function parseBeijingTime(input) {
 const updatedAtText = computed(() => {
   const sourceDate = parseBeijingTime(UPDATED_AT_BEIJING)
   if (!sourceDate) return UPDATED_AT_BEIJING
-  const formatter = new Intl.DateTimeFormat(locale.value === 'zh' ? 'zh-CN' : 'en-CA', {
+  const localeTag = locale.value === 'zh' ? 'zh-CN' : locale.value === 'es' ? 'es-ES' : 'en-CA'
+  const formatter = new Intl.DateTimeFormat(localeTag, {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
@@ -59,15 +60,23 @@ const props = defineProps({
 const githubUrl = 'https://github.com/adiudiuu/tps'
 const copied = ref(false)
 
+const LANG_CYCLE = ['zh', 'en', 'es']
+// 按钮显示的是"下一个"要切换到的语言
+const nextLangLabel = computed(() => {
+  const next = LANG_CYCLE[(LANG_CYCLE.indexOf(locale.value) + 1) % LANG_CYCLE.length]
+  return { zh: '中文', en: 'EN', es: 'ES' }[next]
+})
+
 function toggleLang() {
-  const newLang = locale.value === 'zh' ? 'en' : 'zh'
+  const idx = LANG_CYCLE.indexOf(locale.value)
+  const newLang = LANG_CYCLE[(idx + 1) % LANG_CYCLE.length]
   locale.value = newLang
   localStorage.setItem('lang', newLang)
   const url = new URL(window.location.href)
-  if (newLang === 'en') {
-    url.searchParams.set('lang', 'en')
-  } else {
+  if (newLang === 'zh') {
     url.searchParams.delete('lang')
+  } else {
+    url.searchParams.set('lang', newLang)
   }
   window.history.replaceState({}, '', url.toString())
 }
@@ -202,7 +211,7 @@ function exportMarkdown() {
         @click="toggleLang"
         class="text-xs font-medium px-2 py-1.5 sm:px-3 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-gray-900 transition-colors border border-gray-300 whitespace-nowrap"
       >
-        {{ locale === 'zh' ? 'EN' : '中文' }}
+        {{ nextLangLabel }}
       </button>
     </div>
   </header>

@@ -638,7 +638,7 @@ function useThisModel(modelData) {
               <div>
                 <div class="text-[10px] text-emerald-600 font-medium uppercase tracking-wide mb-0.5">{{ t('ranking.table_speed') }}</div>
                 <div class="text-2xl font-bold text-emerald-700 leading-none">{{ fmtToks(item.result.singleToks) }}</div>
-                <div class="text-[10px] text-emerald-500 mt-0.5">单请求</div>
+                <div class="text-[10px] text-emerald-500 mt-0.5">{{ t('ranking.mobile_single') }}</div>
               </div>
               <div class="text-right">
                 <div class="text-[10px] text-gray-500 mb-0.5">TPOT</div>
@@ -651,19 +651,19 @@ function useThisModel(modelData) {
             <!-- 4 格数据网格 -->
             <div class="grid grid-cols-4 gap-1.5 mb-3">
               <div class="bg-gray-50 rounded-lg p-2 text-center">
-                <div class="text-[10px] text-gray-400 mb-0.5">量化</div>
+                <div class="text-[10px] text-gray-400 mb-0.5">{{ t('ranking.mobile_quant') }}</div>
                 <div class="text-xs font-semibold text-gray-800 truncate">
                   {{ item.quant?.label ?? '—' }}
                 </div>
               </div>
               <div class="bg-gray-50 rounded-lg p-2 text-center">
-                <div class="text-[10px] text-gray-400 mb-0.5">显存</div>
+                <div class="text-[10px] text-gray-400 mb-0.5">{{ t('ranking.table_vram') }}</div>
                 <div class="text-xs font-semibold text-gray-800">
                   {{ item.result ? fmtGB(item.result.totalNeeded) : '—' }}
                 </div>
               </div>
               <div class="bg-gray-50 rounded-lg p-2 text-center">
-                <div class="text-[10px] text-gray-400 mb-0.5">显存%</div>
+                <div class="text-[10px] text-gray-400 mb-0.5">{{ t('ranking.mobile_vram_pct') }}</div>
                 <div
                   class="text-xs font-semibold"
                   :class="item.result && item.result.vramPct > 95 ? 'text-red-600' : item.result && item.result.vramPct > 80 ? 'text-amber-600' : 'text-gray-800'"
@@ -672,7 +672,7 @@ function useThisModel(modelData) {
                 </div>
               </div>
               <div class="bg-gray-50 rounded-lg p-2 text-center">
-                <div class="text-[10px] text-gray-400 mb-0.5">瓶颈</div>
+                <div class="text-[10px] text-gray-400 mb-0.5">{{ t('ranking.mobile_bottleneck') }}</div>
                 <div class="text-xs font-semibold text-gray-800">
                   {{ item.result ? (item.result.bottleneck === 'bandwidth' ? 'BW' : 'Compute') : '—' }}
                 </div>

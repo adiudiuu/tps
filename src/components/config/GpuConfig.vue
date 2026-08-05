@@ -92,7 +92,13 @@ const filteredGpus = computed(() => {
 })
 
 // 按 vendor 分组
-const vendorLabel = { nvidia: 'NVIDIA', amd: 'AMD', intel: 'Intel', apple: 'Apple Silicon', domestic: '国产' }
+const vendorLabel = computed(() => ({
+  nvidia: 'NVIDIA',
+  amd: 'AMD',
+  intel: 'Intel',
+  apple: 'Apple Silicon',
+  domestic: t('gpu.vendor_domestic'),
+}))
 
 // 多卡模式下，非第一个 slot 的下拉只允许选主卡同 vendor 的 GPU
 // allowedVendor: null 表示不限制（第一个 slot 或单卡模式）
@@ -354,7 +360,7 @@ watch(isMixed, (mixed) => {
                           <span v-if="isNew(g.released) && !group.disabled" class="inline-block w-1.5 h-1.5 rounded-full bg-red-500 shrink-0"></span>
                         </div>
                         <div class="flex items-center gap-3 text-[11px]" :class="g.id === slot.gpu?.id && !group.disabled ? 'text-emerald-600' : 'text-gray-500'">
-                          <span>{{ g.sharedMemory ? '共享' : g.vram + 'GB' }}</span>
+                          <span>{{ g.sharedMemory ? t('gpu.shared_short') : g.vram + 'GB' }}</span>
                           <span>{{ g.bw }}GB/s</span>
                           <span>{{ g.bf16 }}T</span>
                           <span>{{ g.tdp }}W</span>

@@ -1,5 +1,3 @@
-
-
 <p align="center">
   <br/>
   <br/>
@@ -12,15 +10,16 @@
 <h1 align="center">TPS Calculator</h1>
 
 <p align="center">
-  <strong>Herramienta de estimación de rendimiento de inferencia de GPU</strong>
+  <strong>Herramienta de estimación de rendimiento de inferencia en GPU</strong>
 </p>
 
 <p align="center">
-  Dadas una GPU, un modelo, la cuantización y los parámetros de ejecución, estima rápidamente el uso de memoria VRAM, el rendimiento de throughput, las métricas de latencia y el análisis de cuellos de botella
+  A partir de la GPU, el modelo, la cuantización y los parámetros de ejecución,<br/>
+  estima rápidamente el uso de VRAM, el throughput, la latencia y los cuellos de botella
 </p>
 
 <p align="center">
-  <a href="https://tps.bunai.cc"><strong>Prueba en línea →</strong></a>
+  <a href="https://tps.bunai.cc"><strong>Probar en línea →</strong></a>
 </p>
 
 <br/>
@@ -38,8 +37,11 @@
   <a href="https://vitejs.dev">
     <img src="https://img.shields.io/badge/Vite-8.0-646CFF?logo=vite" alt="vite">
   </a>
+  <a href="README.md">
+    <img src="https://img.shields.io/badge/lang-中文-orange" alt="Chinese">
+  </a>
   <a href="README.en.md">
-    <img src="https://img.shields.io/badge/lang-English-orange" alt="English">
+    <img src="https://img.shields.io/badge/lang-English-blue" alt="English">
   </a>
 </p>
 
@@ -48,130 +50,130 @@
 
 ## Características
 
-- 🎯 **Modelado preciso** — Cobertura total de pesos, KV Cache y sobrecarga del sistema, alerta de riesgo OOM
-- ⚡ **Análisis de rendimiento** — Cálculo preciso de tokens/s en Decode/Prefill, evaluación completa de TTFT/TPOT/latencia total
-- 📊 **Modelo Roofline** — Identificación científica de cuellos de botella de ancho de banda/rendimiento computacional
-- 🌍 **Amplia cobertura** — 170+ modelos de GPU, 351+ modelos principales (Dense 280 + MoE 71)
-- 🔗 **Características avanzadas** — Paralelismo Tensor, Flash Attention, cuantización de KV Cache, Prefix Cache
-- 🎨 **Soporte multi-framework** — vLLM、TensorRT-LLM、SGLang、LMDeploy、TGI、llama.cpp、ExLlamaV2、MLX
+- 🎯 **Modelado preciso** — Cobertura completa de pesos, KV Cache y sobrecarga del sistema, con alerta de riesgo OOM
+- ⚡ **Análisis de rendimiento** — Cálculo preciso de tokens/s en Decode/Prefill; evaluación de TTFT/TPOT/latencia total
+- 📊 **Modelo Roofline** — Identificación científica de cuellos de botella de ancho de banda y cómputo
+- 🌍 **Amplia cobertura** — 250+ GPUs, 375+ modelos principales (Dense 305 + MoE 70)
+- 🔗 **Funciones avanzadas** — Tensor Parallel, Flash Attention, cuantización de KV Cache, Prefix Cache
+- 🎨 **Multi-framework** — vLLM, TensorRT-LLM, SGLang, LMDeploy, TGI, llama.cpp, ExLlamaV2, MLX
 
-## Alcance de soporte
+## Alcance
 
 | Categoría | Detalles |
 | --- | --- |
-| **Modelos** | 351+ modelos principales (Dense 280 + MoE 71) · 0.5B - 671B parámetros · Publicados entre 2022-2026 |
+| **Modelos** | 375+ modelos principales (Dense 305 + MoE 70) · 0.5B - 2.8T parámetros · Publicados 2022-2026 |
 | **Arquitecturas** | Dense · MoE · MLA (DeepSeek) · Atención híbrida (Gemma) · Mamba (SSM) |
-| **GPU** | 170+ modelos · NVIDIA (RTX/Tesla/H100/B200/B300) · AMD (RX/MI) · Intel Arc · Apple Silicon · Chips nacionales |
+| **GPU** | 250+ modelos · NVIDIA (RTX/Tesla/H100/B200/B300) · AMD (RX/MI) · Intel Arc · Apple Silicon · Chips chinos |
 | **Cuantización** | FP32 · BF16 · FP8 · INT8 · INT4 · Q6_K · Q5_K · Q3_K · INT2 |
 | **Frameworks** | vLLM · TensorRT-LLM · SGLang · LMDeploy · TGI · llama.cpp · ExLlamaV2 · MLX |
-| **Características avanzadas** | Flash Attention · Cuantización de KV Cache · Prefix Cache · MoE CPU Offload |
+| **Avanzado** | Flash Attention · Cuantización de KV Cache · Prefix Cache · MoE CPU Offload |
 
 ## Casos de uso
 
 **Adecuado para:**
-- 📚 Aprender los principios de modelado de rendimiento de inferencia de LLM
-- 🔬 Comparación rápida de selección de hardware y planes de configuración
-- 🛠️ Verificación de viabilidad de hardware y estimación de requisitos de VRAM
-- 💡 Comprender conceptos como cuantización, KV Cache, TP y Roofline
+- 📚 Aprender los principios de modelado de rendimiento de inferencia LLM
+- 🔬 Comparar rápidamente hardware y configuraciones
+- 🛠️ Validar viabilidad de hardware y estimar requisitos de VRAM
+- 💡 Entender cuantización, KV Cache, TP, Roofline, etc.
 
 **No adecuado para:**
-- ❌ Reemplazar benchmarks reales o compromisos de SLA en entornos de producción
-- ❌ Cálculo de costos preciso sin calibración mediante pruebas reales
-- ⚠️ El rendimiento real está influenciado por múltiples factores como versión del controlador, configuración del sistema, modo de concurrencia, etc.
+- ❌ Sustituir benchmarks reales o compromisos de SLA en producción
+- ❌ Contabilidad de costes precisa sin calibración con mediciones reales
+- ⚠️ El rendimiento real depende del driver, la configuración del sistema, el modo de concurrencia, etc.
 
-> **Nota:** Esta es una herramienta de referencia para aprendizaje. Es fundamental realizar pruebas de estrés reales antes del despliegue en producción.
+> **Nota:** Es una herramienta de referencia para aprendizaje. Valida siempre con pruebas reales antes del despliegue en producción.
 
 ## Inicio rápido
 
 ### Uso en línea
 
-Visita **[tps.bunai.cc](https://tps.bunai.cc)** para usarlo sin necesidad de instalación.
+Visita **[tps.bunai.cc](https://tps.bunai.cc)**; no hace falta instalar nada.
 
 ### Desarrollo local
 
 ```bash
-# 克隆项目
+# Clonar el repositorio
 git clone https://github.com/yourusername/tps-calculator.git
 cd tps-calculator
 
-# 安装依赖
+# Instalar dependencias
 npm install
 
-# 启动开发服务器
+# Arrancar el servidor de desarrollo
 npm run dev
 
-# 生产构建
+# Build de producción
 npm run build
 
-# 预览生产构建
+# Previsualizar el build de producción
 npm run preview
 ```
 
-### Requisitos del entorno
+### Requisitos
 
 - Node.js >= 18.0.0
 - npm >= 9.0.0
-- Navegadores modernos (Chrome, Firefox, Safari, Edge)
+- Navegador moderno (Chrome, Firefox, Safari, Edge)
 
 ## Estructura del proyecto
 
 ```
 src/
 ├── components/       # Componentes Vue
-│   ├── config/      # Panel de configuración (Selección GPU/Modelo/Framework)
-│   ├── result/      # Visualización de resultados (Tarjetas de velocidad/latencia/VRAM)
-│   ├── layout/      # Componentes de layout
-│   └── ui/          # Componentes UI genéricos
-├── data/            # Definición de datos
-│   ├── gpus/        # Datos de especificaciones GPU (Clasificados por fabricante)
-│   ├── models/      # Datos de parámetros de modelos (348+ modelos)
-│   ├── constants.js # Constantes de cuantización/framework/interconexión
-│   └── runtime.js   # Opciones de configuración en tiempo de ejecución
-├── utils/           # Funciones utilitarias
-│   ├── calc.js      # Lógica de cálculo central
-│   ├── model.js     # Análisis de estructura de modelo
-│   ├── format.js    # Formateo de datos
-│   ├── exportMd.js  # Exportación de informes Markdown
+│   ├── config/      # Panel de configuración (GPU / modelo / framework)
+│   ├── result/      # Resultados (velocidad / latencia / VRAM)
+│   ├── layout/      # Layout
+│   └── ui/          # UI genérica
+├── data/            # Datos
+│   ├── gpus/        # Especificaciones GPU (por fabricante)
+│   ├── models/      # Parámetros de modelos (375+)
+│   ├── constants.js # Constantes de cuantización / framework / interconexión
+│   └── runtime.js   # Opciones de configuración en runtime
+├── utils/           # Utilidades
+│   ├── calc.js      # Lógica de cálculo principal
+│   ├── model.js     # Análisis de estructura del modelo
+│   ├── format.js    # Formateo
+│   ├── exportMd.js  # Exportación de informe Markdown
 │   ├── detectGpu.js # Detección automática de GPU local
-│   └── useUrlState.js # Sincronización de estado URL
-├── i18n/            # Internacionalización (Chino/Inglés)
-├── pages/           # Componentes de página
-└── router/          # Configuración de enrutamiento
+│   └── useUrlState.js # Sincronización de estado vía URL
+├── i18n/            # Internacionalización (chino / inglés)
+├── pages/           # Páginas
+└── router/          # Enrutamiento
 ```
 
 ## Arquitectura del sistema
 
 <details>
-<summary>Ver diagrama de arquitectura del sistema</summary>
+<summary>Ver diagrama de arquitectura</summary>
 
 ```mermaid
 graph TD
-    A[用户输入参数] --> B[模型配置层]
-    A --> C[GPU硬件配置层]
-    A --> D[框架配置层]
+    A[Parámetros de entrada] --> B[Capa de configuración del modelo]
+    A --> C[Capa de hardware GPU]
+    A --> D[Capa de framework]
     
-    B --> B1[模型参数量]
-    B --> B2[量化精度]
+    B --> B1[Parámetros del modelo]
+    B --> B2[Precisión de cuantización]
     B --> B3[Dense / MoE / MLA]
-    B --> B4[KV Cache结构]
+    B --> B4[Estructura KV Cache]
     
-    C --> C1[显存容量]
-    C --> C2[带宽 BW]
-    C --> C3[算力 FLOPS]
-    C --> C4[多卡互联 NVLink / PCIe]
+    C --> C1[Capacidad VRAM]
+    C --> C2[Ancho de banda BW]
+    C --> C3[Cómputo FLOPS]
+    C --> C4[Interconexión multi-GPU NVLink / PCIe]
     
     D --> D1[vLLM]
     D --> D2[llama.cpp]
     D --> D3[TRT-LLM]
     D --> D4[MLX / SGLang]
     
-    B1 --> E[权重大小计算]
+    B1 --> E[Cálculo del tamaño de pesos]
     B2 --> E
     B3 --> E
     
-    B4 --> F[KV Cache计算]
+    B4 --> F[Cálculo de KV Cache]
     
-    C1 --> G[VRAM容量校验]
+    C1 --> G[Comprobación de VRAM]
     E --> G
     F --> G
     
@@ -181,9 +183,9 @@ graph TD
     C3 --> I[Prefill Roofline]
     B3 --> I
     
-    C4 --> J[TP通信损耗]
+    C4 --> J[Overhead de comunicación TP]
     
-    D1 --> K[Framework效率系数]
+    D1 --> K[Coeficientes de eficiencia del framework]
     D2 --> K
     D3 --> K
     D4 --> K
@@ -197,77 +199,77 @@ graph TD
     M --> N[TTFT]
     L --> O[TPOT]
     
-    N --> P[总延迟 Total Latency]
+    N --> P[Latencia total]
     O --> P
     
-    G --> Q[是否可运行]
-    L --> R[吞吐分析]
+    G --> Q[¿Es ejecutable?]
+    L --> R[Análisis de throughput]
     M --> R
     P --> R
     
-    R --> S[结果面板]
+    R --> S[Panel de resultados]
     Q --> S
-    S --> T[Markdown报告导出]
+    S --> T[Exportación Markdown]
 ```
 
-**Puntos destacados de la implementación central:**
+**Puntos clave de la implementación:**
 
 - Modelado de cuantización de pesos y KV Cache
 - Impacto de los coeficientes estructurales GQA/MHA/MQA en Prefill
 - Ganancia de eficiencia de Flash Attention
-- Soporte de optimización de Prefix Cache para TTFT
-- Rangos de eficiencia de framework basados en benchmarks reales
-- Sobrecarga de comunicación TP multicard (NVLink/PCIe)
+- Optimización de TTFT con Prefix Cache
+- Intervalos de eficiencia de framework basados en benchmarks reales
+- Overhead de comunicación TP multi-GPU (NVLink/PCIe)
 
-Consulta los algoritmos y fórmulas detallados en [Docs.md](Docs.md).
+Consulta algoritmos y fórmulas en [Docs.md](Docs.md).
 
 </details>
 
 ## Guía de contribución
 
-¡Las contribuciones son bienvenidas! Agradecemos especialmente:
+¡Las contribuciones son bienvenidas! Especialmente:
 
-- 🔧 **Datos de GPU** — Agregar especificaciones de nuevos modelos de GPU
-- 🤖 **Datos de modelos** — Agregar parámetros estructurales de nuevos modelos
-- 📊 **Coeficientes de framework** — Proveer datos de benchmarks reales para calibrar la eficiencia
+- 🔧 **Datos de GPU** — Añadir especificaciones de nuevos modelos de GPU
+- 🤖 **Datos de modelos** — Añadir parámetros estructurales de nuevos modelos
+- 📊 **Coeficientes de framework** — Aportar benchmarks reales para calibrar la eficiencia
 - 🐛 **Corrección de errores** — Reportar o corregir errores de cálculo
-- 📝 **Mejoras de documentación** — Refinar explicaciones y ejemplos
+- 📝 **Documentación** — Mejorar explicaciones y ejemplos
 
-**Proceso de contribución:**
+**Flujo de contribución:**
 
-1. Haz un fork de este repositorio
-2. Crea una rama de característica (`git checkout -b feature/AmazingFeature`)
-3. Realiza commit de cambios (`git commit -m 'Add some AmazingFeature'`)
-4. Empuja a la rama (`git push origin feature/AmazingFeature`)
-5. Envía un Pull Request
+1. Haz fork del repositorio
+2. Crea una rama de feature (`git checkout -b feature/AmazingFeature`)
+3. Haz commit (`git commit -m 'Add some AmazingFeature'`)
+4. Empuja la rama (`git push origin feature/AmazingFeature`)
+5. Abre un Pull Request
 
 ## Descargo de responsabilidad
 
-Esta es una **herramienta de referencia para aprendizaje**, diseñada para comprender los principios de modelado de rendimiento de inferencia de LLM.
+Esta es una **herramienta de referencia para aprendizaje**, orientada a comprender el modelado de rendimiento de inferencia LLM.
 
-- ✅ Los resultados son aptos para **análisis de tendencias** y **comparación de arquitecturas**
-- ⚠️ El rendimiento real está influenciado por múltiples factores (versión del controlador, configuración del sistema, modo de concurrencia, etc.)
-- 🔬 **Es fundamental realizar pruebas de estrés reales antes del despliegue en producción**
-- 📊 Los coeficientes de eficiencia de framework se basan en muestras limitadas y pueden variar significativamente según el escenario
+- ✅ Los resultados sirven para **análisis de tendencias** y **comparación de arquitecturas**
+- ⚠️ El rendimiento real depende de muchos factores (driver, sistema, concurrencia, etc.)
+- 🔬 **Valida siempre con pruebas reales antes del despliegue en producción**
+- 📊 Los coeficientes de eficiencia del framework se basan en muestras limitadas y pueden variar mucho según el escenario
 
-## Licencia de código abierto
+## Licencia
 
-Este proyecto utiliza una **licencia personalizada de uso no comercial**, consulta [LICENSE](LICENSE) para detalles.
+Este proyecto usa una **licencia personalizada de uso no comercial**. Consulta [LICENSE](LICENSE).
 
 ### Términos de uso
 
-- ✅ **Uso personal** — Libre para aprendizaje, investigación y fines no comerciales, sin necesidad de autorización
-- ⚠️ **Uso comercial** — Para empresas/equipos/productos comerciales (incluyendo desarrollo secundario, integración, plugins, servicios derivados, etc.) se requiere contactar al autor para obtener autorización por escrito
+- ✅ **Uso personal** — Aprendizaje, investigación y fines no comerciales, sin autorización
+- ⚠️ **Uso comercial** — Empresas / equipos / productos comerciales (incluido desarrollo secundario, integración, plugins, servicios derivados, etc.) requieren autorización escrita del autor
 
-**Está prohibido aprender para empresas estúpidas.**
+**A las empresas idiotas les está prohibido aprender.**
 
 ## Agradecimientos
 
 ### Fuentes de datos
 
-- **Parámetros de modelo** — Repositorios oficiales como [HuggingFace](https://huggingface.co), [Ollama](https://ollama.com), [ModelScope](https://modelscope.cn)
+- **Parámetros de modelo** — [HuggingFace](https://huggingface.co), [Ollama](https://ollama.com), [ModelScope](https://modelscope.cn) y otros repositorios oficiales
 - **Especificaciones de GPU** — Documentación técnica oficial de los fabricantes
-- **Cobertura de modelos** — 351+ modelos, abarcando modelos de código abierto principales de 2022-2026, con escalas de parámetros de 0.5B a 671B
+- **Cobertura de modelos** — 375+ modelos open source principales (2022-2026), de 0.5B a 2.8T parámetros
 
 ### Base teórica
 
@@ -278,10 +280,10 @@ Este proyecto utiliza una **licencia personalizada de uso no comercial**, consul
 
 - LMSYS DGX Spark Review
 - XiongjieDai GPU Benchmarks
-- Blog vLLM Wide-EP
-- Datos de pruebas reales contribuidos por la comunidad
+- vLLM Wide-EP Blog
+- Datos de pruebas reales aportados por la comunidad
 
-## Apoya al proyecto
+## Apoyar el proyecto
 
 <div align="center">
 
@@ -291,26 +293,27 @@ Este proyecto utiliza una **licencia personalizada de uso no comercial**, consul
 | **ETH (Ethereum)** | `0x5696293023683F7B5a0312eC9f0C1f05f2b03e81` |
 | **SOL (Solana)** | `5avgsJtAdJst3KUdTsBsN2sUkyWYFrj8b1zADRPitTrj` |
 
-**¡Tu apoyo es mi motivación para mantener y mejorar continuamente el proyecto!** 🙏
+**¡Tu apoyo motiva a seguir manteniendo y mejorando el proyecto!** 🙏
 
 </div>
 
 ## Documentación
 
-- **[Documentación de algoritmos (Docs.md)](Docs.md)** — Fórmulas de cálculo detalladas, flujos de datos y detalles de implementación
-- **[English README](README.en.md)** — English version of this document
+- **[Documentación de algoritmos (Docs.md)](Docs.md)** — Fórmulas, flujos de datos y detalles de implementación
+- **[中文 README](README.md)** — Versión en chino
+- **[English README](README.en.md)** — Versión en inglés
 
 ## Contacto
 
-- 🐛 **Informes de problemas** — [GitHub Issues](https://github.com/yourusername/tps-calculator/issues)
+- 🐛 **Incidencias** — [GitHub Issues](https://github.com/yourusername/tps-calculator/issues)
 - 💬 **Discusiones** — [GitHub Discussions](https://github.com/yourusername/tps-calculator/discussions)
-- 📧 **Licencia comercial** — Por favor, contacta mediante Issues o la página principal del proyecto
+- 📧 **Licencia comercial** — Contacta por Issues o la página del proyecto
 
 ---
 
 <div align="center">
 
-**¡Si este proyecto te ha sido útil, dale un ⭐ Star para apoyar!**
+**Si este proyecto te resulta útil, ¡deja un ⭐ Star!**
 
 Made with ❤️ for the LLM community
 

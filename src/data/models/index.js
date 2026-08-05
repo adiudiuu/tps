@@ -44,6 +44,7 @@ import minimax_abab6 from './minimax_abab6/index.js'
 import minimax_abab6_5 from './minimax_abab6_5/index.js'
 import minimax_video_01 from './minimax_video_01/index.js'
 import minimax_music_01 from './minimax_music_01/index.js'
+import kimi_k3 from './kimi_k3/index.js'
 import kimi_k2_6 from './kimi_k2_6/index.js'
 import kimi_k2_5 from './kimi_k2_5/index.js'
 import kimi_k2_thinking from './kimi_k2_thinking/index.js'
@@ -87,6 +88,8 @@ import deepseek_v4_flash from './deepseek_v4_flash/index.js'
 import deepseek_v4_pro from './deepseek_v4_pro/index.js'
 import deepseek_janus_1_3b from './deepseek_janus_1_3b/index.js'
 import deepseek_janus_7b from './deepseek_janus_7b/index.js'
+import qwen38_max from './qwen38_max/index.js'
+import qwen38_27b from './qwen38_27b/index.js'
 import qwen3_6_27b from './qwen3_6_27b/index.js'
 import qwen3_6_35b_a3b from './qwen3_6_35b_a3b/index.js'
 import llama3_1_8b from './llama3_1_8b/index.js'
@@ -377,6 +380,7 @@ import linly_7b from './linly_7b/index.js'
 
 export const DENSE_MODELS = [
   // 2026
+  qwen38_27b,
   gemma4_12b_unified,
   nemotron_cascade_14b,
   nemotron_cascade_8b,
@@ -685,6 +689,8 @@ export const DENSE_MODELS = [
 
 export const MOE_MODELS = [
   // 2026
+  qwen38_max,
+  kimi_k3,
   nemotron_cascade_2_30b,
   mistral_small_4,
   // 2024
@@ -807,8 +813,8 @@ export const COMMUNITY_MODELS = [
   samantha_7b,
 ]
 
-// Models released before this date are considered legacy
-const LEGACY_CUTOFF = '2023-07'
+// Models released before this date are considered legacy (hidden by default in UI)
+const LEGACY_CUTOFF = '2025-01'
 
 export const ALL_MODELS = [...new Map(
   [...DENSE_MODELS, ...MOE_MODELS, ...COMMUNITY_MODELS].map(m => [m.id, m])

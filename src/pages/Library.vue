@@ -6,14 +6,14 @@ import TimelineChart from '../components/result/TimelineChart.vue'
 import { ALL_MODELS } from '../data/models/index.js'
 import { GPU_LIST } from '../data/gpus/index.js'
 import { fmtParams, fmtCtx, isNew } from '../utils/format.js'
-const { t, locale } = useI18n()
-const isZh = computed(() => locale.value === 'zh')
+const { t } = useI18n()
 
 const activeTab = ref('models')
 const viewMode = ref('list') // 'list' or 'timeline'
 const modelSearch = ref('')
 const gpuSearch = ref('')
 const filterTag = ref('')  // Tag filter for models
+const showLegacy = ref(false)
 const hoveredModel = ref(null)
 const hoveredGpu = ref(null)
 const hoverPosition = ref({ x: 0, y: 0 })
@@ -40,18 +40,23 @@ const MODEL_FAMILIES = [
 
 const filteredModels = computed(() => {
   let models = ALL_MODELS
-  
-  // Text search filter
   const q = modelSearch.value.trim().toLowerCase()
+
+  // 默认隐藏 2025 年前模型；搜索或显式开关时展示全部
+  if (!showLegacy.value && !q) {
+    models = models.filter(m => m.status !== 'legacy')
+  }
+
+  // Text search filter
   if (q) {
     models = models.filter(m => m.name.toLowerCase().includes(q))
   }
-  
+
   // Tag filter
   if (filterTag.value) {
     models = models.filter(m => m.tags?.includes(filterTag.value))
   }
-  
+
   return models
 })
 
@@ -69,23 +74,23 @@ const modelGroups = computed(() => {
 
 // ── GPU 分组 ──────────────────────────────────────
 const GPU_GROUPS = [
-  { zh: 'Apple Silicon',  en: 'Apple Silicon',     match: g => g.vendor === 'apple' },
-  { zh: 'NVIDIA 数据中心', en: 'NVIDIA Datacenter', match: g => g.vendor === 'nvidia' && g.tier === 'datacenter' },
-  { zh: 'NVIDIA RTX 50',  en: 'NVIDIA RTX 50',     match: g => g.vendor === 'nvidia' && /^rtx5/.test(g.id) },
-  { zh: 'NVIDIA RTX 40',  en: 'NVIDIA RTX 40',     match: g => g.vendor === 'nvidia' && /^rtx4/.test(g.id) },
-  { zh: 'NVIDIA RTX 30',  en: 'NVIDIA RTX 30',     match: g => g.vendor === 'nvidia' && /^rtx3/.test(g.id) },
-  { zh: 'NVIDIA RTX 20',  en: 'NVIDIA RTX 20',     match: g => g.vendor === 'nvidia' && /^rtx2/.test(g.id) },
-  { zh: 'NVIDIA GTX',     en: 'NVIDIA GTX',        match: g => g.vendor === 'nvidia' && /^gtx/.test(g.id) },
-  { zh: 'NVIDIA 专业卡',  en: 'NVIDIA Pro / DGX',  match: g => g.vendor === 'nvidia' && (/^rtx_/.test(g.id) || g.id === 'dgx_spark') },
-  { zh: 'AMD 数据中心',   en: 'AMD Datacenter',    match: g => g.vendor === 'amd' && g.tier === 'datacenter' },
-  { zh: 'AMD RX 9000',    en: 'AMD RX 9000',       match: g => g.vendor === 'amd' && /^rx9/.test(g.id) },
-  { zh: 'AMD RX 7000',    en: 'AMD RX 7000',       match: g => g.vendor === 'amd' && /^rx7/.test(g.id) },
-  { zh: 'AMD RX 6000',    en: 'AMD RX 6000',       match: g => g.vendor === 'amd' && /^rx6/.test(g.id) },
-  { zh: 'AMD RX 5000',    en: 'AMD RX 5000',       match: g => g.vendor === 'amd' && /^rx5/.test(g.id) },
-  { zh: 'AMD 旧款 / 集显', en: 'AMD Older / iGPU', match: g => g.vendor === 'amd' && /^(vega|radeon|ryzen)/.test(g.id) },
-  { zh: 'Intel Arc',      en: 'Intel Arc',         match: g => g.vendor === 'intel' && g.tier === 'consumer' },
-  { zh: 'Intel 数据中心', en: 'Intel Datacenter',  match: g => g.vendor === 'intel' && g.tier === 'datacenter' },
-  { zh: '国产加速卡',     en: 'Domestic',          match: g => g.vendor === 'domestic' },
+  { key: 'gpu_group_apple',        match: g => g.vendor === 'apple' },
+  { key: 'gpu_group_nvidia_dc',    match: g => g.vendor === 'nvidia' && g.tier === 'datacenter' },
+  { key: 'gpu_group_nvidia_rtx50', match: g => g.vendor === 'nvidia' && /^rtx5/.test(g.id) },
+  { key: 'gpu_group_nvidia_rtx40', match: g => g.vendor === 'nvidia' && /^rtx4/.test(g.id) },
+  { key: 'gpu_group_nvidia_rtx30', match: g => g.vendor === 'nvidia' && /^rtx3/.test(g.id) },
+  { key: 'gpu_group_nvidia_rtx20', match: g => g.vendor === 'nvidia' && /^rtx2/.test(g.id) },
+  { key: 'gpu_group_nvidia_gtx',   match: g => g.vendor === 'nvidia' && /^gtx/.test(g.id) },
+  { key: 'gpu_group_nvidia_pro',   match: g => g.vendor === 'nvidia' && (/^rtx_/.test(g.id) || g.id === 'dgx_spark') },
+  { key: 'gpu_group_amd_dc',       match: g => g.vendor === 'amd' && g.tier === 'datacenter' },
+  { key: 'gpu_group_amd_rx9000',   match: g => g.vendor === 'amd' && /^rx9/.test(g.id) },
+  { key: 'gpu_group_amd_rx7000',   match: g => g.vendor === 'amd' && /^rx7/.test(g.id) },
+  { key: 'gpu_group_amd_rx6000',   match: g => g.vendor === 'amd' && /^rx6/.test(g.id) },
+  { key: 'gpu_group_amd_rx5000',   match: g => g.vendor === 'amd' && /^rx5/.test(g.id) },
+  { key: 'gpu_group_amd_older',    match: g => g.vendor === 'amd' && /^(vega|radeon|ryzen)/.test(g.id) },
+  { key: 'gpu_group_intel_arc',    match: g => g.vendor === 'intel' && g.tier === 'consumer' },
+  { key: 'gpu_group_intel_dc',     match: g => g.vendor === 'intel' && g.tier === 'datacenter' },
+  { key: 'gpu_group_domestic',     match: g => g.vendor === 'domestic' },
 ]
 
 const filteredGpus = computed(() => {
@@ -100,7 +105,7 @@ const gpuGroups = computed(() => {
     const list = filteredGpus.value.filter(g => !used.has(g.id) && grp.match(g))
     if (list.length) {
       list.forEach(g => used.add(g.id))
-      groups.push({ label: isZh.value ? grp.zh : grp.en, list })
+      groups.push({ label: t(`library.${grp.key}`), list })
     }
   }
   return groups
@@ -245,7 +250,7 @@ function closeDetail() {
       <!-- ── 模型 ── -->
       <template v-if="activeTab === 'models'">
         <!-- 视图模式切换 -->
-        <div class="flex items-center justify-between mb-4">
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
           <div class="flex gap-2">
             <button
               @click="viewMode = 'list'"
@@ -272,6 +277,10 @@ function closeDetail() {
               {{ t('library.timeline_view') }}
             </button>
           </div>
+          <label class="inline-flex items-center gap-1.5 cursor-pointer select-none whitespace-nowrap">
+            <input type="checkbox" v-model="showLegacy" class="w-3.5 h-3.5 accent-emerald-500 rounded" />
+            <span class="text-xs text-gray-600">{{ t('library.filter_show_legacy') }}</span>
+          </label>
         </div>
 
         <!-- 时间轴视图 -->
@@ -286,12 +295,14 @@ function closeDetail() {
         <!-- 列表视图 -->
         <template v-else>
           <div class="mb-4 space-y-3">
-            <input
-              v-model="modelSearch"
-              type="text"
-              :placeholder="t('library.search_models')"
-              class="w-full sm:w-80 bg-white/80 backdrop-blur-sm border border-gray-300 rounded-lg px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-            />
+            <div class="flex flex-wrap gap-3 items-center">
+              <input
+                v-model="modelSearch"
+                type="text"
+                :placeholder="t('library.search_models')"
+                class="w-full sm:w-80 bg-white/80 backdrop-blur-sm border border-gray-300 rounded-lg px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+              />
+            </div>
             
             <!-- Tag Filter Buttons -->
             <div class="flex flex-wrap gap-2 items-center">
@@ -784,7 +795,7 @@ function closeDetail() {
 
             <!-- 高级算力 -->
             <div class="space-y-1.5">
-              <div class="text-xs font-semibold text-gray-700 uppercase tracking-wide">{{ isZh ? '高级算力' : 'Advanced Compute' }}</div>
+              <div class="text-xs font-semibold text-gray-700 uppercase tracking-wide">{{ t('library.advanced_compute') }}</div>
               <div class="grid grid-cols-3 gap-1.5 text-xs">
                 <div v-if="detailGpu.fp8" class="bg-gray-50 rounded px-2 py-1.5 border border-gray-200">
                   <div class="text-gray-600 text-[10px]">FP8</div>
@@ -803,7 +814,7 @@ function closeDetail() {
 
             <!-- 互联信息 -->
             <div v-if="detailGpu.nvlink_bw" class="bg-gray-50 rounded-lg p-2 border border-gray-200">
-              <div class="text-xs text-gray-700 mb-0.5">{{ isZh ? '多卡互联' : 'Interconnect' }}</div>
+              <div class="text-xs text-gray-700 mb-0.5">{{ t('library.interconnect') }}</div>
               <div class="text-sm font-semibold text-gray-800">
                 {{ detailGpu.nvlink_bw }} GB/s
               </div>
@@ -811,7 +822,7 @@ function closeDetail() {
 
             <!-- 可用显存比例 -->
             <div v-if="detailGpu.usableRatio && detailGpu.usableRatio < 1" class="text-xs text-gray-700 bg-amber-100 rounded px-2 py-1.5 border border-amber-300">
-              ⚠️ {{ isZh ? '可用显存约' : 'Usable VRAM' }} {{ (detailGpu.usableRatio * 100).toFixed(0) }}%
+              ⚠️ {{ t('library.usable_vram') }} {{ (detailGpu.usableRatio * 100).toFixed(0) }}%
             </div>
           </div>
         </div>

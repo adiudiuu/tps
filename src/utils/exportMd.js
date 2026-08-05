@@ -5,27 +5,13 @@ import { calcAll, getWarnings } from './calc.js'
 import { QUANT_MAP } from '../data/constants.js'
 import { PCIE_BW_OPTIONS } from '../data/runtime.js'
 
+const LOCALE_TAGS = { zh: 'zh-CN', en: 'en-US', es: 'es-ES' }
+
 /**
  * 生成 Markdown 报告字符串
  * @param {object} opts
- * @param {object} opts.gpu
- * @param {number} opts.gpuCount
- * @param {object} opts.interconnect
- * @param {object} opts.model
- * @param {object} opts.quant
- * @param {object} opts.framework
- * @param {number} opts.ctx
- * @param {number} opts.batch
- * @param {number} opts.promptLen
- * @param {number} opts.outputLen
- * @param {boolean} opts.flashAttention
- * @param {object} opts.kvCacheQuant
- * @param {number} opts.prefixCacheHit
- * @param {boolean} opts.cpuOffload
- * @param {object|null} opts.pcieBw
- * @param {object} opts.result        - calcAll() 返回值
  * @param {function} opts.t           - i18n t()
- * @param {string} opts.locale        - 'zh' | 'en'
+ * @param {string} opts.locale        - 'zh' | 'en' | 'es'
  */
 export function generateMarkdown({
   gpu, gpuCount, interconnect, model, quant, framework,
@@ -33,118 +19,115 @@ export function generateMarkdown({
   prefixCacheHit, cpuOffload, pcieBw,
   result, t, locale,
 }) {
-  const isZh = locale === 'zh'
-  const now = new Date().toLocaleString(isZh ? 'zh-CN' : 'en-US', {
+  const localeTag = LOCALE_TAGS[locale] || LOCALE_TAGS.en
+  const now = new Date().toLocaleString(localeTag, {
     year: 'numeric', month: '2-digit', day: '2-digit',
     hour: '2-digit', minute: '2-digit',
   })
 
   const lines = []
-  const h1 = isZh ? '# GPU 推理速度估算报告' : '# GPU Inference Speed Estimation Report'
   const site = 'tps.bunai.com'
+  const onOff = (v) => v ? t('run.enabled') : t('run.disabled')
 
-  lines.push(h1)
+  lines.push(`# ${t('md.title')}`)
   lines.push('')
-  lines.push(isZh ? `> 生成时间：${now} ｜ ${site}` : `> Generated: ${now} | ${site}`)
+  lines.push(`> ${t('md.generated', { time: now, site })}`)
   lines.push('')
 
   // ── 1. 配置摘要 ──────────────────────────────────────
-  lines.push(isZh ? '## 配置摘要' : '## Configuration Summary')
+  lines.push(`## ${t('md.config_summary')}`)
   lines.push('')
   const gpuStr = gpuCount > 1
     ? `${gpu.name} × ${gpuCount}${interconnect ? ` (${interconnect.label})` : ''}`
     : gpu.name
-  lines.push(`| ${isZh ? '项目' : 'Item'} | ${isZh ? '值' : 'Value'} |`)
+  lines.push(`| ${t('md.item')} | ${t('md.value')} |`)
   lines.push('|---|---|')
   lines.push(`| GPU | ${gpuStr} |`)
-  lines.push(`| ${isZh ? '总显存' : 'Total VRAM'} | ${gpu.unifiedMemory ? `${gpu.vram * gpuCount} GB ${isZh ? '物理内存' : 'physical'} / ${fmtGB(result.totalVram)} ${isZh ? '可用' : 'usable'}` : fmtGB(result.totalVram)} |`)
-  lines.push(`| ${isZh ? '总带宽' : 'Total BW'} | ${gpu.bw * gpuCount} GB/s |`)
-  lines.push(`| ${isZh ? '总算力 (BF16)' : 'Total TFLOPS (BF16)'} | ${gpu.bf16 * gpuCount} TFLOPS |`)
-  lines.push(`| ${isZh ? '量化精度' : 'Quantization'} | ${quant.label} |`)
-  lines.push(`| ${isZh ? '推理框架' : 'Framework'} | ${framework.label} |`)
+  lines.push(`| ${t('md.total_vram')} | ${gpu.unifiedMemory ? `${gpu.vram * gpuCount} GB ${t('md.physical')} / ${fmtGB(result.totalVram)} ${t('md.usable')}` : fmtGB(result.totalVram)} |`)
+  lines.push(`| ${t('md.total_bw')} | ${gpu.bw * gpuCount} GB/s |`)
+  lines.push(`| ${t('md.total_tflops')} | ${gpu.bf16 * gpuCount} TFLOPS |`)
+  lines.push(`| ${t('md.quantization')} | ${quant.label} |`)
+  lines.push(`| ${t('md.framework')} | ${framework.labelKey ? t(framework.labelKey) : (framework.label ?? framework.id)} |`)
   lines.push('')
 
   // ── 2. 模型信息 ──────────────────────────────────────
-  lines.push(isZh ? '## 模型信息' : '## Model Information')
+  lines.push(`## ${t('md.model_info')}`)
   lines.push('')
-  lines.push(`| ${isZh ? '项目' : 'Item'} | ${isZh ? '值' : 'Value'} |`)
+  lines.push(`| ${t('md.item')} | ${t('md.value')} |`)
   lines.push('|---|---|')
-  lines.push(`| ${isZh ? '名称' : 'Name'} | ${model.name} |`)
-  lines.push(`| ${isZh ? '类型' : 'Type'} | ${model.type === 'moe' ? 'MoE' : 'Dense'} |`)
-  lines.push(`| ${isZh ? '总参数' : 'Total Params'} | ${fmtParams(model.params)} |`)
+  lines.push(`| ${t('md.name')} | ${model.name} |`)
+  lines.push(`| ${t('md.type')} | ${model.type === 'moe' ? 'MoE' : 'Dense'} |`)
+  lines.push(`| ${t('md.total_params')} | ${fmtParams(model.params)} |`)
   if (model.type === 'moe' && model.active_params) {
-    lines.push(`| ${isZh ? '活跃参数' : 'Active Params'} | ${fmtParams(model.active_params)} |`)
+    lines.push(`| ${t('md.active_params')} | ${fmtParams(model.active_params)} |`)
   }
-  lines.push(`| ${isZh ? '最大上下文' : 'Max Context'} | ${fmtCtx(model.max_ctx)} |`)
+  lines.push(`| ${t('md.max_context')} | ${fmtCtx(model.max_ctx)} |`)
   lines.push(`| Attention | ${result.attentionSummary} |`)
-  lines.push(`| ${isZh ? '层数' : 'Layers'} | ${model.layers} |`)
+  lines.push(`| ${t('md.layers')} | ${model.layers} |`)
   lines.push(`| Hidden Size | ${model.hidden_size} |`)
   lines.push('')
 
   // ── 3. 运行参数 ──────────────────────────────────────
-  lines.push(isZh ? '## 运行参数' : '## Runtime Parameters')
+  lines.push(`## ${t('md.runtime')}`)
   lines.push('')
-  lines.push(`| ${isZh ? '项目' : 'Item'} | ${isZh ? '值' : 'Value'} |`)
+  lines.push(`| ${t('md.item')} | ${t('md.value')} |`)
   lines.push('|---|---|')
-  lines.push(`| ${isZh ? '上下文长度' : 'Context Length'} | ${fmtCtx(ctx)} tokens |`)
-  lines.push(`| ${isZh ? '并发数' : 'Batch Size'} | ${batch} |`)
-  lines.push(`| Prompt ${isZh ? '长度' : 'Length'} | ${promptLen.toLocaleString()} tokens |`)
-  lines.push(`| ${isZh ? '输出长度' : 'Output Length'} | ${outputLen.toLocaleString()} tokens |`)
-  lines.push(`| Flash Attention | ${flashAttention ? (isZh ? '开启' : 'Enabled') : (isZh ? '关闭' : 'Disabled')} |`)
-  lines.push(`| KV Cache ${isZh ? '量化' : 'Quant'} | ${result.kvCacheLabel} |`)
-  lines.push(`| Prefix Cache ${isZh ? '命中率' : 'Hit Rate'} | ${prefixCacheHit}% |`)
+  lines.push(`| ${t('md.context_length')} | ${fmtCtx(ctx)} tokens |`)
+  lines.push(`| ${t('md.batch_size')} | ${batch} |`)
+  lines.push(`| ${t('md.prompt_length')} | ${promptLen.toLocaleString()} tokens |`)
+  lines.push(`| ${t('md.output_length')} | ${outputLen.toLocaleString()} tokens |`)
+  lines.push(`| Flash Attention | ${onOff(flashAttention)} |`)
+  lines.push(`| ${t('md.kv_quant')} | ${result.kvCacheLabel} |`)
+  lines.push(`| ${t('md.prefix_hit')} | ${prefixCacheHit}% |`)
   if (result.cpuOffload) {
-    lines.push(`| MoE CPU Offload | ${isZh ? '开启' : 'Enabled'} (${result.pcieBwLabel ?? ''}) |`)
+    lines.push(`| MoE CPU Offload | ${t('run.enabled')} (${result.pcieBwLabel ?? ''}) |`)
   }
   if (result.speculativeDecoding) {
-    lines.push(`| ${isZh ? '投机解码' : 'Speculative Decoding'} | ${isZh ? '开启' : 'Enabled'} · draft ${result.draftLen} tok · ${isZh ? '接受率' : 'acceptance'} ${(result.acceptanceRate * 100).toFixed(0)}% · ×${(1 + result.acceptanceRate * result.draftLen).toFixed(1)} ${isZh ? '加速' : 'speedup'} |`)
+    lines.push(`| ${t('md.speculative')} | ${t('run.enabled')} · draft ${result.draftLen} tok · ${t('md.acceptance')} ${(result.acceptanceRate * 100).toFixed(0)}% · ×${(1 + result.acceptanceRate * result.draftLen).toFixed(1)} ${t('md.speedup')} |`)
   }
   lines.push('')
 
   // ── 4. 显存分析 ──────────────────────────────────────
-  lines.push(isZh ? '## 显存分析' : '## VRAM Analysis')
+  lines.push(`## ${t('md.vram_analysis')}`)
   lines.push('')
   const needed = result.displayNeeded ?? result.totalNeeded
   const avail = result.displayVram ?? result.totalVram
   const vramStatus = result.vramOk
-    ? (isZh ? '✅ 显存充足' : '✅ VRAM OK')
-    : (isZh ? `❌ 显存不足 ${(needed - avail).toFixed(1)} GB` : `❌ VRAM insufficient by ${(needed - avail).toFixed(1)} GB`)
-  lines.push(`**${isZh ? '状态' : 'Status'}**: ${vramStatus}`)
+    ? t('md.vram_ok')
+    : t('md.vram_oom', { diff: (needed - avail).toFixed(1) })
+  lines.push(`**${t('md.status')}**: ${vramStatus}`)
   if (result.vramScope === 'per_card') {
-    lines.push(`> ${isZh ? `Tensor Parallel ×${result.gpuCount}：以下为每卡显存` : `Tensor Parallel ×${result.gpuCount}: per-GPU VRAM shown below`}`)
+    lines.push(`> ${t('md.tp_note', { count: result.gpuCount })}`)
   }
   lines.push('')
-  // 显存评级
   let vramRatingStr
-  if (!result.vramOk)              vramRatingStr = isZh ? '🔴 不足 — 无法运行'       : '🔴 Insufficient — Cannot run'
-  else if (result.vramPct > 95)    vramRatingStr = isZh ? '🟡 紧张 — 接近上限'       : '🟡 Tight — Near the limit'
-  else                             vramRatingStr = isZh ? '🟢 宽裕 — 显存充足'       : '🟢 Comfortable — Plenty of headroom'
-  lines.push(`**${isZh ? '体验评级' : 'Rating'}**: ${vramRatingStr}`)
+  if (!result.vramOk)              vramRatingStr = t('md.vram_rating_oom')
+  else if (result.vramPct > 95)    vramRatingStr = t('md.vram_rating_tight')
+  else                             vramRatingStr = t('md.vram_rating_ok')
+  lines.push(`**${t('md.rating')}**: ${vramRatingStr}`)
   lines.push('')
   const vramDenom = avail || result.totalVram || 1
-  lines.push(`| ${isZh ? '项目' : 'Item'} | ${isZh ? '显存' : 'Memory'} | ${isZh ? '占比' : 'Ratio'} |`)
+  lines.push(`| ${t('md.item')} | ${t('md.memory')} | ${t('md.ratio')} |`)
   lines.push('|---|---|---|')
-  lines.push(`| ${isZh ? '模型权重' : 'Model Weights'} | ${fmtGB(result.weightGB)} | ${fmtPct(result.weightGB / vramDenom * 100)} |`)
+  lines.push(`| ${t('md.weights')} | ${fmtGB(result.weightGB)} | ${fmtPct(result.weightGB / vramDenom * 100)} |`)
   lines.push(`| KV Cache | ${fmtGB(result.kvGB)} | ${fmtPct(result.kvGB / vramDenom * 100)} |`)
   if (result.activationGB > 0) {
-    lines.push(`| ${isZh ? '激活内存' : 'Activation Mem'} | ${fmtGB(result.activationGB)} | ${fmtPct(result.activationGB / vramDenom * 100)} |`)
+    lines.push(`| ${t('md.activation')} | ${fmtGB(result.activationGB)} | ${fmtPct(result.activationGB / vramDenom * 100)} |`)
   }
-  lines.push(`| ${isZh ? '系统开销' : 'Overhead'} | ${fmtGB(result.overheadGB)} | ${fmtPct(result.overheadGB / vramDenom * 100)} |`)
-  lines.push(`| **${result.vramScope === 'per_card' ? (isZh ? '每卡需求' : 'Per-GPU Needed') : (isZh ? '总需求' : 'Total Needed')}** | **${fmtGB(needed)}** | **${fmtPct(result.vramPct)}** |`)
-  lines.push(`| ${result.vramScope === 'per_card' ? (isZh ? '每卡可用' : 'Per-GPU Available') : (isZh ? '可用显存' : 'Available')} | ${fmtGB(avail)} | — |`)
+  lines.push(`| ${t('md.overhead')} | ${fmtGB(result.overheadGB)} | ${fmtPct(result.overheadGB / vramDenom * 100)} |`)
+  lines.push(`| **${result.vramScope === 'per_card' ? t('md.per_gpu_needed') : t('md.total_needed')}** | **${fmtGB(needed)}** | **${fmtPct(result.vramPct)}** |`)
+  lines.push(`| ${result.vramScope === 'per_card' ? t('md.per_gpu_available') : t('md.available')} | ${fmtGB(avail)} | — |`)
   if (result.vramScope === 'per_card' && result.clusterNeeded != null) {
-    lines.push(`| ${isZh ? '集群合计' : 'Cluster Total'} | ${fmtGB(result.clusterNeeded)} / ${fmtGB(result.totalVram)} | — |`)
+    lines.push(`| ${t('md.cluster_total')} | ${fmtGB(result.clusterNeeded)} / ${fmtGB(result.totalVram)} | — |`)
   }
   lines.push('')
 
   // 量化对比矩阵
-  lines.push(isZh ? '### 量化对比矩阵' : '### Quantization Comparison')
+  lines.push(`### ${t('md.quant_matrix')}`)
   lines.push('')
-  lines.push(isZh
-    ? '> 理论估算，不代表该量化精度有对应的发布版本。'
-    : '> Theoretical estimates. Does not imply a quantized release exists for this model.')
+  lines.push(`> ${t('md.quant_matrix_note')}`)
   lines.push('')
-  lines.push(`| ${isZh ? '量化' : 'Quant'} | ${isZh ? '显存需求' : 'VRAM'} | ${isZh ? '状态' : 'Status'} | ${isZh ? '预估速度' : 'Est. Speed'} |`)
+  lines.push(`| ${t('md.quant')} | ${t('md.vram')} | ${t('md.status')} | ${t('md.est_speed')} |`)
   lines.push('|---|---|---|---|')
   const _speculativeDecoding = result.speculativeDecoding
   const _acceptanceRate = result.acceptanceRate
@@ -161,7 +144,6 @@ export function generateMarkdown({
       const label = isCurrent ? `**${q.label}**` : q.label
       const vramNeeded = r.displayNeeded ?? r.totalNeeded
       const vram = isCurrent ? `**${fmtGB(vramNeeded)}**` : fmtGB(vramNeeded)
-      // OOM 时检查 MoE CPU offload 可行性
       let status
       if (r.vramOk) {
         status = `✅ ${fmtPct(r.vramPct)}`
@@ -175,7 +157,7 @@ export function generateMarkdown({
             speculativeDecoding: _speculativeDecoding, acceptanceRate: _acceptanceRate, draftLen: _draftLen,
           })
           status = ro.vramOk
-            ? `⚡ ${fmtGB(ro.displayNeeded ?? ro.totalNeeded)} ${isZh ? '(可卸载)' : '(offloadable)'}`
+            ? `⚡ ${fmtGB(ro.displayNeeded ?? ro.totalNeeded)} ${t('md.offloadable')}`
             : `❌ OOM`
         } catch { status = `❌ OOM` }
       } else {
@@ -188,73 +170,69 @@ export function generateMarkdown({
   lines.push('')
 
   // ── 5. 速度与延迟 ──────────────────────────────────────
-  lines.push(isZh ? '## 速度与延迟' : '## Speed & Latency')
+  lines.push(`## ${t('md.speed_latency')}`)
   lines.push('')
-  // OOM 提示
   if (!result.vramOk) {
-    lines.push(isZh
-      ? '> ⚠️ **显存不足，以下速度为理论估算值，实际无法运行。** 请降低量化精度、增加显卡数量或为 MoE 模型开启 CPU 卸载。'
-      : '> ⚠️ **VRAM insufficient — speed values below are theoretical only and cannot be achieved.** Lower quantization, add more GPUs, or enable CPU offload for MoE models.')
+    lines.push(`> ${t('md.oom_speed_note')}`)
     lines.push('')
   }
-  // 速度评级（基于单请求速度）
   const toks = result.singleToksMax
   let speedRatingStr
-  if (!result.vramOk)  speedRatingStr = isZh ? '⛔ 无法运行 — 显存不足'         : '⛔ Cannot run — VRAM insufficient'
-  else if (toks >= 60) speedRatingStr = isZh ? '🟢 极快 — 适合实时对话'         : '🟢 Blazing — Real-time chat ready'
-  else if (toks >= 30) speedRatingStr = isZh ? '🟡 流畅 — 适合普通使用'         : '🟡 Smooth — Great for everyday use'
-  else if (toks >= 15) speedRatingStr = isZh ? '🟠 可用 — 轻度使用'             : '🟠 Usable — Light usage'
-  else                 speedRatingStr = isZh ? '🔴 较慢 — 建议换量化或升级硬件' : '🔴 Slow — Consider quantization or better hardware'
-  lines.push(`**${isZh ? '体验评级' : 'Rating'}**: ${speedRatingStr}`)
+  if (!result.vramOk)  speedRatingStr = t('md.speed_rating_oom')
+  else if (toks >= 60) speedRatingStr = t('md.speed_rating_blazing')
+  else if (toks >= 30) speedRatingStr = t('md.speed_rating_smooth')
+  else if (toks >= 15) speedRatingStr = t('md.speed_rating_usable')
+  else                 speedRatingStr = t('md.speed_rating_slow')
+  lines.push(`**${t('md.rating')}**: ${speedRatingStr}`)
   lines.push('')
 
   // Decode
-  lines.push(isZh ? '### Decode 速度（带宽瓶颈）' : '### Decode Speed (Memory Bound)')
+  lines.push(`### ${t('md.decode_title')}`)
   lines.push('')
-  lines.push(`| ${isZh ? '指标' : 'Metric'} | ${isZh ? '值' : 'Value'} |`)
+  lines.push(`| ${t('md.metric')} | ${t('md.value')} |`)
   lines.push('|---|---|')
-  lines.push(`| ${isZh ? '带宽上限' : 'BW Limit'} | ${fmtToks(result.bwLimit)} |`)
-  lines.push(`| ${isZh ? '实际吞吐（总）' : 'Actual Throughput (Total)'} | ${fmtToksRange(result.decodeToksMin, result.decodeToksMax)} |`)
-  lines.push(`| ${isZh ? '单请求速度' : 'Single Request'} | ${fmtToksRange(result.singleToksMin, result.singleToksMax)} |`)
-  lines.push(`| Decode KV ${isZh ? '读取' : 'Read'} | ${fmtGB(result.kvReadGB)}/step |`)
+  lines.push(`| ${t('md.bw_limit')} | ${fmtToks(result.bwLimit)} |`)
+  lines.push(`| ${t('md.actual_throughput_total')} | ${fmtToksRange(result.decodeToksMin, result.decodeToksMax)} |`)
+  lines.push(`| ${t('md.single_request')} | ${fmtToksRange(result.singleToksMin, result.singleToksMax)} |`)
+  lines.push(`| ${t('md.kv_read')} | ${fmtGB(result.kvReadGB)}/step |`)
   if (result.tpEfficiency < 1) {
-    lines.push(`| TP ${isZh ? '通信效率' : 'Comm Efficiency'} | ${fmtPct(result.tpEfficiency * 100)} |`)
+    lines.push(`| ${t('md.tp_eff')} | ${fmtPct(result.tpEfficiency * 100)} |`)
   }
   lines.push('')
 
   // Prefill
-  lines.push(isZh ? '### Prefill 速度（算力瓶颈）' : '### Prefill Speed (Compute Bound)')
+  lines.push(`### ${t('md.prefill_title')}`)
   lines.push('')
-  lines.push(`| ${isZh ? '指标' : 'Metric'} | ${isZh ? '值' : 'Value'} |`)
+  lines.push(`| ${t('md.metric')} | ${t('md.value')} |`)
   lines.push('|---|---|')
-  lines.push(`| ${isZh ? '算力上限' : 'Compute Limit'} | ${fmtToks(result.computeLimit)} |`)
-  lines.push(`| ${isZh ? '实际吞吐' : 'Actual Throughput'} | ${fmtToksRange(result.prefillToksMin, result.prefillToksMax)} |`)
-  lines.push(`| FlashAttention ${isZh ? '系数' : 'Boost'} | ×${result.flashFactorMin.toFixed(1)} ~ ×${result.flashFactorMax.toFixed(1)} |`)
-  lines.push(`| ${isZh ? '有效 Prompt' : 'Effective Prompt'} | ${result.effectivePromptLen.toLocaleString()} tokens |`)
+  lines.push(`| ${t('md.compute_limit')} | ${fmtToks(result.computeLimit)} |`)
+  lines.push(`| ${t('md.actual_throughput')} | ${fmtToksRange(result.prefillToksMin, result.prefillToksMax)} |`)
+  lines.push(`| ${t('md.fa_boost')} | ×${result.flashFactorMin.toFixed(1)} ~ ×${result.flashFactorMax.toFixed(1)} |`)
+  lines.push(`| ${t('md.effective_prompt')} | ${result.effectivePromptLen.toLocaleString()} tokens |`)
   lines.push('')
 
   // Roofline
   const bottleneckLabel = result.bottleneck === 'bandwidth'
-    ? (isZh ? '⚠️ 带宽瓶颈' : '⚠️ Bandwidth Bound')
-    : (isZh ? '✅ 算力瓶颈' : '✅ Compute Bound')
-  lines.push(`**${isZh ? '瓶颈类型' : 'Bottleneck'}**: ${bottleneckLabel}　　**Roofline 比**: ${result.roofline.toFixed(2)}`)
+    ? t('md.bw_bound')
+    : t('md.compute_bound')
+  lines.push(`**${t('md.bottleneck')}**: ${bottleneckLabel}　　**Roofline**: ${result.roofline.toFixed(2)}`)
   lines.push('')
 
   // 延迟
-  lines.push(isZh ? '### 延迟' : '### Latency')
+  lines.push(`### ${t('md.latency')}`)
   lines.push('')
-  lines.push(`| ${isZh ? '指标' : 'Metric'} | ${isZh ? '值' : 'Value'} |`)
+  lines.push(`| ${t('md.metric')} | ${t('md.value')} |`)
   lines.push('|---|---|')
-  lines.push(`| TTFT (${isZh ? '首 Token 延迟' : 'Time to First Token'}) | ${fmtMs(result.ttft)} |`)
-  lines.push(`| TPOT (${isZh ? '生成延迟' : 'Time per Output Token'}) | ${fmtMs(result.tpot)} |`)
-  lines.push(`| ${isZh ? '总延迟' : 'Total Latency'} | ${fmtMs(result.totalLatency)} |`)
-  lines.push(`| ${isZh ? '总功耗' : 'Total Power'} | ${result.totalPower.toFixed(1)} kW${gpu.unifiedMemory ? (isZh ? '（SoC TDP）' : ' (SoC TDP)') : ''} |`)
+  lines.push(`| ${t('md.ttft')} | ${fmtMs(result.ttft)} |`)
+  lines.push(`| ${t('md.tpot')} | ${fmtMs(result.tpot)} |`)
+  lines.push(`| ${t('md.total_latency')} | ${fmtMs(result.totalLatency)} |`)
+  lines.push(`| ${t('md.total_power')} | ${result.totalPower.toFixed(1)} kW${gpu.unifiedMemory ? t('md.soc_tdp') : ''} |`)
   lines.push('')
 
   // ── 6. 警告与建议 ──────────────────────────────────────
   const warnings = getWarnings(result, t)
   if (warnings.length > 0) {
-    lines.push(isZh ? '## 警告与建议' : '## Warnings & Suggestions')
+    lines.push(`## ${t('md.warnings')}`)
     lines.push('')
     const levelIcon = { error: '❌', warn: '⚠️', info: 'ℹ️' }
     for (const w of warnings) {
@@ -267,9 +245,7 @@ export function generateMarkdown({
   // ── 尾注 ──────────────────────────────────────────────
   lines.push('---')
   lines.push('')
-  lines.push(isZh
-    ? `*本报告由 [${site}](https://${site}) 生成，数据为理论估算值，实际性能受硬件状态、驱动版本、模型实现等因素影响。*`
-    : `*This report is generated by [${site}](https://${site}). Values are theoretical estimates; actual performance may vary.*`)
+  lines.push(`*${t('md.footer', { site })}*`)
   lines.push('')
 
   return lines.join('\n')

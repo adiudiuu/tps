@@ -11,10 +11,10 @@ export const SOLVER_QUANTS = QUANT_MAP.filter(q => q.id !== 'fp32' && q.id !== '
 
 // 量化质量下限选项
 export const QUANT_FLOOR_OPTIONS = [
-  { id: 'none',  label_zh: '不限',       label_en: 'Any',      minQuality: null },
-  { id: 'int4',  label_zh: '≥ INT4',     label_en: '≥ INT4',   minQuality: 'ok'    },
-  { id: 'int8',  label_zh: '≥ INT8/FP8', label_en: '≥ INT8',   minQuality: 'good'  },
-  { id: 'bf16',  label_zh: '仅 BF16',    label_en: 'BF16 only', minQuality: 'great' },
+  { id: 'none',  labelKey: 'solver.quant_floor_none', minQuality: null },
+  { id: 'int4',  labelKey: 'solver.quant_floor_int4', minQuality: 'ok'    },
+  { id: 'int8',  labelKey: 'solver.quant_floor_int8', minQuality: 'good'  },
+  { id: 'bf16',  labelKey: 'solver.quant_floor_bf16', minQuality: 'great' },
 ]
 
 // 质量等级排序（越高越好）

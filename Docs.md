@@ -1,8 +1,8 @@
 ﻿# TPS Calculator 功能说明
 
-**最后更新**: 2026-06-29
-**模型数量**: 351 个
-**GPU 数量**: 230+
+**最后更新**: 2026-08-05 16:00
+**模型数量**: 375 个
+**GPU 数量**: 250+
 
 ---
 
@@ -13,7 +13,7 @@
 | GPU 型号 | 支持 NVIDIA / AMD / Intel / Apple / 国产芯片 |
 | GPU 数量 | 预设 1/2/4/8/16，支持自定义（1-512）；多卡 TP 时显存按**每卡**展示 |
 | 互联方式 | NVLink / InfiniBand / PCIe |
-| 模型 | 351 个 Dense/MoE 模型，含 VLM |
+| 模型 | 375 个 Dense/MoE 模型，含 VLM |
 | 量化精度 | FP32 / BF16 / FP8 / INT8 / INT4 / GGUF 各档位（Apple/llama.cpp 自动用 `gguf_bytes`） |
 | 上下文长度 | 任意设置 |
 | 并发请求数 | 预设 + 自定义 |
@@ -43,10 +43,10 @@
 | 单请求速度 | 中位 tok/s，1 位小数 |
 | Prefill 吞吐 | 算力上限和实际估算 |
 | TTFT | 首 token 延迟（ms） |
-| TPOT | 单 token 延迟（ms） |
+| TPOT | 单 token 延迟（ms），恒等于 `1000 / 单请求速度` |
 | 总延迟 | TTFT + 输出长度 × TPOT |
 | 瓶颈判断 | 带宽瓶颈 / 算力瓶颈 |
-| Roofline 比 | 带宽上限 vs 算力上限 |
+| Roofline 比 | 带宽上限 vs 算力上限（均为纯物理上限，不含框架/调度折扣） |
 | TP 通信效率 | 多卡时 all-reduce 效率损耗 |
 | PP 气泡效率 | Pipeline Parallel 流水线填充效率 |
 | 功耗估算 | GPU 总 TDP（kW） |
@@ -69,7 +69,20 @@
 | INT4 prefill | 走 BF16 算力而非 INT4 Tensor Core 峰值 |
 | 多卡 TP 显存 | `perCardNeeded` / `displayNeeded` 每卡判断 OOM |
 
-运行回归脚本：
+### 延迟与吞吐同源
+
+所有效率折扣（框架系数、`getBatchSchedulingEfficiency`、TP/EP 通信效率、speculative 加速、PP P2P 与 MoE dispatch 延迟）都统一施加在**每 token 时间**这一条链路上，吞吐再由它取倒数得到：
+
+```
+step_ms   = 物理 IO 时间 / 框架系数 + MoE dispatch + PP P2P
+tpot      = step_ms / (batch 调度效率 × speculative 加速 × TP 效率 × EP 效率)
+单请求速度 = 1000 / tpot
+Decode 吞吐 = batch × 1000 / tpot
+```
+
+因此 `单请求速度 × tpot === 1000` 恒成立，高 batch 和多卡场景下"速度"与"延迟"不会互相矛盾。`bwLimit` / `computeLimit` 保持为纯物理上限，仅用于 Roofline 与瓶颈判断，不参与折扣叠加。
+
+运行回归脚本（含公开 benchmark 对比与上述恒等式检查）：
 
 ```bash
 npm run benchmark
@@ -81,7 +94,7 @@ npm run benchmark
 
 **Dense 模型**: Llama 1/2/3/3.1/3.2/3.3、Gemma 1/2/3/4、Qwen 2/2.5/3、Mistral、DeepSeek LLM/Coder/Math 系列、GLM、Baichuan、Bloom、CodeLlama、Falcon、Phi、Yi 等
 
-**MoE 模型**: DeepSeek V2/V3/R1 系列（含 MLA 压缩）、Mixtral、GLM-4/4.5 MoE、Qwen MoE、DBRX、Command R+ 等
+**MoE 模型**: DeepSeek V2/V3/R1/V4 系列（含 MLA 压缩）、Kimi K2/K3、Qwen3.5/3.8 MoE、Mixtral、GLM-4/4.5/5 MoE、DBRX、Command R+ 等
 
 **VLM 模型**: LLaVA、LLaMA 3.2 Vision、DeepSeek VL、GLM-4V、CogVLM2 等（含 vision_seq_tokens 字段，额外 KV 开销按图像数计算）
 
@@ -120,7 +133,7 @@ GPU 字段支持 `bwUtilization`（实际带宽利用率）、`usableRatio`（�
 |------|------|
 | 显存不足 | 错误 |
 | 显存利用率 > 95% | 警告 |
-| 激活内存 > 2 GB | 警告 |
+| 激活内存 > 2 GB | 提示 |
 | TP 通信效率 < 70% | 警告 |
 | 单请求速度 < 20 tok/s | 警告 |
 | Roofline > 10（严重带宽瓶颈） | 提示 |
