@@ -15,6 +15,7 @@ import { QUANT_MAP, INTERCONNECT_MAP, FRAMEWORK_MAP } from '../data/constants.js
 import { KV_CACHE_MAP, PCIE_BW_OPTIONS, CPU_MEM_BW_OPTIONS, PCIE_WIDTH_OPTIONS } from '../data/runtime.js'
 import { calcAll, calcBatchSweep, aggregateGpuSlots, getQuantBytes } from '../utils/calc.js'
 import { readUrlState, resolveUrlState, watchUrlState } from '../utils/useUrlState.js'
+import { currentLangParam } from '../utils/lang.js'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -126,8 +127,10 @@ function goToUpgrade() {
     b: batch.value,
     pl: promptLen.value,
     ol: outputLen.value,
+    // 保留当前语言，避免分享出去的链接丢掉 lang
+    lang: currentLangParam(),
   }
-  
+
   router.push({ path: '/solver', query })
 }
 

@@ -13,7 +13,8 @@ export default {
   experts: 256,
   experts_per_token: 6,
   moe_execution: 'shared_routed',
-  mla_ratio: null,
+  // head_dim=512 即 latent KV 维度，实际缓存 512 + qk_rope_head_dim(64) = 576，基线为 2 × 1 × 512
+  mla_ratio: 0.5625,  // 576 / 1024
   layers: 43,
   kv_heads: 1,
   head_dim: 512,

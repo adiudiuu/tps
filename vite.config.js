@@ -10,9 +10,10 @@ export default defineConfig({
       includeAssets: ['favicon.svg'],
       useCredentials: false,
       manifest: {
-        name: 'GPU推理速度计算器 · TPS Calculator',
+        name: 'GPU/LLM 推理速度与显存估算',
         short_name: 'TPS Calculator',
-        description: '在线估算大语言模型（LLM）在各类 GPU 上的推理速度（TPS）、显存占用与延迟',
+        description: '估算 Qwen3.8 / DeepSeek V4 / Kimi K3 等在 RTX 5090、H200、B200 上的 TPS 与显存 / Estimate TPS & VRAM. 393 models, 251 GPUs (2026-08).',
+        lang: 'zh-CN',
         theme_color: '#ffffff',
         background_color: '#f9fafb',
         display: 'standalone',

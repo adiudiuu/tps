@@ -1,7 +1,77 @@
 // src/i18n/ja.js
 export default {
+  seo: {
+    siteName: 'TPS Calculator',
+    keywords: 'GPU推論,LLM TPS,VRAM見積もり,Qwen3.8,Kimi K3,GLM-5.2,DeepSeek V4,MiniMax M3,Gemma 4,Llama 4,Nemotron 3,RTX 5090,RTX 4090,B200,H200,H100,MI300X,vLLM,llama.cpp',
+    highlights: {
+      models: 'Qwen3.8-Max、Kimi K3、GLM-5.2、DeepSeek V4、MiniMax M3、Gemma 4、Llama 4、Nemotron 3',
+      gpus: 'RTX 5090 / 5080 / 4090、B200、H200、H100、MI300X',
+      updated: '2026-08',
+    },
+    pwa: {
+      name: 'GPU/LLM推論速度・VRAM見積もり',
+      shortName: 'TPS Calculator',
+      description: 'Qwen3.8 / Kimi K3 / GLM-5.2 / DeepSeek V4 などを RTX 5090・H200・B200 等でTPSとVRAM見積もり。モデル{models}、GPU{gpus}（{updated}更新）。',
+    },
+    jsonLd: {
+      websiteDescription: 'GPU・モデル・量子化・フレームワークからLLMのTPS・VRAM・レイテンシを見積もります。Qwen3.8-Max、Kimi K3、GLM-5.2、DeepSeek V4 と RTX 5090、H200、B200 等に対応。',
+      appDescription: '指定GPU上のLLMのTPS・VRAM・レイテンシを見積もります。モデル例：{highlightModels}。GPU例：{highlightGpus}。モデル{models}、GPU{gpus}、{updated}更新。対応：vLLM、TensorRT-LLM、llama.cpp、MLX、SGLang、TGI。',
+      orgDescription: 'オープンソースのGPU/LLM推論速度・VRAM見積もりツール。',
+      features: {
+        tps: 'Decode / Prefill TPS見積もり',
+        vram: '重み + KVキャッシュ + オーバーヘッドのVRAM',
+        latency: 'TTFT / TPOTレイテンシ',
+        roofline: 'Roofline：帯域律速 vs 演算律速',
+        multiGpu: 'Tensor ParallelマルチGPUモデル',
+        frameworks: 'フレームワーク：vLLM、TensorRT-LLM、llama.cpp、MLX、SGLang、TGI',
+        quants: '量子化：FP32 / BF16 / FP8 / INT8 / INT4 など',
+        gpuCount: 'GPU{gpus}（RTX 5090/4090、B200、H200、H100、MI300X など）',
+        modelCount: 'モデル{models}（Qwen3.8、Kimi K3、GLM-5.2、DeepSeek V4 など）',
+      },
+      faq: {
+        tps: {
+          q: 'TPSとは？',
+          a: 'Decode時の毎秒トークン数。関連はTTFTとTPOT。本サイトはGPU + モデル + 量子化 + フレームワークの理論上界を見積もります。',
+        },
+        vram: {
+          q: 'DeepSeek V4 / GLM-5.2 級のVRAMは？',
+          a: '重み、KVキャッシュ、フレームワーク開銷の合計。大規模MoE（DeepSeek V4、GLM-5.2、Kimi K3）は多枚のH100/H200/B200が一般的。中規模はRTX 5090/4090も候補。枚数とコンテキストはEstimatorで確認。',
+        },
+        gpuSize: {
+          q: 'RTX 5090 / 4090 でどの規模まで？',
+          a: 'RTX 5090（32 GB）は4090（24 GB）より余裕があります。BF16は数十B前後、INT4/Q4_Kでさらに大きく。Gemma 4や小さめのQwen3.xは単カード向き—OOMはEstimatorで確認。',
+        },
+        accuracy: {
+          q: '数値の精度は？',
+          a: '公開GPU仕様のRoofline上界×フレームワーク効率で、実測ベンチではありません。実スループットはスタックと負荷に依存します。',
+        },
+        frameworks: {
+          q: '対応フレームワークは？',
+          a: 'vLLM、TensorRT-LLM、llama.cpp、MLX、SGLang、TGI。Estimatorで切り替えて比較できます。',
+        },
+      },
+    },
+    pages: {
+      estimator: {
+        title: 'GPU/LLM推論速度・VRAM見積もり · TPS Calculator',
+        description: 'Qwen3.8-Max、Kimi K3、GLM-5.2、DeepSeek V4、MiniMax M3、Gemma 4、Llama 4、Nemotron 3 を RTX 5090/4090、B200、H200、H100、MI300X でTPS・VRAM見積もり。モデル{models}、GPU{gpus}、{updated}更新。',
+      },
+      ranking: {
+        title: 'モデル推論速度ランキング · TPS Calculator',
+        description: 'RTX 5090・H200・B200 などを選び、Qwen3.8、Kimi K3、GLM-5.2、DeepSeek V4 等を推定TPSで比較。モデル{models}、{updated}更新。',
+      },
+      library: {
+        title: 'モデルとGPU一覧 · TPS Calculator',
+        description: 'Qwen3.8、Kimi K3、GLM-5.2、DeepSeek V4、Gemma 4、Llama 4 と RTX 5090、B200、H200、H100、MI300X 等の仕様。モデル{models}、GPU{gpus}、{updated}更新。',
+      },
+      solver: {
+        title: 'GPU構成ソルバー · TPS Calculator',
+        description: 'DeepSeek V4、GLM-5.2、Kimi K3 等に対し、RTX 5090 / H100 / H200 / B200 / MI300X × 量子化 × フレームワークの候補を列挙。{updated}更新。',
+      },
+    },
+  },
   nav: {
-    title: 'GPU推論速度計算機',
+    title: 'GPU/LLM推論見積もり',
     subtitle: 'tps.bunai.com',
     updated: '更新',
     share: '共有',
@@ -28,7 +98,7 @@ export default {
   },
   library: {
     title: 'Library',
-    subtitle: '362のモデルとGPUを閲覧。リスト表示で素早く検索、タイムライン表示でLLMの進化を確認 — X軸は時間、Y軸はパラメータ数、バブルサイズは性能を反映',
+    subtitle: 'モデル{models}・GPU{gpus}。リストで検索、タイムラインは公開日とパラメータ数で表示。',
     models: 'モデル',
     gpus: 'GPU',
     moe_models: 'MoEモデル',
@@ -470,7 +540,7 @@ export default {
   },
   ranking: {
     title: 'Ranking',
-    subtitle: 'お使いのハードウェアで、各モデルの性能と比較結果を確認。クイック概要です —「この設定を使う」で詳細パラメータを確認し、Estimatorに読み込めます',
+    subtitle: 'GPUを選ぶと、推定TPSでモデルを並べます。「この設定を使う」でEstimatorに渡せます。',
     filter_type: 'モデルタイプ',
     filter_all: 'すべて',
     filter_dense: 'Dense',
@@ -517,7 +587,7 @@ export default {
   },
   solver: {
     title: 'Solver',
-    subtitle: '選択したモデルについて、GPU × 量子化 × フレームワークの組み合わせを列挙し、Pareto最適解を返します',
+    subtitle: 'モデルと制約に対し、GPU × 量子化 × フレームワークを列挙し、Pareto候補を返します',
     reverse_link: 'ハードウェア起点で探したい場合は Ranking へ',
     upgrade_mode: 'アップグレードモード',
     upgrade_current_config: '現在: {gpu} × {count} / {quant} / 目標 {target} tok/s',
@@ -541,7 +611,7 @@ export default {
     inference_params: '推論パラメータ',
     optional: '（任意）',
     run_btn: 'Solverを実行',
-    running: '求解中',
+    running: '探索中',
     cancel_btn: 'キャンセル',
     cancelled: 'Solverをキャンセルしました。パラメータを調整して再実行してください。',
     progress_label: '進捗',
@@ -562,7 +632,7 @@ export default {
     gpu_count_label: 'GPU',
     speed_per_gpu: '速度/GPU',
     target_speed: '目標速度',
-    upgrade_constraints_hint: 'アップグレードモードは現在のGPUを起点に構成を探索します。最大GPU数・ベンダー・量子化下限は求解に使用されません。',
+    upgrade_constraints_hint: 'アップグレードモードは現在のGPUを起点に構成を探索します。最大GPU数・ベンダー・量子化下限はここでは使用されません。',
     insight_separator: '、',
     insight_vram_tight: 'VRAMの余裕が15%未満です。コンテキスト拡張は推奨しません',
     insight_vram_ample: 'VRAMに余裕があります。コンテキストやbatchを大きく増やせます',

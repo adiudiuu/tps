@@ -7,6 +7,7 @@ import TimelineChart from '../components/result/TimelineChart.vue'
 import { ALL_MODELS } from '../data/models/index.js'
 import { GPU_LIST } from '../data/gpus/index.js'
 import { fmtParams, fmtCtx, isNew } from '../utils/format.js'
+import { currentLangParam } from '../utils/lang.js'
 const { t } = useI18n()
 const router = useRouter()
 
@@ -125,12 +126,12 @@ const gpuGroups = computed(() => {
 
 /** 带着计算器已有配置跳转到估算页，只替换模型 */
 function selectModel(m) {
-  router.push({ path: '/', query: { ...getSavedQuery(), model: m.id } })
+  router.push({ path: '/', query: { ...getSavedQuery(), model: m.id, lang: currentLangParam() } })
 }
 
 /** 带着计算器已有配置跳转到估算页，只替换显卡（清掉旧的单卡参数写法） */
 function selectGpu(g) {
-  const query = { ...getSavedQuery(), gpus: `${g.id}:1` }
+  const query = { ...getSavedQuery(), gpus: `${g.id}:1`, lang: currentLangParam() }
   delete query.gpu
   delete query.n
   router.push({ path: '/', query })
@@ -211,7 +212,7 @@ function closeDetail() {
 
       <div class="bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200 shadow-sm p-6 mb-8">
         <h1 class="text-2xl font-bold text-gray-900 mb-2">{{ t('library.title') }}</h1>
-        <p class="text-sm text-gray-600">{{ t('library.subtitle') }}</p>
+        <p class="text-sm text-gray-600">{{ t('library.subtitle', { models: ALL_MODELS.length, gpus: GPU_LIST.length }) }}</p>
       </div>
 
       <!-- 统计卡片 -->

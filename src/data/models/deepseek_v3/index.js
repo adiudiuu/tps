@@ -8,7 +8,8 @@ export default {
   experts: 256,
   experts_per_token: 8,
   moe_execution: 'shared_routed',
-  mla_ratio: 0.18,
+  // MLA latent = kv_lora_rank(512) + qk_rope_head_dim(64) = 576，基线 2 × 128 × 128 = 32768
+  mla_ratio: 0.0176,
   layers: 61,
   kv_heads: 128,
   head_dim: 128,

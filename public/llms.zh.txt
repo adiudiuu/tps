@@ -1,0 +1,60 @@
+# TPS Calculator（中文）
+
+> 按 GPU、模型、量化与推理框架，估算 LLM 的推理速度（token/s）、显存占用与延迟。
+
+站点：https://tps.bunai.com/
+源码：https://github.com/adiudiuu/tps
+英文说明：[llms.txt](/llms.txt)
+界面另有 `?lang=en` / `?lang=es` / `?lang=ja`（中文默认，不加 lang）
+
+站内实时数量：**393 个模型**、**251 个 GPU**。数据更新至 **2026-08**（`UPDATED_AT_BEIJING`）。
+
+## 可估算的热门模型（均已入库）
+
+| 模型 | 选取原因 |
+|------|----------|
+| **Qwen3.8-Max** | 目录中最新 Qwen MoE（2026-08） |
+| **Kimi K3** | 大 MoE，2026-07 |
+| **GLM-5.2** | GLM-5 线最新（2026-06） |
+| **DeepSeek V4**（Pro / Flash） | 当前 DeepSeek 代际（2026-04） |
+| **MiniMax M3** | 2026-06 |
+| **Gemma 4** | Google Gemma 4 系列（2026-06） |
+| **Llama 4**（Maverick / Scout） | Meta Llama 4 MoE |
+| **Nemotron 3**（Ultra / Super / Nano） | NVIDIA Nemotron 3 |
+
+资源库仍含 Qwen3 / DeepSeek V3 / Llama 3.x 等更早条目。
+
+## 可估算的热门 GPU（均已入库）
+
+| GPU | 类型 |
+|-----|------|
+| **RTX 5090 / 5080 / 4090** | 消费级 |
+| **B200 SXM / H200 SXM / H100 SXM** | NVIDIA 数据中心 |
+| **MI300X** | AMD 数据中心 |
+
+典型问题：DeepSeek V4 在 8×H200？GLM-5.2 在 B200 要多少显存？Gemma 4 在 RTX 5090 的 TPS？Kimi K3 在 MI300X？
+
+## 计算内容
+
+- Decode / Prefill TPS
+- 显存：权重、KV Cache、开销；标出可能 OOM
+- 延迟：TTFT、TPOT、端到端
+- Roofline：带宽 vs 算力
+- 多卡 Tensor Parallel
+
+基于 Roofline 与公开规格 × 框架效率。理论上界，非实测榜。
+
+## 页面
+
+- [估算](https://tps.bunai.com/)
+- [速度排行](https://tps.bunai.com/ranking)
+- [资源库](https://tps.bunai.com/library)
+- [配置推荐](https://tps.bunai.com/solver)
+
+## 框架 / 量化
+
+vLLM、TensorRT-LLM、llama.cpp、MLX、SGLang、TGI · FP32–INT2 / GGUF K-quants
+
+## 技术
+
+Vue 3 + Vite + Tailwind。纯前端。

@@ -1,7 +1,77 @@
 // src/i18n/en.js
 export default {
+  seo: {
+    siteName: 'TPS Calculator',
+    keywords: 'GPU inference,LLM TPS,VRAM estimate,Qwen3.8,Kimi K3,GLM-5.2,DeepSeek V4,MiniMax M3,Gemma 4,Llama 4,Nemotron 3,RTX 5090,RTX 4090,B200,H200,H100,MI300X,vLLM,llama.cpp',
+    highlights: {
+      models: 'Qwen3.8-Max, Kimi K3, GLM-5.2, DeepSeek V4, MiniMax M3, Gemma 4, Llama 4, Nemotron 3',
+      gpus: 'RTX 5090 / 5080 / 4090, B200, H200, H100, MI300X',
+      updated: '2026-08',
+    },
+    pwa: {
+      name: 'GPU/LLM Inference Speed & VRAM Estimator',
+      shortName: 'TPS Calculator',
+      description: 'Estimate TPS & VRAM for Qwen3.8 / Kimi K3 / GLM-5.2 / DeepSeek V4 on RTX 5090, H200, B200, and more. {models} models, {gpus} GPUs (updated {updated}).',
+    },
+    jsonLd: {
+      websiteDescription: 'Estimate LLM TPS, VRAM, and latency for GPU + model + quant + framework. Covers Qwen3.8-Max, Kimi K3, GLM-5.2, DeepSeek V4 with RTX 5090, H200, B200, and more.',
+      appDescription: 'Estimate LLM TPS, VRAM, and latency on a chosen GPU. Models include {highlightModels}; GPUs include {highlightGpus}. {models} models, {gpus} GPUs, updated {updated}. Frameworks: vLLM, TensorRT-LLM, llama.cpp, MLX, SGLang, TGI.',
+      orgDescription: 'Open-source GPU/LLM inference speed and VRAM estimator.',
+      features: {
+        tps: 'Decode / Prefill TPS estimates',
+        vram: 'Weights + KV cache + overhead VRAM',
+        latency: 'TTFT / TPOT latency',
+        roofline: 'Roofline: bandwidth vs compute bound',
+        multiGpu: 'Tensor Parallel multi-GPU modeling',
+        frameworks: 'Frameworks: vLLM, TensorRT-LLM, llama.cpp, MLX, SGLang, TGI',
+        quants: 'Quants: FP32 / BF16 / FP8 / INT8 / INT4, etc.',
+        gpuCount: '{gpus} GPUs (incl. RTX 5090/4090, B200, H200, H100, MI300X)',
+        modelCount: '{models} models (incl. Qwen3.8, Kimi K3, GLM-5.2, DeepSeek V4)',
+      },
+      faq: {
+        tps: {
+          q: 'What is TPS?',
+          a: 'Tokens per second during decode. Related: TTFT and TPOT. This site estimates a theoretical TPS upper bound for GPU + model + quant + framework.',
+        },
+        vram: {
+          q: 'How to estimate VRAM for DeepSeek V4 / GLM-5.2-class models?',
+          a: 'Sum weights, KV cache, and framework overhead. Large MoEs (DeepSeek V4, GLM-5.2, Kimi K3) usually need multi-GPU H100/H200/B200; mid-size models may fit RTX 5090/4090. Use the estimator for card count and context length.',
+        },
+        gpuSize: {
+          q: 'What fits on RTX 5090 / 4090?',
+          a: 'RTX 5090 (32 GB) holds more than 4090 (24 GB). BF16 fits roughly low-to-mid tens of billions of parameters; INT4/Q4_K goes larger. Gemma 4 and smaller Qwen3.x cups are good single-GPU trials—check OOM in the estimator.',
+        },
+        accuracy: {
+          q: 'How accurate are the numbers?',
+          a: 'Roofline upper bounds from public GPU specs × framework efficiency—not lab benches. Real throughput depends on stack and workload shape.',
+        },
+        frameworks: {
+          q: 'Which frameworks are supported?',
+          a: 'vLLM, TensorRT-LLM, llama.cpp, MLX, SGLang, and TGI. Switch them on the estimator page to compare.',
+        },
+      },
+    },
+    pages: {
+      estimator: {
+        title: 'GPU/LLM Inference Speed & VRAM Estimator · TPS Calculator',
+        description: 'Estimate TPS & VRAM for Qwen3.8-Max, Kimi K3, GLM-5.2, DeepSeek V4, MiniMax M3, Gemma 4, Llama 4, Nemotron 3 on RTX 5090/4090, B200, H200, H100, MI300X. {models} models, {gpus} GPUs, updated {updated}.',
+      },
+      ranking: {
+        title: 'Model Inference Speed Ranking · TPS Calculator',
+        description: 'Pick RTX 5090, H200, or B200 and rank Qwen3.8, Kimi K3, GLM-5.2, DeepSeek V4 and others by estimated TPS. {models} models, updated {updated}.',
+      },
+      library: {
+        title: 'Model & GPU Library · TPS Calculator',
+        description: 'Specs for Qwen3.8, Kimi K3, GLM-5.2, DeepSeek V4, Gemma 4, Llama 4 and GPUs like RTX 5090, B200, H200, H100, MI300X. {models} models, {gpus} GPUs, updated {updated}.',
+      },
+      solver: {
+        title: 'GPU Config Solver · TPS Calculator',
+        description: 'For DeepSeek V4, GLM-5.2, Kimi K3 and similar, enumerate RTX 5090 / H100 / H200 / B200 / MI300X × quant × framework options that fit. Updated {updated}.',
+      },
+    },
+  },
   nav: {
-    title: 'GPU Inference Speed Calculator',
+    title: 'GPU/LLM Inference Estimator',
     subtitle: 'tps.bunai.com',
     updated: 'Updated',
     share: 'Share',
@@ -28,7 +98,7 @@ export default {
   },
   library: {
     title: 'Library',
-    subtitle: 'Browse 362 models and GPUs. List view for quick lookup, Timeline view shows LLM evolution — time on X-axis, parameters on Y-axis, bubble size reflects performance',
+    subtitle: '{models} models and {gpus} GPUs. Search in the list; timeline plots release date vs parameter count.',
     models: 'Models',
     gpus: 'GPUs',
     moe_models: 'MoE Models',
@@ -470,7 +540,7 @@ export default {
   },
   ranking: {
     title: 'Ranking',
-    subtitle: 'Given your hardware, compare how models perform and which ones run best. This is a quick overview — click "Use This Config" to see full parameter details and load into the estimator',
+    subtitle: 'Pick a GPU, then sort models by estimated TPS. "Use This Config" loads the setup into the estimator.',
     filter_type: 'Model Type',
     filter_all: 'All',
     filter_dense: 'Dense',
@@ -517,7 +587,7 @@ export default {
   },
   solver: {
     title: 'Solver',
-    subtitle: 'For a selected model, enumerate GPU × quantization × framework combinations and return Pareto-optimal solutions',
+    subtitle: 'For a model and constraints, enumerate GPU × quantization × framework and return Pareto-feasible options',
     reverse_link: 'Want to start from hardware instead? Go to Ranking',
     upgrade_mode: 'Upgrade Mode',
     upgrade_current_config: 'Current: {gpu} × {count} / {quant} / Target {target} tok/s',

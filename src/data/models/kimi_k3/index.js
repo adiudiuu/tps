@@ -23,7 +23,10 @@ export default {
   head_dim: 512,
   hidden_size: 7168,
   max_ctx: 1048576,
+  // MoonViT-V2: patch_size 14, merge_kernel_size 2×2；init_pos_emb 64×64 → 合并后 32×32 = 1024 token/图（代表性分辨率）
+  // Source: HF config.json vision_config + preprocessor_config.json media_proc_cfg
   vision_encoder_params: 0.401,
+  vision_seq_tokens: 1024,
   tags: ['chat', 'multilingual', 'vision', 'multimodal'],
   released: '2026-07',
   links: {

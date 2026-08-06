@@ -9,6 +9,7 @@ import { ALL_MODELS } from '../data/models/index.js'
 import { QUANT_MAP, FRAMEWORK_MAP, INTERCONNECT_MAP } from '../data/constants.js'
 import { calcAll, aggregateGpuSlots } from '../utils/calc.js'
 import { fmtParams, fmtGB, fmtToks, fmtMs, fmtCtx, isNew } from '../utils/format.js'
+import { currentLangParam } from '../utils/lang.js'
 import { PCIE_BW_OPTIONS } from '../data/runtime.js'
 
 const defaultPcieBw = PCIE_BW_OPTIONS[1] // PCIe 4.0
@@ -358,6 +359,8 @@ function useThisModel(modelData) {
     co:    modelData.cpuOffload ? '1' : undefined,
     pcie:  modelData.cpuOffload ? defaultPcieBw.id : undefined,
     sv:    effectiveGpu.value?.sharedMemory && sharedVram.value !== 16 ? sharedVram.value : undefined,
+    // 保留当前语言，避免分享出去的链接丢掉 lang
+    lang:  currentLangParam(),
   }
   router.push({ path: '/', query })
 }

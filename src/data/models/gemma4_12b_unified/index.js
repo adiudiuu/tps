@@ -20,6 +20,9 @@ export default {
   hidden_size: 3840,
   max_ctx: 262144,         // 256K
   tags: ['multimodal', 'encoder-free', 'sliding+global'],
+  // encoder-free：config.json vision_config.num_soft_tokens=280（官方默认 soft-token budget）
+  // 可选预算：70 / 140 / 280 / 560 / 1120（Gemma 4 model card / transformers docs）
+  vision_seq_tokens: 280,
   links: {
     ollama: 'ollama pull gemma4:12b',
     hf: 'https://huggingface.co/google/gemma-4-12b-it',

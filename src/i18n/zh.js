@@ -1,7 +1,77 @@
 // src/i18n/zh.js
 export default {
+  seo: {
+    siteName: 'TPS Calculator',
+    keywords: 'GPU推理,LLM推理速度,TPS估算,显存估算,Qwen3.8,Kimi K3,GLM-5.2,DeepSeek V4,MiniMax M3,Gemma 4,Llama 4,Nemotron 3,RTX 5090,RTX 4090,B200,H200,H100,MI300X,vLLM,llama.cpp',
+    highlights: {
+      models: 'Qwen3.8-Max、Kimi K3、GLM-5.2、DeepSeek V4、MiniMax M3、Gemma 4、Llama 4、Nemotron 3',
+      gpus: 'RTX 5090 / 5080 / 4090、B200、H200、H100、MI300X',
+      updated: '2026-08',
+    },
+    pwa: {
+      name: 'GPU/LLM 推理速度与显存估算',
+      shortName: 'TPS Calculator',
+      description: '估算 Qwen3.8 / Kimi K3 / GLM-5.2 / DeepSeek V4 等在 RTX 5090、H200、B200 等 GPU 上的 TPS 与显存。{models} 个模型，{gpus} 个 GPU（更新至 {updated}）。',
+    },
+    jsonLd: {
+      websiteDescription: '按 GPU、模型、量化与框架估算 LLM 的 TPS、显存与延迟。覆盖 Qwen3.8-Max、Kimi K3、GLM-5.2、DeepSeek V4 等与 RTX 5090、H200、B200 等组合。',
+      appDescription: '估算 LLM 在指定 GPU 上的 TPS、显存与延迟。含 {highlightModels}；GPU 含 {highlightGpus}。共 {models} 个模型、{gpus} 个 GPU，数据更新至 {updated}。框架：vLLM、TensorRT-LLM、llama.cpp、MLX、SGLang、TGI。',
+      orgDescription: '开源的 GPU/LLM 推理速度与显存估算工具。',
+      features: {
+        tps: 'Decode / Prefill TPS 估算',
+        vram: '权重、KV Cache 与开销的显存合计',
+        latency: 'TTFT / TPOT 延迟',
+        roofline: 'Roofline：带宽 vs 算力瓶颈',
+        multiGpu: 'Tensor Parallel 多卡建模',
+        frameworks: '框架：vLLM、TensorRT-LLM、llama.cpp、MLX、SGLang、TGI',
+        quants: '量化：FP32 / BF16 / FP8 / INT8 / INT4 等',
+        gpuCount: '{gpus} 个 GPU（含 RTX 5090/4090、B200、H200、H100、MI300X）',
+        modelCount: '{models} 个模型（含 Qwen3.8、Kimi K3、GLM-5.2、DeepSeek V4 等）',
+      },
+      faq: {
+        tps: {
+          q: 'TPS 是什么？',
+          a: 'TPS（Tokens Per Second）是 decode 阶段每秒生成的 token 数。常一起看 TTFT 与 TPOT。本站按 GPU + 模型 + 量化 + 框架给出理论 TPS 上界。',
+        },
+        vram: {
+          q: 'DeepSeek V4 / GLM-5.2 这类大模型显存怎么估？',
+          a: '合计权重、KV Cache 与框架开销。大 MoE（如 DeepSeek V4、GLM-5.2、Kimi K3）通常要多卡 H100/H200/B200；小到中等模型可试 RTX 5090/4090。用估算页填具体卡数与上下文。',
+        },
+        gpuSize: {
+          q: 'RTX 5090 / 4090 大概能跑多大模型？',
+          a: 'RTX 5090（32 GB）比 4090（24 GB）更能装中等权重。BF16 大约十亿到十余亿参数量级；INT4/Q4_K 可更大。Gemma 4、Qwen3.x 小杯等适合单卡试算；具体组合用估算页核对是否 OOM。',
+        },
+        accuracy: {
+          q: '估算准不准？',
+          a: '基于 Roofline 与公开 GPU 规格，再乘框架效率系数，是理论上界，不是实测榜。实际吞吐受驱动、实现与负载形状影响。',
+        },
+        frameworks: {
+          q: '支持哪些推理框架？',
+          a: 'vLLM、TensorRT-LLM、llama.cpp、MLX、SGLang、TGI。各框架效率系数不同，可在估算页切换对比。',
+        },
+      },
+    },
+    pages: {
+      estimator: {
+        title: 'GPU/LLM 推理速度与显存估算 · TPS Calculator',
+        description: '估算 Qwen3.8-Max、Kimi K3、GLM-5.2、DeepSeek V4、MiniMax M3、Gemma 4、Llama 4、Nemotron 3 等在 RTX 5090/4090、B200、H200、H100、MI300X 上的 TPS 与显存。{models} 个模型、{gpus} 个 GPU，更新至 {updated}。',
+      },
+      ranking: {
+        title: '模型推理速度排行 · TPS Calculator',
+        description: '选定 RTX 5090、H200、B200 等 GPU，按估算 TPS 对比 Qwen3.8、Kimi K3、GLM-5.2、DeepSeek V4 等能否运行及速度。{models} 个模型，更新至 {updated}。',
+      },
+      library: {
+        title: '模型与 GPU 资料库 · TPS Calculator',
+        description: '查阅 Qwen3.8、Kimi K3、GLM-5.2、DeepSeek V4、Gemma 4、Llama 4 与 RTX 5090、B200、H200、H100、MI300X 等规格。{models} 个模型、{gpus} 个 GPU，更新至 {updated}。',
+      },
+      solver: {
+        title: 'GPU 配置推荐 · TPS Calculator',
+        description: '给定 DeepSeek V4、GLM-5.2、Kimi K3 等模型与约束，枚举 RTX 5090 / H100 / H200 / B200 / MI300X × 量化 × 框架的可行方案。更新至 {updated}。',
+      },
+    },
+  },
   nav: {
-    title: 'GPU 推理速度计算器',
+    title: 'GPU/LLM 推理估算',
     subtitle: 'tps.bunai.com',
     updated: '更新于',
     share: '分享',
@@ -28,7 +98,7 @@ export default {
   },
   library: {
     title: '资源库',
-    subtitle: '浏览 362 个模型与 GPU 资料。列表视图可快速查找，时间轴视图展示 LLM 进化史——横轴时间、纵轴参数量、气泡大小反映性能',
+    subtitle: '共 {models} 个模型、{gpus} 个 GPU。列表可检索；时间轴按发布日期与参数量展示。',
     models: '支持模型',
     gpus: '支持 GPU',
     moe_models: 'MoE 模型',
@@ -470,7 +540,7 @@ export default {
   },
   ranking: {
     title: '速度排行',
-    subtitle: '选定硬件后，查看所有模型的速度表现与运行情况。这里仅展示基础排行，点击「使用此配置」可查看完整参数详情并带入估算器',
+    subtitle: '选定 GPU 后，按估算 TPS 列出可运行模型。点「使用此配置」可带回估算页。',
     filter_type: '模型类型',
     filter_all: '全部',
     filter_dense: 'Dense',
@@ -517,7 +587,7 @@ export default {
   },
   solver: {
     title: '配置推荐',
-    subtitle: '针对指定模型，在 GPU × 量化 × 框架的组合空间里自动枚举，输出满足约束的 Pareto 最优方案',
+    subtitle: '给定模型与约束，枚举 GPU × 量化 × 框架，返回满足条件的 Pareto 方案',
     reverse_link: '想从硬件出发看可跑模型？去速度排行',
     upgrade_mode: '升级模式',
     upgrade_current_config: '当前配置：{gpu} × {count} / {quant} / 目标速度 {target} tok/s',

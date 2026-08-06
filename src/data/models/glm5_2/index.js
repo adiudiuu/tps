@@ -11,6 +11,9 @@ export default {
   experts: 256,
   experts_per_token: 8,
   moe_execution: 'shared_routed',
+  // MLA：每 token 每层只缓存 kv_lora_rank(512) + qk_rope_head_dim(64) = 576 个元素，
+  // 而 calc.js 的基线按 2 × kv_heads(64) × head_dim(192) = 24576 计算
+  mla_ratio: 0.0234,  // 576 / 24576
   layers: 78,
   kv_heads: 64,
   head_dim: 192,

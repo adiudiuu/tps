@@ -1,10 +1,9 @@
 # https://www.robotstxt.org/robotstxt.html
 
-# 允许所有爬虫
 User-agent: *
 Allow: /
 
-# AI 搜索引擎爬虫（显式允许）
+# Generative / AI search crawlers
 User-agent: GPTBot
 Allow: /
 

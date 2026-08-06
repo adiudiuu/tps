@@ -1,6 +1,17 @@
 // src/data/models/index.js
 // Models sorted by release date, newest first
 
+import minimax_m3 from './minimax_m3/index.js'
+import command_a_plus from './command_a_plus/index.js'
+import step_3_5_flash from './step_3_5_flash/index.js'
+import mimo_v2_5_pro from './mimo_v2_5_pro/index.js'
+import mistral_medium_3_5_128b from './mistral_medium_3_5_128b/index.js'
+import mimo_v2_flash from './mimo_v2_flash/index.js'
+import granite_4_1_30b from './granite_4_1_30b/index.js'
+import granite_4_0_h_small from './granite_4_0_h_small/index.js'
+import qwen3_vl_235b_a22b from './qwen3_vl_235b_a22b/index.js'
+import seed_oss_36b from './seed_oss_36b/index.js'
+import smollm3_3b from './smollm3_3b/index.js'
 import nemotron_cascade_2_30b from './nemotron_cascade_2_30b/index.js'
 import nemotron_cascade_8b from './nemotron_cascade_8b/index.js'
 import nemotron_cascade_14b from './nemotron_cascade_14b/index.js'
@@ -385,9 +396,11 @@ import llama_pro_8b from './llama_pro_8b/index.js'
 import llama2_chinese_13b from './llama2_chinese_13b/index.js'
 import linly_7b from './linly_7b/index.js'
 
-// Registered model counts: Dense 298 + MoE 84 = 382 unique models
+// Registered model counts: Dense 302 + MoE 91 = 393 unique models
 export const DENSE_MODELS = [
   // 2026
+  mistral_medium_3_5_128b,
+  granite_4_1_30b,
   qwen38_27b,
   gemma4_12b_unified,
   nemotron_cascade_14b,
@@ -408,6 +421,8 @@ export const DENSE_MODELS = [
   translategemma_4b,
   medgemma_1_5_4b,
   // 2025
+  seed_oss_36b,
+  smollm3_3b,
   phi4_reasoning_14b,
   mistral_small_3_1_24b,
   voxtral_small_24b,
@@ -699,6 +714,10 @@ export const DENSE_MODELS = [
 
 export const MOE_MODELS = [
   // 2026
+  minimax_m3,
+  command_a_plus,
+  mimo_v2_5_pro,
+  step_3_5_flash,
   leanstral_1_5,
   glm5_2,
   nemotron_3_ultra,
@@ -708,6 +727,9 @@ export const MOE_MODELS = [
   nemotron_cascade_2_30b,
   mistral_small_4,
   // 2025
+  mimo_v2_flash,
+  granite_4_0_h_small,
+  qwen3_vl_235b_a22b,
   nemotron_3_nano,
   gpt4o,
   glm5_1,

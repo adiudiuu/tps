@@ -14,6 +14,7 @@ import {
   QUANT_FLOOR_OPTIONS,
 } from '../utils/solver.js'
 import { fmtGB, fmtToks, fmtMs } from '../utils/format.js'
+import { currentLangParam } from '../utils/lang.js'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -251,6 +252,8 @@ function useConfig(row) {
       b: batch.value,
       pl: promptLen.value,
       ol: outputLen.value,
+      // 保留当前语言，避免分享出去的链接丢掉 lang
+      lang: currentLangParam(),
     },
   })
 }

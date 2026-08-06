@@ -11,13 +11,17 @@ export default {
   experts: 128,
   experts_per_token: 4,
   moe_execution: 'shared_routed',
-  mla_ratio: 0.28,
+  // MLA latent = kv_lora_rank(256) + qk_rope_head_dim(64) = 320，基线 2 × 32 × 128 = 8192
+  mla_ratio: 0.0391,
   layers: 36,
   kv_heads: 32,
   head_dim: 128,
   hidden_size: 4096,
   max_ctx: 262144,
   tags: ['chat', 'multilingual', 'coding', 'multimodal', 'reasoning'],
+  // vision_config: image_size 1540 / patch_size 14 = 110，spatial_merge_size 2 → 55 × 55 patch token
+  vision_encoder_params: 0.4,
+  vision_seq_tokens: 3025,
   links: {
     hf: 'https://huggingface.co/mistralai/Mistral-Small-4-119B-2603',
   },

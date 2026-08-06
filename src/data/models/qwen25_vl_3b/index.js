@@ -12,6 +12,9 @@ export default {
   hidden_size: 2048,
   max_ctx: 32768,
   tags: ['multilingual', 'vision'],
+  // Qwen2.5-VL：patch 14 + merge 2 → 每 token≈28×28；官方 README 推荐平衡预算 256–1280
+  // Source: Qwen/Qwen2.5-VL-* Instruct README + preprocessor_config (patch_size 14, merge_size 2)
+  vision_seq_tokens: 1280,
   links: {
     hf: 'https://huggingface.co/Qwen/Qwen2.5-VL-3B-Instruct',
     ms: 'https://modelscope.cn/models/Qwen/Qwen2.5-VL-3B-Instruct',

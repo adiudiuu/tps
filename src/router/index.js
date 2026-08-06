@@ -7,10 +7,10 @@ import Solver from '../pages/Solver.vue'
 export default createRouter({
   history: createWebHistory(),
   routes: [
-    { path: '/',          component: Estimator },
+    { path: '/',          name: 'estimator', component: Estimator, meta: { seoKey: 'estimator' } },
     { path: '/supported', redirect: '/library' },
-    { path: '/library',   component: Library },
-    { path: '/ranking',   component: Ranking },
-    { path: '/solver',    component: Solver },
+    { path: '/library',   name: 'library',   component: Library,   meta: { seoKey: 'library' } },
+    { path: '/ranking',   name: 'ranking',   component: Ranking,   meta: { seoKey: 'ranking' } },
+    { path: '/solver',    name: 'solver',    component: Solver,    meta: { seoKey: 'solver' } },
   ],
 })

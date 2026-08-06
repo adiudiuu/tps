@@ -17,7 +17,9 @@ export default {
   head_dim: 256,
   hidden_size: 8192,
   max_ctx: 1048576,
-  tags: ['chat', 'multilingual', 'vision', 'multimodal'],
+  tags: ['chat', 'multilingual'],
+  // 权重未完全公开，官方未给出可建模的 vision token 规格；去掉 vision/multimodal tag 避免误导
+  // 开源 config.json 对齐后可再补 vision_seq_tokens
   released: '2026-08',
   status: 'preview', // 权重未完全公开，结构参数为估算，开源后需对齐 config.json
   links: {

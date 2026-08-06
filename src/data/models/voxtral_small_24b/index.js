@@ -13,7 +13,8 @@ export default {
   head_dim: 128,
   hidden_size: 5120,
   max_ctx: 32768,  // 音频上下文：约 40 分钟语音
-  tags: ['audio', 'multimodal'],
+  tags: ['audio'],
+  // 音频多模态，无视觉 patch token 规格；去掉 multimodal tag，避免被当成 vision 建模
   links: {
     ollama: null,
     hf: 'https://huggingface.co/mistralai/Voxtral-Small-24B-2507',

@@ -1,7 +1,77 @@
 // src/i18n/es.js
 export default {
+  seo: {
+    siteName: 'TPS Calculator',
+    keywords: 'inferencia GPU,TPS LLM,VRAM,Qwen3.8,Kimi K3,GLM-5.2,DeepSeek V4,MiniMax M3,Gemma 4,Llama 4,Nemotron 3,RTX 5090,RTX 4090,B200,H200,H100,MI300X,vLLM,llama.cpp',
+    highlights: {
+      models: 'Qwen3.8-Max, Kimi K3, GLM-5.2, DeepSeek V4, MiniMax M3, Gemma 4, Llama 4, Nemotron 3',
+      gpus: 'RTX 5090 / 5080 / 4090, B200, H200, H100, MI300X',
+      updated: '2026-08',
+    },
+    pwa: {
+      name: 'Estimación de velocidad y VRAM GPU/LLM',
+      shortName: 'TPS Calculator',
+      description: 'Estima TPS y VRAM de Qwen3.8 / Kimi K3 / GLM-5.2 / DeepSeek V4 en RTX 5090, H200, B200 y más. {models} modelos, {gpus} GPUs (act. {updated}).',
+    },
+    jsonLd: {
+      websiteDescription: 'Estima TPS, VRAM y latencia LLM para GPU + modelo + cuantización + framework. Incluye Qwen3.8-Max, Kimi K3, GLM-5.2, DeepSeek V4 con RTX 5090, H200, B200, etc.',
+      appDescription: 'Estima TPS, VRAM y latencia en una GPU elegida. Modelos: {highlightModels}; GPUs: {highlightGpus}. {models} modelos, {gpus} GPUs, actualizado {updated}. Frameworks: vLLM, TensorRT-LLM, llama.cpp, MLX, SGLang, TGI.',
+      orgDescription: 'Herramienta open source para estimar velocidad de inferencia GPU/LLM y VRAM.',
+      features: {
+        tps: 'Estimación TPS Decode / Prefill',
+        vram: 'VRAM: pesos + KV cache + overhead',
+        latency: 'Latencia TTFT / TPOT',
+        roofline: 'Roofline: ancho de banda vs cómputo',
+        multiGpu: 'Modelado multi-GPU Tensor Parallel',
+        frameworks: 'Frameworks: vLLM, TensorRT-LLM, llama.cpp, MLX, SGLang, TGI',
+        quants: 'Cuantización: FP32 / BF16 / FP8 / INT8 / INT4, etc.',
+        gpuCount: '{gpus} GPUs (incl. RTX 5090/4090, B200, H200, H100, MI300X)',
+        modelCount: '{models} modelos (incl. Qwen3.8, Kimi K3, GLM-5.2, DeepSeek V4)',
+      },
+      faq: {
+        tps: {
+          q: '¿Qué es el TPS?',
+          a: 'Tokens por segundo en decode. Relacionados: TTFT y TPOT. Este sitio estima un límite superior teórico para GPU + modelo + cuantización + framework.',
+        },
+        vram: {
+          q: '¿Cómo estimar VRAM para DeepSeek V4 / GLM-5.2?',
+          a: 'Suma pesos, KV cache y overhead. MoE grandes (DeepSeek V4, GLM-5.2, Kimi K3) suelen necesitar multi-GPU H100/H200/B200; modelos medianos pueden caber en RTX 5090/4090. Usa el estimador con el número de GPUs y el contexto.',
+        },
+        gpuSize: {
+          q: '¿Qué cabe en RTX 5090 / 4090?',
+          a: 'RTX 5090 (32 GB) caben más que 4090 (24 GB). BF16: decenas bajas/medias de miles de millones de parámetros; INT4/Q4_K permite más. Gemma 4 y Qwen3.x pequeños van bien en una sola GPU—verifica OOM en el estimador.',
+        },
+        accuracy: {
+          q: '¿Qué tan precisos son los números?',
+          a: 'Límites Roofline con specs públicas × eficiencia del framework—no son benches de laboratorio. El rendimiento real depende del stack y de la carga.',
+        },
+        frameworks: {
+          q: '¿Qué frameworks hay?',
+          a: 'vLLM, TensorRT-LLM, llama.cpp, MLX, SGLang y TGI. Cámbialos en el estimador para comparar.',
+        },
+      },
+    },
+    pages: {
+      estimator: {
+        title: 'Estimación de velocidad y VRAM GPU/LLM · TPS Calculator',
+        description: 'Estima TPS y VRAM de Qwen3.8-Max, Kimi K3, GLM-5.2, DeepSeek V4, MiniMax M3, Gemma 4, Llama 4, Nemotron 3 en RTX 5090/4090, B200, H200, H100, MI300X. {models} modelos, {gpus} GPUs, act. {updated}.',
+      },
+      ranking: {
+        title: 'Ranking de velocidad de inferencia · TPS Calculator',
+        description: 'Elige RTX 5090, H200 o B200 y ordena Qwen3.8, Kimi K3, GLM-5.2, DeepSeek V4 y otros por TPS estimado. {models} modelos, act. {updated}.',
+      },
+      library: {
+        title: 'Biblioteca de modelos y GPUs · TPS Calculator',
+        description: 'Specs de Qwen3.8, Kimi K3, GLM-5.2, DeepSeek V4, Gemma 4, Llama 4 y GPUs como RTX 5090, B200, H200, H100, MI300X. {models} modelos, {gpus} GPUs, act. {updated}.',
+      },
+      solver: {
+        title: 'Recomendación de configuración GPU · TPS Calculator',
+        description: 'Para DeepSeek V4, GLM-5.2, Kimi K3 y similares, enumera RTX 5090 / H100 / H200 / B200 / MI300X × cuantización × framework viables. Act. {updated}.',
+      },
+    },
+  },
   nav: {
-    title: 'Calculadora de Velocidad de Inferencia GPU',
+    title: 'Estimador GPU/LLM',
     subtitle: 'tps.bunai.com',
     updated: 'Actualizado',
     share: 'Compartir',
@@ -28,7 +98,7 @@ export default {
   },
   library: {
     title: 'Biblioteca',
-    subtitle: 'Explora 362 modelos y GPUs. La vista de lista permite una búsqueda rápida; la vista de línea de tiempo muestra la evolución de los LLM — tiempo en el eje X, parámetros en el eje Y, el tamaño de la burbuja refleja el rendimiento',
+    subtitle: '{models} modelos y {gpus} GPUs. Busca en la lista; la línea de tiempo ordena por fecha y parámetros.',
     models: 'Modelos',
     gpus: 'GPUs',
     moe_models: 'Modelos MoE',
@@ -470,7 +540,7 @@ export default {
   },
   ranking: {
     title: 'Ranking',
-    subtitle: 'Dado tu hardware, compara cómo rinden los modelos y cuáles funcionan mejor. Es una vista rápida — haz clic en "Usar Esta Configuración" para ver todos los detalles de los parámetros y cargarlos en el estimador',
+    subtitle: 'Elige una GPU y ordena modelos por TPS estimado. "Usar Esta Configuración" los carga en el estimador.',
     filter_type: 'Tipo de Modelo',
     filter_all: 'Todos',
     filter_dense: 'Densa',
@@ -517,7 +587,7 @@ export default {
   },
   solver: {
     title: 'Solucionador',
-    subtitle: 'Para un modelo seleccionado, enumera combinaciones de GPU × cuantización × framework y devuelve las soluciones óptimas de Pareto',
+    subtitle: 'Dado un modelo y restricciones, enumera GPU × cuantización × framework y devuelve opciones Pareto factibles',
     reverse_link: '¿Prefieres empezar por el hardware? Ve al Ranking',
     upgrade_mode: 'Modo Mejora',
     upgrade_current_config: 'Actual: {gpu} × {count} / {quant} / Objetivo {target} tok/s',

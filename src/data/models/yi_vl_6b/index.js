@@ -13,7 +13,10 @@ export default {
   hidden_size: 4096,
   max_ctx: 4096,
   tags: ['multilingual', 'vision'],
-
+  // CLIP ViT-H/14 @ 448×448，select_feature=patch → (448/14)² = 1024
+  // Source: Yi-VL model card + config.json mm_vision_tower / mm_vision_select_feature
+  vision_encoder_params: 0.986,
+  vision_seq_tokens: 1024,
   links: {
     hf: 'https://huggingface.co/01-ai/Yi-VL-6B',
     ms: 'https://modelscope.cn/models/01ai/Yi-VL-6B',
