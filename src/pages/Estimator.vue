@@ -21,17 +21,32 @@ const { t } = useI18n()
 const router = useRouter()
 const _url = resolveUrlState(readUrlState())
 const defaultModel = ALL_MODELS.find(m => m.id === 'gemma4_12b_unified') ?? ALL_MODELS[0]
+const defaultGpu = GPU_LIST.find(g => g.id === 'rtx4090') ?? GPU_LIST[0]
+// 产品默认：NVIDIA → vllm，Apple → mlx；theory 仍可选
+function defaultFrameworkForGpu(gpu) {
+  if (gpu?.vendor === 'apple') return FRAMEWORK_MAP.find(f => f.id === 'mlx') ?? FRAMEWORK_MAP.find(f => f.id === 'vllm')
+  return FRAMEWORK_MAP.find(f => f.id === 'vllm') ?? FRAMEWORK_MAP.find(f => f.id !== 'theory')
+}
+const PROMPT_LEN_MAX = 262144
+const OUTPUT_LEN_MAX = 131072
+function clampPromptLen(v, ctxLen) {
+  const cap = Math.min(PROMPT_LEN_MAX, Math.max(1, ctxLen ?? PROMPT_LEN_MAX))
+  return Math.max(1, Math.min(cap, Number(v) || 1))
+}
+function clampOutputLen(v) {
+  return Math.max(1, Math.min(OUTPUT_LEN_MAX, Number(v) || 1))
+}
 
-const gpuSlots       = ref(_url.gpuSlots     ?? [{ gpu: GPU_LIST.find(g => g.id === 'rtx4090') ?? GPU_LIST[0], count: 1 }])
+const gpuSlots       = ref(_url.gpuSlots     ?? [{ gpu: defaultGpu, count: 1 }])
 const gpuCount       = computed(() => gpuSlots.value.reduce((s, g) => s + g.count, 0))
 const interconnect   = ref(_url.interconnect ?? INTERCONNECT_MAP[0])
 const model          = ref(_url.model        ?? defaultModel)
 const quant          = ref(_url.quant        ?? QUANT_MAP.find(q => q.id === 'bf16'))
 const ctx            = ref(_url.ctx          ?? Math.min(model.value?.max_ctx ?? 16384, 16384))
 const batch          = ref(_url.batch        ?? 1)
-const promptLen      = ref(_url.promptLen    ?? 1024)
-const outputLen      = ref(_url.outputLen    ?? 1024)
-const framework      = ref(_url.framework    ?? FRAMEWORK_MAP.find(f => f.id === 'theory'))
+const promptLen      = ref(clampPromptLen(_url.promptLen ?? 1024, ctx.value))
+const outputLen      = ref(clampOutputLen(_url.outputLen ?? 1024))
+const framework      = ref(_url.framework    ?? defaultFrameworkForGpu(gpuSlots.value[0]?.gpu))
 const flashAttention = ref(_url.flashAttention ?? true)
 const kvCacheQuant   = ref(_url.kvCacheQuant ?? KV_CACHE_MAP[0])
 const prefixCacheHit = ref(_url.prefixCacheHit ?? 0)
@@ -145,10 +160,23 @@ watch(model, (m, prev) => {
   }
 })
 
-watch(() => gpuSlots.value[0]?.gpu, (g) => {
+watch([promptLen, ctx], () => {
+  const next = clampPromptLen(promptLen.value, ctx.value)
+  if (promptLen.value !== next) promptLen.value = next
+})
+watch(outputLen, (v) => {
+  const next = clampOutputLen(v)
+  if (v !== next) outputLen.value = next
+})
+
+watch(() => gpuSlots.value[0]?.gpu, (g, prev) => {
   if (g?.vendor === 'apple') {
     const mlxFw = FRAMEWORK_MAP.find(f => f.id === 'mlx')
     if (mlxFw) framework.value = mlxFw
+  } else if (prev?.vendor === 'apple' && g?.vendor !== 'apple' && framework.value?.id === 'mlx') {
+    // 从 Apple 切回 CUDA 系时，若仍停在 mlx，切到 vllm
+    const vllmFw = FRAMEWORK_MAP.find(f => f.id === 'vllm')
+    if (vllmFw) framework.value = vllmFw
   }
 })
 

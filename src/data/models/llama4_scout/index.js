@@ -11,6 +11,7 @@ export default {
   active_params: 17,
   experts: 16,
   experts_per_token: 1,
+  moe_execution: 'top1_routed',  // Llama 4 官方 top-1 expert routing
   mla_ratio: null,
   layers: 48,
   local_layers: 36,       // iRoPE: 3/4 层为 local sliding window attention

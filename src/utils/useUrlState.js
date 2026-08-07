@@ -48,8 +48,9 @@ export function readUrlState() {
     quantId:        p.get('quant'),
     ctx:            p.has('ctx')  ? Math.max(512, Math.min(10_000_000, Number(p.get('ctx'))))  : null,
     batch:          p.has('b')    ? Math.max(1,   Math.min(256,         Number(p.get('b'))))    : null,
-    promptLen:      p.has('pl')   ? Math.max(1,   Math.min(1_000_000,   Number(p.get('pl'))))   : null,
-    outputLen:      p.has('ol')   ? Math.max(1,   Math.min(100_000,     Number(p.get('ol'))))   : null,
+    // 与 Solver 对齐：prompt ≤ 262144，output ≤ 131072（Estimator 另约束 prompt ≤ ctx）
+    promptLen:      p.has('pl')   ? Math.max(1,   Math.min(262_144,     Number(p.get('pl'))))   : null,
+    outputLen:      p.has('ol')   ? Math.max(1,   Math.min(131_072,     Number(p.get('ol'))))   : null,
     frameworkId:    p.get('fw'),
     flashAttention: p.has('fa')   ? p.get('fa') !== '0'  : null,
     kvCacheQuantId: p.get('kv'),

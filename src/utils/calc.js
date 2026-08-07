@@ -207,9 +207,19 @@ export function calcAll({
       : weightGB
   const decodeWeightReadRatio = (() => {
     let ratio = getDecodeWeightReadRatio(gpu, quant, model, framework)
-    // Apple MLX MoE：expert 碎片化使有效权重大于 active_params 估算
-    if (gpu.vendor === 'apple' && model.type === 'moe' && framework?.id === 'mlx') {
-      ratio = Math.min(0.95, ratio * 1.22)
+    // Apple MoE：expert gather/scatter 会 overfetch；按 top-k 缩放（Mixtral k=2 远轻于 Qwen A3B k=8）
+    // 锚点：mlx#3209 Mixtral Q4≈68 @ M3 Ultra；Ante Qwen3.5-35B-A3B MLX≈110–130 @ M4 Max
+    // 允许 ratio>1；旧固定 ×1.80 会把 Mixtral 压到带宽锚点的 ~一半，且 Metal 未 overfetch 会反倒 MLX
+    if (gpu.vendor === 'apple' && model.type === 'moe') {
+      const k = Math.max(1, model.experts_per_token ?? 2)
+      if (framework?.id === 'mlx') {
+        // k=2 Mixtral→≈1.07（对齐 mlx#3209≈68）；k=8 Qwen A3B→≈1.46（Ante≈110–130，偏保守）
+        const overfetch = Math.min(1.55, 1.0 + 0.065 * Math.max(0, k - 1))
+        ratio = Math.min(1.75, ratio * overfetch)
+      } else if (framework?.id === 'llamacpp_metal') {
+        const overfetch = Math.min(1.45, 1.05 + 0.05 * Math.max(0, k - 1))
+        ratio = Math.min(1.60, ratio * overfetch)
+      }
     }
     return ratio
   })()
@@ -263,6 +273,12 @@ export function calcAll({
     speculativeSpeedup = (1 - Math.pow(alpha, draftLen + 1)) / (1 - alpha)  // ≤ draftLen + 1
     if (draftModelParams != null && draftModelParams > 0) {
       draftIOPerStep = draftModelParams * quantBytes * decodeWeightReadRatio * draftLen
+    } else {
+      // 未指定 draft 规模时，按主模型激活参数的 10% 计保守 draft IO，避免虚高加速
+      const fallbackDraftParams = (model.type === 'moe'
+        ? (model.active_params ?? model.params)
+        : model.params) * 0.10
+      draftIOPerStep = fallbackDraftParams * quantBytes * decodeWeightReadRatio * draftLen
     }
   }
 
@@ -631,14 +647,15 @@ export function calcAll({
  *   - 线性 attention 层 FLOPs（O(n)，per token，参数已计入 activeParams）
  *
  * 需要额外修正的只有 softmax attention 的 O(n²) 开销：
- *   4 × kv_heads × head_dim × seq_len × softmax_layers
- *   （QK^T + AV，每 token 需 attend 到 seq_len 个位置）
+ *   4 × query_heads × head_dim × seq_len × softmax_layers
+ *   （QK^T + AV；GQA/MQA 下 query 头数 ≥ kv_heads，须用 query heads）
  *
  * 线性 attention 层（GatedDeltaNet 等）无 O(n²) 开销，其 FLOPs 已被 activeParams 覆盖，
  * 不需要额外计入 factor。
  *
  * @param {object} params
- * @param {number} params.kvHeads           - KV 头数（决定 softmax attention FLOPs）
+ * @param {number} params.totalHeads        - Query 头数（决定 softmax attention FLOPs）
+ * @param {number} params.kvHeads           - KV 头数（仅作 totalHeads 缺失时的回退）
  * @param {number} params.headDim           - 每头维度
  * @param {number} params.layers            - 总层数
  * @param {number} params.promptLen         - prompt 长度（tokens）
@@ -650,13 +667,14 @@ function getPrefillAttentionFactor({ totalHeads, kvHeads, headDim, layers, promp
   const linLayers = linearAttnLayers ?? 0
   const softmaxLayers = Math.max(0, (layers ?? 1) - linLayers)
 
-  const kHeads = kvHeads ?? (totalHeads ?? 1)
+  // GQA/MQA：注意力 FLOPs 由 query heads 决定，不能用 kv_heads 低估
+  const qHeads = totalHeads ?? kvHeads ?? 1
   const hDim   = headDim ?? 128
   const seqLen = promptLen ?? 512
 
   // softmax attention 额外 FLOPs/token（O(n²)，不在 activeParams 里）：
-  //   QK^T + AV = 4 × kv_heads × head_dim × seq_len × softmax_layers
-  const softmaxAttnFlops = 4 * kHeads * hDim * seqLen * softmaxLayers
+  //   QK^T + AV = 4 × query_heads × head_dim × seq_len × softmax_layers
+  const softmaxAttnFlops = 4 * qHeads * hDim * seqLen * softmaxLayers
 
   // FFN FLOPs/token（O(n)，已被 activeParams 覆盖，作为分母基准）
   const ffnFlopsPerToken = 2 * (activeParams ?? 1) * 1e9
@@ -692,7 +710,7 @@ function getPrefillTflops(gpu, quant) {
 
 /**
  * Decode 每步实际读取的权重比例（相对存储量）
- * - Apple M4/M5：Metal/MLX 片上缓存显著降低有效 IO
+ * - Apple：仅保留轻度片上复用；旧 M4/M5 GGUF 0.44–0.52 会把 8B 估算抬到 ~2×（相对 #4167）
  * - NVIDIA BF16：小模型 kernel fusion / L2 缓存
  */
 function getDecodeWeightReadRatio(gpu, quant, model, framework) {
@@ -703,23 +721,26 @@ function getDecodeWeightReadRatio(gpu, quant, model, framework) {
   if (gpu?.vendor === 'apple') {
     const isM4M5 = /apple_m[45]/.test(chipId)
     const useMlxLike = framework?.id === 'mlx' || framework?.id === 'llamacpp_metal'
+    // 校准锚点：llama.cpp #4167 LLaMA 7B Q4_0 tg128 + arXiv:2601.19139 MLX≈+4–15%（勿用未核验的 ~160 tok/s）
+    // mlx/metal 共用读比；框架差距由 decode 与 applyAppleFrameworkAdjustments 承担
     if (isM4M5 && useMlxLike) {
-      if (/_(max|ultra)_/.test(chipId)) return isGgufQuant ? 0.52 : 0.70
-      if (/_pro_/.test(chipId)) return isGgufQuant ? 0.44 : 0.66
-      return isGgufQuant ? 0.62 : 0.68
+      if (/_(max|ultra)_/.test(chipId)) return isGgufQuant ? 0.96 : 0.97
+      if (/_pro_/.test(chipId)) return isGgufQuant ? 0.94 : 0.95
+      return isGgufQuant ? 0.95 : 0.96
     }
     if (isM4M5) {
-      if (/_(max|ultra)_/.test(chipId)) return isGgufQuant ? 0.60 : 0.78
-      if (/_pro_/.test(chipId)) return isGgufQuant ? 0.52 : 0.72
-      return isGgufQuant ? 0.70 : 0.78
+      if (/_(max|ultra)_/.test(chipId)) return isGgufQuant ? 0.94 : 0.96
+      if (/_pro_/.test(chipId)) return isGgufQuant ? 0.92 : 0.94
+      return isGgufQuant ? 0.94 : 0.96
     }
-    return isGgufQuant ? 0.84 : 0.88
+    return isGgufQuant ? 0.96 : 0.98
   }
 
   if (quantId === 'bf16' || quantId === 'fp32') {
     const params = model?.params ?? 8
-    if (params < 15) return 0.34
-    if (params < 30) return 0.55
+    // 小模型 L2/寄存器命中高，但仍会读大部分权重；过低（如 0.34）会系统性虚高 TPS
+    if (params < 15) return 0.80
+    if (params < 30) return 0.60
     return 0.82
   }
 
@@ -727,19 +748,19 @@ function getDecodeWeightReadRatio(gpu, quant, model, framework) {
   return 1.0
 }
 
-/** Apple 代际 decode 有效带宽缩放（M2/M3 Max 实测低于理论带宽上限） */
+/**
+ * Apple 代际 decode 有效带宽缩放（优先 ≤1）
+ * 锚点：llama.cpp #4167 同带宽 Max 的 Q4_0 tg 比（M1 Max 61 / M2 Max 66 / M3 Max 66）
+ * Ultra 双 die 惩罚已在 bwUtilization≈0.67，此处不再叠代际折扣（否则会出现 M1 Ultra > M2 Ultra）
+ */
 function getAppleDecodeBwScale(gpu) {
   if (gpu?.vendor !== 'apple') return 1.0
   if (gpu.decodeBwScale != null) return gpu.decodeBwScale
   const id = gpu.id ?? ''
   if (/apple_m[45]/.test(id)) return 1.0
-  if (/apple_m3/.test(id)) return 0.76
-  if (/apple_m2/.test(id)) return 0.58
-  if (/apple_m1/.test(id)) {
-    if (/_max_/.test(id)) return 0.49
-    if (/_pro_/.test(id)) return 0.63
-    return 1.0
-  }
+  if (/apple_m3/.test(id)) return 1.0
+  if (/apple_m2/.test(id)) return 0.99
+  if (/apple_m1/.test(id)) return 0.92
   return 1.0
 }
 
@@ -764,14 +785,17 @@ function getDecodeFactors({ framework }) {
   }
 }
 
-/** Apple llama.cpp metal：按芯片档位对齐 MLX 实测比值（metal ≈ 74–83% MLX） */
+/** Apple llama.cpp metal：dense 对齐 MLX 实测比值（arXiv:2601.19139 / Sean Kim：metal ≈ 90–96% MLX）
+ *  旧 0.74 把 Max Metal 相对 #4167 再压低一截；MoE 的更大差距由 overfetch/dispatch 单独处理 */
 function applyAppleFrameworkAdjustments(gpu, framework, adjustedFramework) {
   if (gpu?.vendor !== 'apple' || framework?.id !== 'llamacpp_metal') return adjustedFramework
   const chipId = gpu.id ?? ''
-  const vsMlx = /_(max|ultra)_/.test(chipId) ? 0.74
-    : /_pro_/.test(chipId) ? 0.83
-    : 0.795
-  const targetDecode = 0.90 * vsMlx
+  const vsMlx = /_(max|ultra)_/.test(chipId) ? 0.90
+    : /_pro_/.test(chipId) ? 0.93
+    : 0.90
+  // 与当前 mlx.decode 基准对齐，避免再叠乘回虚高
+  const mlxDecodeBase = 0.84
+  const targetDecode = mlxDecodeBase * vsMlx
   return {
     ...adjustedFramework,
     decode: targetDecode,
@@ -805,9 +829,9 @@ function getMoeExtraDecodeMs({ gpu, framework, model, batch }) {
   const executionScale = executionScaleMap[executionMode] ?? 0.55
   const batchScale = 1 / Math.sqrt(Math.max(1, batch))
 
-  // MLX 原生 MoE kernel 碎片化远小于 GGML Metal
-  const moeDispatchScale = framework?.id === 'mlx' ? 0.20
-    : (gpu?.vendor === 'apple' ? 0.45 : 1.0)
+  // MLX MoE dispatch 轻于 Metal（Ante：MLX-py≈130 vs Metal≈71 @ M4 Max 35B-A3B）
+  const moeDispatchScale = framework?.id === 'mlx' ? 0.50
+    : (gpu?.vendor === 'apple' ? 0.85 : 1.0)
 
   // top-1 routing（如 Llama 4 Scout）存在显著固定 gate/dispatch 开销，
   // 不应被 fanoutScale 和 activeFragments 稀释。
@@ -855,7 +879,8 @@ function getFlashAttentionBoostRange({ enabled, promptLen, headDim = 128 }) {
 
   return {
     min: Math.max(1, base.min * hdScale),
-    mid: Math.max(1, base.mid * hdScale),
+    // 高 head_dim 时 hdScale 可达 2，对 mid 封顶避免 FA 加速被夸大
+    mid: Math.min(2.5, Math.max(1, base.mid * hdScale)),
     max: Math.max(1, base.max * hdScale),
   }
 }

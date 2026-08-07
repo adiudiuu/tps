@@ -9,6 +9,8 @@ export default {
   active_params: 32,
   experts: 384,
   experts_per_token: 8,
+  // kv_heads × head_dim 已按 MLA latent（1 × 512）填写，ratio 补 rope 分量（同 K2 / K2 Thinking）
+  mla_ratio: 0.5625,  // (512 + 64) / (2 × 1 × 512)
   layers: 61,
   kv_heads: 1,
   head_dim: 512,

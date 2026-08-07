@@ -54,10 +54,11 @@ export const FRAMEWORK_MAP = [
   {
     id: 'mlx',
     labelKey: 'framework.mlx',
-    decode: 0.90,
+    // dense 校准：#4167 Metal tg + arXiv:2601.19139 MLX≈Metal×1.04–1.15（勿用 SEO ~160）
+    decode: 0.84,
     prefill: 0.65,
-    decodeMin: 0.80,
-    decodeMax: 0.95,
+    decodeMin: 0.76,
+    decodeMax: 0.90,
     prefillMin: 0.55,
     prefillMax: 0.75,
     vendors: ['apple'],
@@ -66,8 +67,8 @@ export const FRAMEWORK_MAP = [
     // Apple batch=1 下的大专家数 MoE 常被 expert dispatch / gather 的小块串行开销拖慢。
     // 这里记录的是“每层每个 routed expert fragment 的额外延迟（微秒）”基准值，
     // 由 calc.js 再按 experts、top-k、batch、执行形态缩放。
-    // MLX 原生 MoE kernel 碎片化开销远低于 GGML Metal
-    appleMoeDispatchUs: 22,
+    // 锚点：Ante 2026-03 M4 Max Qwen3.5-35B-A3B MLX-py≈130 / HTTP≈90–108；mlx#3209 Mixtral Q4@1K≈68
+    appleMoeDispatchUs: 14,
   },
   {
     id: 'llamacpp_metal',
@@ -78,7 +79,8 @@ export const FRAMEWORK_MAP = [
     prefillMin: 0.42, prefillMax: 0.58,
     vendors: ['apple'],
     schedulingMode: 'serial',
-    appleMoeDispatchUs: 38,
+    // MoE：Ante 同机 Metal≈71 vs MLX-py≈130 → Metal 需更重的 dispatch/overfetch
+    appleMoeDispatchUs: 42,
     // 模型规模效率缩放系数（Apple Metal 后端相比 CUDA 略高）
     modelSizeScaling: [
       { maxParams: 14, decode: 0.57, decodeMin: 0.52, decodeMax: 0.65 },  // <14B

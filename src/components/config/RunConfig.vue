@@ -172,6 +172,7 @@ const ctxOptions = computed(() => {
           v-model.number="promptLen"
           type="number"
           min="1"
+          :max="Math.min(262144, ctx ?? 262144)"
           step="64"
           class="w-full bg-gray-50 border border-gray-300 rounded-lg px-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-500"
         />
@@ -185,6 +186,7 @@ const ctxOptions = computed(() => {
           v-model.number="outputLen"
           type="number"
           min="1"
+          max="131072"
           step="64"
           class="w-full bg-gray-50 border border-gray-300 rounded-lg px-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-500"
         />
