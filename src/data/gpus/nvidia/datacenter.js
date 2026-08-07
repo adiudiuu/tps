@@ -3,7 +3,8 @@ export default [
   { id: 'gb200_nvl72',   name: 'GB200 NVL72',    vendor: 'nvidia', tier: 'datacenter', released: '2025-06', vram: 13824, bw: 576000, bwUtilization: 0.90, bf16: 162000, fp8: 324000, int8: 324000, int4: 648000, nvlink_bw: 129600, tdp: 72000 },
   { id: 'hgx_b300',      name: 'HGX B300 (8×)',  vendor: 'nvidia', tier: 'datacenter', released: '2026-01', vram: 2304, bw: 104000, bwUtilization: 0.90, bf16: 30000, fp8: 60000, int8: 60000, int4: 120000, nvlink_bw: 14400, tdp: 9600 },
   { id: 'b300_sxm',      name: 'B300 SXM',       vendor: 'nvidia', tier: 'datacenter', released: '2026-01', vram: 288, bw: 13000, bwUtilization: 0.90, bf16: 3750, fp8: 7500, int8: 7500, int4: 15000, nvlink_bw: 1800, tdp: 1200 },
-  { id: 'b200_sxm',      name: 'B200 SXM',       vendor: 'nvidia', tier: 'datacenter', released: '2025-03', vram: 192, bw: 8000, bwUtilization: 0.90, bf16: 2250, fp8: 4500, int8: 4500, int4: 9000,  nvlink_bw: 1800, tdp: 1000 },
+  // HGX B200 量产口径：软件可见 ~180GB HBM3e（早期营销 192GB 多为物理堆叠）；带宽 OEM/实测约 7.7–8.0 TB/s，取 7800
+  { id: 'b200_sxm',      name: 'B200 SXM',       vendor: 'nvidia', tier: 'datacenter', released: '2025-03', vram: 180, bw: 7800, bwUtilization: 0.90, bf16: 2250, fp8: 4500, int8: 4500, int4: 9000,  nvlink_bw: 1800, tdp: 1000 },
   { id: 'h200_sxm',      name: 'H200 SXM',       vendor: 'nvidia', tier: 'datacenter', released: '2024-03', vram: 141, bw: 4800, bwUtilization: 0.88, bf16: 989,  fp8: 1979, int8: 1979, int4: 3958,  nvlink_bw: 900,  tdp: 700  },
   { id: 'h100_sxm',      name: 'H100 SXM5',      vendor: 'nvidia', tier: 'datacenter', released: '2022-11', vram: 80,  bw: 3350, bwUtilization: 0.90, bf16: 989,  fp8: 1979, int8: 1979, int4: 3958,  nvlink_bw: 900,  tdp: 700  },
   { id: 'h100_pcie',     name: 'H100 PCIe',      vendor: 'nvidia', tier: 'datacenter', released: '2022-11', vram: 80,  bw: 2000, bwUtilization: 0.88, bf16: 756,  fp8: 1513, int8: 1513, int4: 3026,  nvlink_bw: null, tdp: 350  },

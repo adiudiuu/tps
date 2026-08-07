@@ -38,9 +38,26 @@ const gpuSlots    = ref(parseGpuSlots(_p) ?? [{ gpu: GPU_LIST.find(g => g.id ===
 const interconnect = ref(INTERCONNECT_MAP.find(i => i.id === _p.ic) ?? INTERCONNECT_MAP[0])
 const ctx         = ref(_p.ctx ? Math.max(512, Number(_p.ctx)) : 16384)
 const batch       = ref(_p.b ? Math.max(1, Number(_p.b)) : 1)
-const framework   = ref(FRAMEWORK_MAP.find(f => f.id === _p.fw) ?? FRAMEWORK_MAP.find(f => f.id === 'theory'))
+// 与 Estimator 一致：NVIDIA→vllm，Apple→mlx；URL 指定 fw 时优先
+function defaultFrameworkForGpu(gpu) {
+  if (gpu?.vendor === 'apple') return FRAMEWORK_MAP.find(f => f.id === 'mlx') ?? FRAMEWORK_MAP.find(f => f.id === 'vllm')
+  return FRAMEWORK_MAP.find(f => f.id === 'vllm') ?? FRAMEWORK_MAP.find(f => f.id !== 'theory')
+}
+const framework   = ref(FRAMEWORK_MAP.find(f => f.id === _p.fw) ?? defaultFrameworkForGpu(gpuSlots.value[0]?.gpu))
 const gpuCount    = computed(() => gpuSlots.value.reduce((s, g) => s + g.count, 0))
 const sharedVram  = ref(_p.sv ? Math.max(1, Math.min(512, Number(_p.sv))) : 16)
+
+// 与 Estimator 对齐：首卡切到 Apple → mlx；离开 Apple 且仍停在 mlx → vllm
+// 同厂商内用户自选的兼容框架（如 llamacpp）不误伤
+watch(() => gpuSlots.value[0]?.gpu, (g, prev) => {
+  if (g?.vendor === 'apple') {
+    const mlxFw = FRAMEWORK_MAP.find(f => f.id === 'mlx')
+    if (mlxFw) framework.value = mlxFw
+  } else if (prev?.vendor === 'apple' && g?.vendor !== 'apple' && framework.value?.id === 'mlx') {
+    const vllmFw = FRAMEWORK_MAP.find(f => f.id === 'vllm')
+    if (vllmFw) framework.value = vllmFw
+  }
+})
 
 const effectiveGpu = computed(() => {
   const slots = gpuSlots.value.map(s => {

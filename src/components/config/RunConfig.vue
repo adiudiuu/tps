@@ -29,6 +29,7 @@ const cpuMemBw = defineModel('cpuMemBw', { required: true })
 const speculativeDecoding = defineModel('speculativeDecoding', { required: true })
 const acceptanceRate = defineModel('acceptanceRate', { required: true })
 const draftLen = defineModel('draftLen', { required: true })
+const draftModelParams = defineModel('draftModelParams', { default: null })
 const ppCount = defineModel('ppCount', { required: true })
 const imageCount = defineModel('imageCount', { required: true })
 const nglCount       = defineModel('nglCount', { default: null })
@@ -60,17 +61,29 @@ const epOptions = computed(() => {
 })
 // 隐藏 EP 控件时自动重置为 1
 watch(epSupported, (v) => { if (!v) epCount.value = 1 })
+// continuous-batching 服务端框架普遍支持 speculative（vLLM / TRT-LLM / SGLang / LMDeploy）
 const speculativeSupported = computed(() => {
-  const supportedFrameworks = ['vllm', 'trtllm']
+  const supportedFrameworks = ['vllm', 'trtllm', 'sglang', 'lmdeploy']
   return supportedFrameworks.includes(props.framework?.id)
 })
 
-// 当切换到不支持的框架时，自动关闭 Speculative Decoding
-watch(() => props.framework, (newFramework) => {
-  if (newFramework && !speculativeSupported.value && speculativeDecoding.value) {
+// 当切换到不支持的框架时，自动关闭 Speculative Decoding（控件一并隐藏）
+// immediate：URL 初始 sd=1 + llamacpp/mlx 时也要立刻关掉，避免仍传入 calcAll
+watch(() => props.framework, () => {
+  if (!speculativeSupported.value && speculativeDecoding.value) {
     speculativeDecoding.value = false
   }
-})
+}, { immediate: true })
+
+function onDraftParamsInput(e) {
+  const raw = e.target.value
+  if (raw === '' || raw == null) {
+    draftModelParams.value = null
+    return
+  }
+  const n = Number(raw)
+  draftModelParams.value = Number.isFinite(n) && n > 0 ? n : null
+}
 
 const isLlamaCppFramework = computed(() => props.framework?.id === 'llamacpp')
 const effectiveNgl = computed(() => nglCount.value ?? Math.floor((props.model?.layers ?? 32) / 2))
@@ -423,39 +436,32 @@ const ctxOptions = computed(() => {
         </template>
       </div>
 
-      <!-- Speculative Decoding -->
-      <div>
+      <!-- Speculative Decoding：仅在支持框架下显示，避免非支持框架红字恐吓 -->
+      <div v-if="speculativeSupported">
         <label class="flex items-center gap-1 text-xs text-gray-500 mb-2">
           {{ t('run.speculative_decoding') }}<TipIcon :text="t('run.speculative_decoding_tip')" />
-          <span v-if="!speculativeSupported" class="text-red-600 text-[10px] ml-1">({{ t('run.framework_not_supported') }})</span>
         </label>
         <div class="grid grid-cols-2 gap-1.5 mb-2">
           <button
             @click="speculativeDecoding = true"
-            :disabled="!speculativeSupported"
             :class="[
               'px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors',
-              !speculativeSupported
-                ? 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed'
-                : speculativeDecoding
-                  ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm'
-                  : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:border-gray-300'
+              speculativeDecoding
+                ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm'
+                : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:border-gray-300'
             ]"
           >{{ t('run.enabled') }}</button>
           <button
             @click="speculativeDecoding = false"
-            :disabled="!speculativeSupported"
             :class="[
               'px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors',
-              !speculativeSupported
-                ? 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed'
-                : !speculativeDecoding
-                  ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm'
-                  : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:border-gray-300'
+              !speculativeDecoding
+                ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm'
+                : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:border-gray-300'
             ]"
           >{{ t('run.disabled') }}</button>
         </div>
-        <template v-if="speculativeDecoding && speculativeSupported">
+        <template v-if="speculativeDecoding">
           <div class="space-y-2">
             <div>
               <label class="flex items-center justify-between text-xs text-gray-500 mb-1">
@@ -483,6 +489,20 @@ const ctxOptions = computed(() => {
                 max="8"
                 step="1"
                 class="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+              />
+            </div>
+            <div>
+              <label class="flex items-center gap-1 text-xs text-gray-500 mb-1">
+                {{ t('run.draft_model_params') }}<TipIcon :text="t('run.draft_model_params_tip')" />
+              </label>
+              <input
+                type="number"
+                min="0.1"
+                step="0.1"
+                :value="draftModelParams ?? ''"
+                :placeholder="t('run.draft_model_params_placeholder')"
+                @input="onDraftParamsInput"
+                class="w-full px-2.5 py-1.5 rounded-lg text-xs border border-gray-200 bg-gray-50 text-gray-700 focus:outline-none focus:ring-1 focus:ring-emerald-400 focus:border-emerald-400"
               />
             </div>
             <div class="text-xs text-emerald-700 bg-emerald-50 rounded px-2 py-1.5 border border-emerald-200">

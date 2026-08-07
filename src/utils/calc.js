@@ -106,13 +106,26 @@ export function calcAll({
   // 权重显存：总参数 × 每参数字节数
   // EP 模式：每卡只存 1/epCount 的 expert + 完整非 expert 权重
   // MoE CPU Offload：expert 权重卸载到 CPU RAM，GPU 只需保留 non-expert dense 层
-  const weightGB = isEP
+  const targetWeightGB = isEP
     ? epWeightGB
     : (cpuOffload && model.type === 'moe')
       ? (nonExpertParams != null
           ? nonExpertParams * quantBytes
           : model.active_params * 0.20 * quantBytes)  // 无 experts 字段时按 active 的 20% 估算 non-expert
       : model.params * quantBytes
+  // Speculative Decoding：draft 模型常驻显存（与权重同 quantBytes；未指定规模时按主模型激活参数 10%）
+  // 不并入 targetWeightGB，避免 MoE offload / decode activeWeight 重复或口径错乱
+  let draftParams = 0
+  let draftWeightGB = 0
+  if (speculativeDecoding) {
+    draftParams = (draftModelParams != null && draftModelParams > 0)
+      ? draftModelParams
+      : (model.type === 'moe'
+          ? (model.active_params ?? model.params)
+          : model.params) * 0.10
+    draftWeightGB = draftParams * quantBytes
+  }
+  const weightGB = targetWeightGB + draftWeightGB
   // Vision encoder：encoder 权重独立于 LLM backbone（如已包含在 params 内则不重复计算）
   // vision_encoder_params 已从 params 中独立出来的情况：视具体模型而定
   // 当前约定：vision_encoder_params 已包含在 params 内，无需额外加；
@@ -164,7 +177,7 @@ export function calcAll({
   const maxFwdTokens = isContinuousBatching ? 8192 : 2048
   const actTokens = Math.max(batch, Math.min(batch * effectivePromptLen, maxFwdTokens))
   const activationGB = actTokens * (model.hidden_size ?? 4096) * 4 * 2 / 1e9 * 4
-  const overheadGB  = Math.max(1.0, Math.min(weightGB * 0.03, 5.0)) + activationGB
+  const overheadGB  = Math.max(1.0, Math.min(targetWeightGB * 0.03, 5.0)) + activationGB
   // Dense + llamacpp + offload → NGL 分层，DDR 带宽
   // MoE 不走 NGL 分层（expert 通过 PCIe 卸载，见 decode 带宽路径）
   const isLlamaCppHybrid = cpuOffload && framework?.id === 'llamacpp' && model.type !== 'moe'
@@ -172,6 +185,7 @@ export function calcAll({
   const gpuLayerRatio = isLlamaCppHybrid ? Math.min(1, Math.max(0, _effectiveNgl / Math.max(model.layers, 1))) : 1.0
   // PP：每个 pipeline stage 只持有 1/ppCount 的权重和 KV Cache
   // totalVram 是单个 PP stage（一个 TP 组）的可用显存
+  // draft 常驻显存已并入 weightGB；speculative 框架下 gpuLayerRatio 恒为 1
   const totalNeeded = weightGB * gpuLayerRatio / ppCount + kvGB * gpuLayerRatio / ppCount + overheadGB
 
   // CPU RAM 需求（仅在涉及 CPU 内存的模式下有效）
@@ -182,7 +196,7 @@ export function calcAll({
     if (pureCpu) return weightGB + kvGB + overheadGB
     if (isLlamaCppHybrid) return (1 - gpuLayerRatio) * (model.params * quantBytes + kvGB)
     if (cpuOffload && model.type === 'moe') {  // 去掉 !== 'llamacpp'，MoE offload 统一计算
-      return Math.max(0, model.params * quantBytes - weightGB)
+      return Math.max(0, model.params * quantBytes - targetWeightGB)
     }
     return 0
   })()
@@ -201,10 +215,10 @@ export function calcAll({
   //   每卡 IO = 非 expert 权重 + 本卡 expert 权重 + KV Cache
   //   all-to-all 通信开销由 epCommLatencyMs 单独建模
   const activeWeightRaw = isEP
-    ? epWeightGB  // EP 下每卡只读自己那份权重
+    ? epWeightGB  // EP 下每卡只读自己那份权重（不含 draft；draft IO 另计）
     : model.type === 'moe'
       ? model.active_params * quantBytes
-      : weightGB
+      : targetWeightGB
   const decodeWeightReadRatio = (() => {
     let ratio = getDecodeWeightReadRatio(gpu, quant, model, framework)
     // Apple MoE：expert gather/scatter 会 overfetch；按 top-k 缩放（Mixtral k=2 远轻于 Qwen A3B k=8）
@@ -263,22 +277,16 @@ export function calcAll({
   // Speculative Decoding 加速：每步尝试验证 draftLen 个 token，接受率为 acceptanceRate
   // 期望接受 token 数：mean_accepted = (1 - α^(γ+1)) / (1 - α)，其中 α=acceptanceRate，γ=draftLen
   // 例：α=0.7, γ=4 → mean_accepted ≈ 2.83
-  // draftModelParams（可选）：draft model 每步读 draftLen 次权重，与 target 共用同一条内存通道，
-  //   因此并入 decodeBytesPerStep，使 bwLimit / tpot / 吞吐三者口径一致
+  // draft 权重量已在上方计入 weightGB；此处将 draft IO 并入 decodeBytesPerStep，
+  //   使 bwLimit / tpot / 吞吐三者口径一致
   let speculativeSpeedup = 1.0
   let draftIOPerStep = 0
   if (speculativeDecoding && acceptanceRate > 0 && draftLen > 0) {
     // 期望每步接受的 token 数（含 target model 强制接受的最后一个 token）
     const alpha = Math.min(0.999, acceptanceRate)
     speculativeSpeedup = (1 - Math.pow(alpha, draftLen + 1)) / (1 - alpha)  // ≤ draftLen + 1
-    if (draftModelParams != null && draftModelParams > 0) {
-      draftIOPerStep = draftModelParams * quantBytes * decodeWeightReadRatio * draftLen
-    } else {
-      // 未指定 draft 规模时，按主模型激活参数的 10% 计保守 draft IO，避免虚高加速
-      const fallbackDraftParams = (model.type === 'moe'
-        ? (model.active_params ?? model.params)
-        : model.params) * 0.10
-      draftIOPerStep = fallbackDraftParams * quantBytes * decodeWeightReadRatio * draftLen
+    if (draftParams > 0) {
+      draftIOPerStep = draftParams * quantBytes * decodeWeightReadRatio * draftLen
     }
   }
 
@@ -739,8 +747,9 @@ function getDecodeWeightReadRatio(gpu, quant, model, framework) {
   if (quantId === 'bf16' || quantId === 'fp32') {
     const params = model?.params ?? 8
     // 小模型 L2/寄存器命中高，但仍会读大部分权重；过低（如 0.34）会系统性虚高 TPS
+    // 15–30B 原先 0.60 偏乐观（比 <15B 更「吃缓存」不合理），与小档对齐为 0.80
     if (params < 15) return 0.80
-    if (params < 30) return 0.60
+    if (params < 30) return 0.80
     return 0.82
   }
 
@@ -877,11 +886,14 @@ function getFlashAttentionBoostRange({ enabled, promptLen, headDim = 128 }) {
     max: 1.18 + (2.45 - 1.18) * logScale,
   }
 
+  // head_dim 加成只作用于「超额」部分（boost-1），避免短 prompt + hd=256 仍给 ~2.2× mid
+  // 例：短上下文 base.mid=1.12、hdScale=2 → 1+(0.12)*2=1.24（旧式 1.12*2≈2.24）
+  const applyHd = (v) => 1 + (v - 1) * hdScale
   return {
-    min: Math.max(1, base.min * hdScale),
-    // 高 head_dim 时 hdScale 可达 2，对 mid 封顶避免 FA 加速被夸大
-    mid: Math.min(2.5, Math.max(1, base.mid * hdScale)),
-    max: Math.max(1, base.max * hdScale),
+    min: Math.max(1, applyHd(base.min)),
+    // mid 封顶 ≤2.5（既有约束）
+    mid: Math.min(2.5, Math.max(1, applyHd(base.mid))),
+    max: Math.max(1, applyHd(base.max)),
   }
 }
 

@@ -80,6 +80,7 @@ const sysRam         = ref(_url.sysRam       ?? 64)  // 默认 64 GB
 const speculativeDecoding = ref(_url.speculativeDecoding ?? false)
 const acceptanceRate = ref(_url.acceptanceRate ?? 0.7)
 const draftLen       = ref(_url.draftLen       ?? 4)
+const draftModelParams = ref(_url.draftModelParams ?? null)
 const ppCount        = ref(_url.ppCount        ?? 1)
 const epCount        = ref(_url.epCount        ?? 1)
 const imageCount     = ref(_url.imageCount     ?? 0)
@@ -111,6 +112,7 @@ function pinCurrentResult() {
     speculativeDecoding: speculativeDecoding.value,
     acceptanceRate: acceptanceRate.value,
     draftLen: draftLen.value,
+    draftModelParams: draftModelParams.value,
     ppCount: ppCount.value,
     epCount: epCount.value,
     imageCount: imageCount.value,
@@ -188,7 +190,12 @@ watch([cpuOffload, framework], ([co, fw]) => {
 watchUrlState({ gpuSlots, interconnect, model, quant, ctx, batch,
   promptLen, outputLen, framework, flashAttention, kvCacheQuant,
   prefixCacheHit, cpuOffload, pcieBw, pcieWidth, pureCpu, cpuMemBw, sysRam,
-  speculativeDecoding, acceptanceRate, draftLen, ppCount, epCount, imageCount, sharedVram, nglCount })
+  speculativeDecoding, acceptanceRate, draftLen, draftModelParams, ppCount, epCount, imageCount, sharedVram, nglCount })
+
+const SPECULATIVE_FRAMEWORKS = ['vllm', 'trtllm', 'sglang', 'lmdeploy']
+function speculativeAllowed(fw) {
+  return SPECULATIVE_FRAMEWORKS.includes(fw?.id)
+}
 
 // 主结果、量化矩阵、batch sweep 共用同一份参数，避免各处漏传导致数字互相打架
 const calcParams = computed(() => ({
@@ -211,9 +218,11 @@ const calcParams = computed(() => ({
   pureCpu: pureCpu.value,
   cpuMemBw: cpuMemBw.value,
   sysRam: sysRam.value,
-  speculativeDecoding: speculativeDecoding.value,
+  // 双保险：不支持 speculative 的框架强制关闭，避免 URL/时序导致仍计入加速与 draft IO
+  speculativeDecoding: speculativeAllowed(framework.value) && speculativeDecoding.value,
   acceptanceRate: acceptanceRate.value,
   draftLen: draftLen.value,
+  draftModelParams: draftModelParams.value,
   ppCount: ppCount.value,
   epCount: epCount.value,
   imageCount: imageCount.value,
@@ -244,9 +253,10 @@ const pinnedCalcParams = computed(() => {
     pureCpu: c.pureCpu,
     cpuMemBw: c.cpuMemBw,
     sysRam: c.sysRam,
-    speculativeDecoding: c.speculativeDecoding,
+    speculativeDecoding: speculativeAllowed(c.framework) && c.speculativeDecoding,
     acceptanceRate: c.acceptanceRate,
     draftLen: c.draftLen,
+    draftModelParams: c.draftModelParams,
     ppCount: c.ppCount,
     epCount: c.epCount,
     imageCount: c.imageCount,
@@ -323,6 +333,7 @@ const pinnedBatchSweepData = computed(() => {
           :model="model" :framework="framework" :gpuCount="gpuCount"
           v-model:speculativeDecoding="speculativeDecoding"
           v-model:acceptanceRate="acceptanceRate" v-model:draftLen="draftLen"
+          v-model:draftModelParams="draftModelParams"
           v-model:ppCount="ppCount" v-model:imageCount="imageCount"
           v-model:nglCount="nglCount" v-model:epCount="epCount"
         />
