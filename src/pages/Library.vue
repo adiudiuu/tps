@@ -397,6 +397,11 @@ function closeDetail() {
                     <span
                       class="text-sm truncate transition-colors text-gray-800 group-hover:text-emerald-700"
                     >{{ m.name }}</span>
+                    <span
+                      v-if="m.status === 'preview'"
+                      class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-violet-100 text-violet-700 flex-shrink-0"
+                      :title="t('model.preview_tip')"
+                    >{{ t('model.tag_preview') }}</span>
                     <span v-if="isNew(m.released)" class="w-1.5 h-1.5 rounded-full bg-red-500 flex-shrink-0"></span>
                   </div>
                   <div class="flex items-center gap-1.5 flex-shrink-0 ml-2">
@@ -509,6 +514,7 @@ function closeDetail() {
               <h3 class="text-base font-bold text-gray-900">{{ hoveredModel.name }}</h3>
               <span v-if="hoveredModel.type === 'moe'" class="text-xs bg-amber-500 text-white px-2 py-0.5 rounded-full font-medium">MoE</span>
               <span v-else class="text-xs bg-emerald-500 text-white px-2 py-0.5 rounded-full font-medium">Dense</span>
+              <span v-if="hoveredModel.status === 'preview'" class="text-xs bg-violet-600 text-white px-2 py-0.5 rounded-full font-medium">{{ t('model.tag_preview') }}</span>
               <span v-if="isNew(hoveredModel.released)" class="text-xs bg-red-500 text-white px-2 py-0.5 rounded-full font-medium">NEW</span>
             </div>
             <div class="text-xs text-gray-500">
@@ -677,6 +683,7 @@ function closeDetail() {
                   <h3 class="text-base font-bold text-gray-900">{{ detailModel.name }}</h3>
                   <span v-if="detailModel.type === 'moe'" class="text-xs bg-amber-500 text-white px-2 py-0.5 rounded-full font-medium">MoE</span>
                   <span v-else class="text-xs bg-emerald-500 text-white px-2 py-0.5 rounded-full font-medium">Dense</span>
+                  <span v-if="detailModel.status === 'preview'" class="text-xs bg-violet-600 text-white px-2 py-0.5 rounded-full font-medium">{{ t('model.tag_preview') }}</span>
                   <span v-if="isNew(detailModel.released)" class="text-xs bg-red-500 text-white px-2 py-0.5 rounded-full font-medium">NEW</span>
                 </div>
                 <div class="text-xs text-gray-600">

@@ -235,6 +235,11 @@ function switchTab(tab) {
                 <div class="flex items-center gap-2 flex-1 min-w-0">
                   <span v-if="m.type === 'moe'" class="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded-md font-semibold shrink-0">MoE</span>
                   <span v-else class="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-md font-semibold shrink-0">Dense</span>
+                  <span
+                    v-if="m.status === 'preview'"
+                    class="text-xs bg-violet-100 text-violet-800 px-2 py-0.5 rounded-md font-semibold shrink-0"
+                    :title="t('model.preview_tip')"
+                  >{{ t('model.tag_preview') }}</span>
                   <button
                     @click.stop="openDetails(m)"
                     class="text-base font-semibold text-gray-900 hover:text-blue-700 transition-colors truncate"
@@ -305,6 +310,11 @@ function switchTab(tab) {
             >
               {{ detailModel.type === 'moe' ? 'MoE' : 'Dense' }}
             </span>
+            <span
+              v-if="detailModel.status === 'preview'"
+              class="px-2.5 py-1 rounded-full text-xs font-medium bg-violet-100 text-violet-800"
+              :title="t('model.preview_tip')"
+            >{{ t('model.tag_preview') }}</span>
             <button
               @click="closeDetails"
               class="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-gray-200 bg-white text-gray-500 hover:text-gray-900 hover:bg-gray-50 transition-colors"
@@ -318,6 +328,10 @@ function switchTab(tab) {
         </div>
 
         <div class="p-5">
+          <p
+            v-if="detailModel.status === 'preview'"
+            class="mb-3 text-xs text-violet-700 bg-violet-50 border border-violet-100 rounded-lg px-3 py-2"
+          >{{ t('model.preview_tip') }}</p>
           <div class="grid grid-cols-2 md:grid-cols-3 gap-3 text-xs">
             <div class="rounded-xl bg-white/85 px-3 py-2 ring-1 ring-emerald-100">
               <div class="text-gray-500">{{ t('model.detail.params') }}</div>

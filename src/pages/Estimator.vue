@@ -20,7 +20,7 @@ import { currentLangParam } from '../utils/lang.js'
 const { t } = useI18n()
 const router = useRouter()
 const _url = resolveUrlState(readUrlState())
-const defaultModel = ALL_MODELS.find(m => m.id === 'gemma4_12b_unified') ?? ALL_MODELS[0]
+const defaultModel = ALL_MODELS.find(m => m.id === 'qwen38_27b') ?? ALL_MODELS[0]
 const defaultGpu = GPU_LIST.find(g => g.id === 'rtx4090') ?? GPU_LIST[0]
 // 产品默认：NVIDIA → vllm，Apple → mlx；theory 仍可选
 function defaultFrameworkForGpu(gpu) {
@@ -339,6 +339,13 @@ const pinnedBatchSweepData = computed(() => {
         />
       </template>
       <template #result>
+        <div
+          v-if="model?.status === 'preview'"
+          class="mb-4 rounded-xl border border-violet-200 bg-violet-50 px-4 py-3 flex items-start gap-2.5"
+        >
+          <span class="shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded bg-violet-600 text-white mt-0.5">{{ t('model.tag_preview') }}</span>
+          <p class="text-xs text-violet-800 leading-relaxed">{{ t('model.preview_tip') }}</p>
+        </div>
         <div v-if="pinnedResult" class="space-y-4">
           <!-- 双列对比模式 -->
           <div class="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 flex items-center justify-between gap-4">

@@ -1,5 +1,6 @@
 // DeepSeek-V4-Flash: 284B MoE, 13B active, CSA+HCA hybrid attention, 1M context
-// Released: April 24, 2026
+// Preview: 2026-04-24; Official GA build DeepSeek-V4-Flash-0731: 2026-07-31
+// Official changelog: 0731 keeps the same architecture/size as Preview — only re-post-trained
 // Source: https://huggingface.co/deepseek-ai/DeepSeek-V4-Flash
 // Config: num_hidden_layers=43, hidden_size=4096, num_attention_heads=64,
 //         num_key_value_heads=1 (HCA), head_dim=512 (latent KV dim),
@@ -20,7 +21,7 @@ export default {
   head_dim: 512,
   hidden_size: 4096,
   max_ctx: 1048576,
-  tags: ['chat', 'multilingual'],
+  tags: ['chat', 'multilingual', 'coding', 'reasoning'],
   released: '2026-04',
   links: {
     hf: 'https://huggingface.co/deepseek-ai/DeepSeek-V4-Flash',

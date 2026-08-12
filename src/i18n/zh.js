@@ -223,6 +223,8 @@ export default {
     custom_name: '自定义模型',
     apply_custom: '应用自定义模型',
     no_result: '无匹配模型',
+    tag_preview: '预览',
+    preview_tip: '权重尚未完全公开，层数/头数等结构为估算值，结果仅供参考；开源后将按官方 config 对齐。',
     custom: {
       params: '参数量 (B)',
       active_params: '活跃参数 (B)',

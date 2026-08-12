@@ -223,6 +223,8 @@ export default {
     custom_name: 'カスタムモデル',
     apply_custom: 'カスタムモデルを適用',
     no_result: '一致するモデルがありません',
+    tag_preview: 'プレビュー',
+    preview_tip: '重みはまだ完全公開されていません。層数・ヘッド等は推定値です。公式 config 公開までは参考値として扱ってください。',
     custom: {
       params: 'パラメータ (B)',
       active_params: 'アクティブパラメータ (B)',

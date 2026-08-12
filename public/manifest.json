@@ -1,7 +1,7 @@
 {
   "name": "GPU/LLM 推理速度与显存估算",
   "short_name": "TPS Calculator",
-  "description": "估算 Qwen3.8 / DeepSeek V4 / Kimi K3 等在 RTX 5090、H200、B200 上的 TPS 与显存 / Estimate TPS & VRAM. 393 models, 251 GPUs (2026-08).",
+  "description": "估算 Qwen3.8 / DeepSeek V4 / Kimi K3 等在 RTX 5090、H200、B200 上的 TPS 与显存 / Estimate TPS & VRAM. 398 models, 251 GPUs (2026-08).",
   "lang": "zh-CN",
   "theme_color": "#3b82f6",
   "background_color": "#ffffff",

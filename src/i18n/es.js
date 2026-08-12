@@ -223,6 +223,8 @@ export default {
     custom_name: 'Modelo Personalizado',
     apply_custom: 'Aplicar Modelo Personalizado',
     no_result: 'No hay modelos coincidentes',
+    tag_preview: 'Vista previa',
+    preview_tip: 'Los pesos aún no están públicos por completo; la geometría de capas/cabezas es estimada. Trate los resultados como provisionales hasta el config oficial.',
     custom: {
       params: 'Parámetros (B)',
       active_params: 'Parámetros Activos (B)',

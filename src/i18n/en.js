@@ -223,6 +223,8 @@ export default {
     custom_name: 'Custom Model',
     apply_custom: 'Apply Custom Model',
     no_result: 'No matching models',
+    tag_preview: 'Preview',
+    preview_tip: 'Weights are not fully public yet; layer/head geometry is estimated. Treat results as provisional until the official config is published.',
     custom: {
       params: 'Params (B)',
       active_params: 'Active Params (B)',

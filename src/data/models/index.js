@@ -1,6 +1,11 @@
 // src/data/models/index.js
 // Models sorted by release date, newest first
 
+import muse_glimmer from './muse_glimmer/index.js'
+import nemotron_3_5_lightning from './nemotron_3_5_lightning/index.js'
+import inkling from './inkling/index.js'
+import inkling_small from './inkling_small/index.js'
+import solar_open2 from './solar_open2/index.js'
 import minimax_m3 from './minimax_m3/index.js'
 import command_a_plus from './command_a_plus/index.js'
 import step_3_5_flash from './step_3_5_flash/index.js'
@@ -396,9 +401,10 @@ import llama_pro_8b from './llama_pro_8b/index.js'
 import llama2_chinese_13b from './llama2_chinese_13b/index.js'
 import linly_7b from './linly_7b/index.js'
 
-// Registered model counts: Dense 302 + MoE 91 = 393 unique models
+// Registered model counts: 398 unique (Dense 312 + MoE 86 by type)
 export const DENSE_MODELS = [
   // 2026
+  muse_glimmer,
   mistral_medium_3_5_128b,
   granite_4_1_30b,
   qwen38_27b,
@@ -714,6 +720,10 @@ export const DENSE_MODELS = [
 
 export const MOE_MODELS = [
   // 2026
+  nemotron_3_5_lightning,
+  inkling,
+  inkling_small,
+  solar_open2,
   minimax_m3,
   command_a_plus,
   mimo_v2_5_pro,

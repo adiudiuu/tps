@@ -552,7 +552,10 @@ function useThisModel(modelData) {
                 :class="{ 'opacity-50': !item.canRun }"
               >
                 <td class="px-4 py-3">
-                  <div class="text-sm font-medium text-gray-900">{{ item.model.name }}</div>
+                  <div class="flex items-center gap-1.5 flex-wrap">
+                    <div class="text-sm font-medium text-gray-900">{{ item.model.name }}</div>
+                    <span v-if="item.model.status === 'preview'" class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-violet-100 text-violet-700">{{ t('model.tag_preview') }}</span>
+                  </div>
                   <div v-if="item.cpuOffload" class="text-[10px] text-amber-600 mt-0.5">{{ t('ranking.cpu_offload_badge') }}</div>
                 </td>
                 <td class="px-4 py-3">
@@ -641,6 +644,7 @@ function useThisModel(modelData) {
                     :class="item.model.type === 'moe' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'"
                     class="text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0"
                   >{{ item.model.type === 'moe' ? 'MoE' : 'Dense' }}</span>
+                  <span v-if="item.model.status === 'preview'" class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-violet-100 text-violet-700 flex-shrink-0">{{ t('model.tag_preview') }}</span>
                   <span v-if="isNew(item.model.released)" class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-100 text-red-600 flex-shrink-0">NEW</span>
                   <span v-if="item.cpuOffload" class="text-[10px] font-medium px-1.5 py-0.5 rounded bg-amber-50 text-amber-600 border border-amber-200 flex-shrink-0">{{ t('ranking.cpu_offload_badge') }}</span>
                 </div>

@@ -6,9 +6,26 @@
 /**
  * 从 HuggingFace URL 提取模型 ID
  * e.g. 'https://huggingface.co/Qwen/Qwen3-8B' → 'Qwen/Qwen3-8B'
+ * Preview / org-only links are not serveable — prefer hf_id or a placeholder.
  */
 function extractHfModel(model) {
-  return model.links?.hf?.replace('https://huggingface.co/', '') ?? model.id
+  if (model.status === 'preview') {
+    return model.hf_id || '<HF_MODEL_ID>'
+  }
+  const raw = model.links?.hf?.replace(/^https?:\/\/huggingface\.co\//, '').replace(/\/$/, '')
+  // Org page only (e.g. huggingface.co/Qwen) — not a model repo id
+  if (raw && !raw.includes('/')) {
+    return model.hf_id || '<HF_MODEL_ID>'
+  }
+  return raw || model.hf_id || model.id
+}
+
+function previewCmdNotes(model, hfModel) {
+  if (model.status !== 'preview') return []
+  return [
+    `# Note: preview model — architecture is estimated; open weights may not be downloadable yet`,
+    `# After release, replace ${hfModel} with the official HF repo id (see model download links)`,
+  ]
 }
 
 /**
@@ -334,29 +351,38 @@ export function generateCmd(framework, config) {
 
   const { model } = config
   const hfModel = extractHfModel(model)
+  const previewNotes = previewCmdNotes(model, hfModel)
 
+  let cmd
   switch (framework.id) {
     case 'vllm':
-      return genVllm(hfModel, config)
+      cmd = genVllm(hfModel, config)
+      break
 
     case 'sglang':
-      return genSglang(hfModel, config)
+      cmd = genSglang(hfModel, config)
+      break
 
     case 'lmdeploy':
-      return genLmdeploy(hfModel, config)
+      cmd = genLmdeploy(hfModel, config)
+      break
 
     case 'tgi':
-      return genTgi(hfModel, config)
+      cmd = genTgi(hfModel, config)
+      break
 
     case 'exllamav2':
-      return genExllamav2(hfModel, config)
+      cmd = genExllamav2(hfModel, config)
+      break
 
     case 'llamacpp':
     case 'llamacpp_metal':
-      return genLlamacpp(config)
+      cmd = genLlamacpp(config)
+      break
 
     case 'mlx':
-      return genMlx(hfModel, config)
+      cmd = genMlx(hfModel, config)
+      break
 
     // theory 和 trtllm 不支持生成命令
     case 'theory':
@@ -368,7 +394,7 @@ export function generateCmd(framework, config) {
       const dtype = dtMap[quant?.id] ?? 'bfloat16'
       const tpFlag = gpuCount > 1 ? `--tp_size ${gpuCount} ` : ''
       const ppFlag = ppCount > 1  ? `--pp_size ${ppCount} ` : ''
-      return [
+      cmd = [
         `# 1. Build engine`,
         `trtllm-build \\`,
         `  --checkpoint_dir ./model_checkpoint \\`,
@@ -384,9 +410,13 @@ export function generateCmd(framework, config) {
         ``,
         `# Note: convert checkpoint first with convert_checkpoint.py for your model family`,
       ].join('\n')
+      break
     }
 
     default:
       return null
   }
+
+  if (!cmd || !previewNotes.length) return cmd
+  return previewNotes.join('\n') + '\n' + cmd
 }

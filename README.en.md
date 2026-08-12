@@ -52,7 +52,7 @@
 - 🎯 **Accurate Modeling** — Weights, KV Cache, system overhead fully covered with OOM risk warnings
 - ⚡ **Performance Analysis** — Precise Decode/Prefill token/s calculation, comprehensive TTFT/TPOT/total latency evaluation
 - 📊 **Roofline Model** — Scientific bandwidth/compute bottleneck identification
-- 🌍 **Wide Coverage** — 250+ GPU models, 393+ mainstream models (Dense 302 + MoE 91)
+- 🌍 **Wide Coverage** — 250+ GPU models, 398+ mainstream models (Dense 312 + MoE 86)
 - 🔗 **Advanced Features** — Tensor Parallel, Flash Attention, KV Cache quantization, Prefix Cache
 - 🎨 **Multi-Framework** — vLLM, TensorRT-LLM, SGLang, LMDeploy, TGI, llama.cpp, ExLlamaV2, MLX
 
@@ -60,7 +60,7 @@
 
 | Category | Details |
 | --- | --- |
-| **Models** | 393+ mainstream models (Dense 302 + MoE 91) · 0.5B - 2.8T parameters · 2022-2026 releases |
+| **Models** | 398+ mainstream models (Dense 312 + MoE 86) · 0.5B - 2.8T parameters · 2022-2026 releases |
 | **Architectures** | Dense · MoE · MLA (DeepSeek) · Hybrid Attention (Gemma) · Mamba (SSM) |
 | **GPUs** | 250+ models · NVIDIA (RTX/Tesla/H100/B200/B300) · AMD (RX/MI) · Intel Arc · Apple Silicon · Domestic chips |
 | **Quantization** | FP32 · BF16 · FP8 · INT8 · INT4 · Q6_K · Q5_K · Q3_K · INT2 |
@@ -125,7 +125,7 @@ src/
 │   └── ui/          # Generic UI components
 ├── data/            # Data definitions
 │   ├── gpus/        # GPU specifications (by vendor)
-│   ├── models/      # Model parameters (393+ models)
+│   ├── models/      # Model parameters (398+ models)
 │   ├── constants.js # Quantization/Framework/Interconnect constants
 │   └── runtime.js   # Runtime configuration options
 ├── utils/           # Utility functions
@@ -266,7 +266,7 @@ This project uses a **Custom Non-Commercial License**. See [LICENSE](LICENSE) fo
 
 - **Model Parameters** — [HuggingFace](https://huggingface.co), [Ollama](https://ollama.com), [ModelScope](https://modelscope.cn) and other official model repositories
 - **GPU Specifications** — Official technical documentation from various vendors
-- **Model Coverage** — 393+ models spanning 2022-2026 mainstream open-source models, parameter scales from 0.5B to 2.8T
+- **Model Coverage** — 398+ models spanning 2022-2026 mainstream open-source models, parameter scales from 0.5B to 2.8T
 
 ### Theoretical Foundation
 
