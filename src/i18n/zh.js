@@ -393,7 +393,7 @@ export default {
     kv_read: 'Decode KV 读取',
     tpot_tip: '单 token 生成时间（batch=1 基准），等于 1000 / tok/s。反映交互场景下每个字的输出间隔。',
     bw_util: '带宽利用率',
-    bw_util_tip: '实际解码吞吐 / 带宽理论上限，反映推理框架对显存带宽的利用效率。',
+    bw_util_tip: 'Roofline 解码吞吐（校准前）/ 带宽理论上限，反映框架对显存带宽的利用效率。',
     avg_decode_seq: '平均解码序列',
     avg_decode_seq_tip: '解码阶段 KV Cache 的平均有效长度，约为 prompt + 输出/2，决定每步 KV 读取量。',
     flash_factor: 'FlashAttention 系数',

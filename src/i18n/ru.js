@@ -393,7 +393,7 @@ export default {
     kv_read: 'Чтение KV на Decode',
     tpot_tip: 'Время на выходной токен при batch=1. Равно 1000 / tok/s. Интервал между символами в диалоге.',
     bw_util: 'Использование полосы',
-    bw_util_tip: 'Фактический decode TPS / теоретический потолок полосы — насколько фреймворк выжимает память.',
+    bw_util_tip: 'Roofline (до калибровки) decode TPS / теоретический потолок полосы — насколько фреймворк выжимает память.',
     avg_decode_seq: 'Средняя длина Decode',
     avg_decode_seq_tip: 'Средняя эффективная длина KV cache на decode (≈ prompt + output/2), задаёт объём чтения KV за шаг.',
     flash_factor: 'Коэффициент FlashAttention',

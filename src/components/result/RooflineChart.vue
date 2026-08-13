@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Scatter } from 'vue-chartjs'
+import { roofDecodeToks } from '../../utils/calibrate.js'
 import {
   Chart as ChartJS,
   LinearScale,
@@ -22,7 +23,6 @@ const chartData = computed(() => {
   if (!props.result) return { datasets: [] }
 
   const { bwLimit, computeLimit, roofline } = props.result
-  const peak = Math.max(bwLimit, computeLimit) * 1.5
 
   // Roofline 折线：带宽段 + 平坦段
   const rooflinePoints = []
@@ -30,6 +30,10 @@ const chartData = computed(() => {
   for (let x = 0; x <= ridgePoint * 2; x += ridgePoint / 20) {
     rooflinePoints.push({ x, y: Math.min(bwLimit * x, computeLimit) })
   }
+
+  // 点用校准前 tok/s，且不超过该强度下的屋顶，避免画出物理上限
+  const roofAtOp = Math.min(bwLimit * roofline, computeLimit)
+  const pointY = Math.min(roofDecodeToks(props.result), roofAtOp)
 
   return {
     datasets: [
@@ -46,7 +50,7 @@ const chartData = computed(() => {
       },
       {
         label: props.result.bottleneck === 'bandwidth' ? t('result.bandwidth') : t('result.compute'),
-        data: [{ x: roofline, y: props.result.decodeToks }],
+        data: [{ x: roofline, y: pointY }],
         backgroundColor: props.result.bottleneck === 'bandwidth' ? '#f97316' : '#16a34a',
         pointRadius: 8,
         pointHoverRadius: 10,
@@ -69,6 +73,9 @@ const chartOptions = computed(() => ({
       title: { display: true, text: t('result.roofline_y_axis'), color: '#4b5563' },
       ticks: { color: '#6b7280' },
       grid: { color: '#e5e7eb' },
+      suggestedMax: props.result
+        ? Math.max(props.result.bwLimit, props.result.computeLimit) * 1.15
+        : undefined,
     },
   },
   plugins: {

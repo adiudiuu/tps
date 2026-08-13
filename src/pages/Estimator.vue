@@ -29,6 +29,10 @@ function defaultFrameworkForGpu(gpu) {
 }
 const PROMPT_LEN_MAX = 262144
 const OUTPUT_LEN_MAX = 131072
+/** 聊天常见负载；不随模型 max_ctx 拉到 128k/256k */
+const DEFAULT_CTX = 16384
+const DEFAULT_PROMPT_LEN = 1024
+const DEFAULT_OUTPUT_LEN = 1024
 function clampPromptLen(v, ctxLen) {
   const cap = Math.min(PROMPT_LEN_MAX, Math.max(1, ctxLen ?? PROMPT_LEN_MAX))
   return Math.max(1, Math.min(cap, Number(v) || 1))
@@ -36,16 +40,19 @@ function clampPromptLen(v, ctxLen) {
 function clampOutputLen(v) {
   return Math.max(1, Math.min(OUTPUT_LEN_MAX, Number(v) || 1))
 }
+function preferredCtx(maxCtx) {
+  return Math.min(DEFAULT_CTX, maxCtx ?? DEFAULT_CTX)
+}
 
 const gpuSlots       = ref(_url.gpuSlots     ?? [{ gpu: defaultGpu, count: 1 }])
 const gpuCount       = computed(() => gpuSlots.value.reduce((s, g) => s + g.count, 0))
 const interconnect   = ref(_url.interconnect ?? INTERCONNECT_MAP[0])
 const model          = ref(_url.model        ?? defaultModel)
 const quant          = ref(_url.quant        ?? QUANT_MAP.find(q => q.id === 'bf16'))
-const ctx            = ref(_url.ctx          ?? Math.min(model.value?.max_ctx ?? 16384, 16384))
+const ctx            = ref(_url.ctx          ?? preferredCtx(model.value?.max_ctx))
 const batch          = ref(_url.batch        ?? 1)
-const promptLen      = ref(clampPromptLen(_url.promptLen ?? 1024, ctx.value))
-const outputLen      = ref(clampOutputLen(_url.outputLen ?? 1024))
+const promptLen      = ref(clampPromptLen(_url.promptLen ?? DEFAULT_PROMPT_LEN, ctx.value))
+const outputLen      = ref(clampOutputLen(_url.outputLen ?? DEFAULT_OUTPUT_LEN))
 const framework      = ref(_url.framework    ?? defaultFrameworkForGpu(gpuSlots.value[0]?.gpu))
 const flashAttention = ref(_url.flashAttention ?? true)
 const kvCacheQuant   = ref(_url.kvCacheQuant ?? KV_CACHE_MAP[0])
@@ -152,8 +159,17 @@ function goToUpgrade() {
 }
 
 watch(model, (m, prev) => {
-  // 只在超出新模型上限时收敛，保留用户已设置的长上下文
-  if (m?.max_ctx && ctx.value > m.max_ctx) ctx.value = m.max_ctx
+  // 换模型：保持 16k 默认口径，不超过该模型 max_ctx（8k 模型 cap 到 8k）。
+  // 不拉到新模型的 128k/256k；用户已设的更长上下文在上限内保留。
+  const maxCtx = m?.max_ctx
+  if (maxCtx) {
+    const preferred = preferredCtx(maxCtx)
+    if (ctx.value > maxCtx) {
+      ctx.value = maxCtx
+    } else if (prev?.max_ctx && ctx.value === prev.max_ctx && ctx.value < preferred) {
+      ctx.value = preferred
+    }
+  }
   // MoE 模型：仅在放不下显存时才自动开启 CPU 卸载；能放下则关闭；切换到非 MoE 时关闭
   if (m?.type === 'moe' && m?.active_params) {
     cpuOffload.value = needsCpuOffload(m, effectiveGpu.value, gpuCount.value, quant.value, framework.value)

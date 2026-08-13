@@ -5,6 +5,7 @@ import { fmtToks, fmtToksRange, fmtPct, fmtGB } from '../../utils/format.js'
 import { FRAMEWORK_MAP } from '../../data/constants.js'
 import TipIcon from '../ui/TipIcon.vue'
 import { generateCmd, getFrameworkDocsUrl } from '../../utils/cmdGen.js'
+import { roofDecodeToks } from '../../utils/calibrate.js'
 
 const { t } = useI18n()
 const props = defineProps({
@@ -78,6 +79,15 @@ const generatedCmd = computed(() =>
 )
 
 const docsUrl = computed(() => getFrameworkDocsUrl(framework.value?.id))
+
+// 利用率对照校准前 tok/s 与物理带宽上限，避免残差拟合后显示 >100%
+const bwUtilPct = computed(() => {
+  const r = props.result
+  if (!r || !(r.bwLimit > 0)) return 0
+  const toks = roofDecodeToks(r)
+  if (!Number.isFinite(toks)) return 0
+  return Math.min(100, toks / r.bwLimit * 100)
+})
 
 const copyState = ref('idle') // 'idle' | 'copied' | 'error'
 
@@ -341,10 +351,10 @@ async function copyCmd() {
               <div class="flex-1 bg-gray-200 rounded-full h-1.5 overflow-hidden">
                 <div
                   class="h-full rounded-full transition-all"
-                  :style="{ width: Math.min(100, result.decodeToks / result.bwLimit * 100).toFixed(1) + '%', background: '#10b981' }"
+                  :style="{ width: bwUtilPct.toFixed(1) + '%', background: '#10b981' }"
                 />
               </div>
-              <span class="text-sm font-bold text-gray-900 tabular-nums w-10 text-right">{{ (result.decodeToks / result.bwLimit * 100).toFixed(0) }}%</span>
+              <span class="text-sm font-bold text-gray-900 tabular-nums w-10 text-right">{{ bwUtilPct.toFixed(0) }}%</span>
             </div>
           </div>
           <div class="bg-gray-50 rounded-lg px-3 py-2">

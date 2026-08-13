@@ -60,6 +60,43 @@ function clampProduct(x) {
   return Math.min(2.5, Math.max(0.45, x))
 }
 
+function gpuLayerRatioOf(ctx) {
+  if (Number.isFinite(ctx?.gpuLayerRatio)) {
+    return Math.min(1, Math.max(0, ctx.gpuLayerRatio))
+  }
+  // 未传 gpuLayerRatio 时：ngl=0 视为整段 CPU（calcAll 在非 hybrid 下会传 ratio=1）
+  if (ctx?.nglCount === 0) return 0
+  return 1
+}
+
+function gpuTimeShareOf(ctx, ratio) {
+  if (Number.isFinite(ctx?.gpuTimeShare)) {
+    return Math.min(1, Math.max(0, ctx.gpuTimeShare))
+  }
+  if (!(ratio > 0 && ratio < 1)) return ratio >= 1 ? 1 : 0
+  const gpuBw = Number(ctx?.gpu?.bw) * (Number(ctx?.gpu?.bwUtilization) > 0 ? ctx.gpu.bwUtilization : 0.80)
+  const cpuBw = Number(ctx?.cpuMemBw?.bw)
+  if (!(gpuBw > 0 && cpuBw > 0)) return ratio
+  const tGpu = ratio / gpuBw
+  const tCpu = (1 - ratio) / cpuBw
+  return tGpu / Math.max(tGpu + tCpu, 1e-12)
+}
+
+/** GPU 段乘残差、DDR 段保持 1：s_eff = 1 / (share/s + 1-share) */
+function blendGpuScale(gpuScale, gpuTimeShare) {
+  if (!(gpuTimeShare > 0)) return 1
+  if (gpuTimeShare >= 1) return gpuScale
+  if (!(Number.isFinite(gpuScale) && gpuScale > 0)) return 1
+  return 1 / (gpuTimeShare / gpuScale + (1 - gpuTimeShare))
+}
+
+function isCpuOnlyPath(ctx) {
+  if (ctx?.pureCpu) return true
+  if (gpuLayerRatioOf(ctx) === 0) return true
+  if (Number.isFinite(ctx?.gpuTimeShare) && ctx.gpuTimeShare === 0) return true
+  return false
+}
+
 /**
  * @param {object} ctx
  * @param {object} ctx.gpu
@@ -67,11 +104,18 @@ function clampProduct(x) {
  * @param {object} ctx.framework
  * @param {number} [ctx.batch]
  * @param {number} [ctx.tpCount]
+ * @param {boolean} [ctx.pureCpu]
+ * @param {number} [ctx.nglCount]
+ * @param {number} [ctx.gpuLayerRatio]
+ * @param {number} [ctx.gpuTimeShare] GPU 段墙钟时间占比（hybrid 串行）
+ * @param {object} [ctx.cpuMemBw]
  */
 export function getCalibrationScales(ctx) {
   if (!CALIBRATION_ENABLED) return { decode: 1, prefill: 1 }
   const fw = ctx?.framework?.id
   if (!fw || fw === 'theory') return { decode: 1, prefill: 1 }
+  // 纯 CPU / ngl=0：DDR 路径不套 GPU 卡类残差
+  if (isCpuOnlyPath(ctx)) return { decode: 1, prefill: 1 }
 
   const gc = gpuClassOf(ctx.gpu)
   const arch = archBinOf(ctx.model)
@@ -98,6 +142,15 @@ export function getCalibrationScales(ctx) {
     * factorAt(F.gpuClass, gpuKey, 'prefill')
     * factorAt(F.arch, archKey, 'prefill'),
   )
+
+  const ratio = gpuLayerRatioOf(ctx)
+  const share = gpuTimeShareOf(ctx, ratio)
+  if (share > 0 && share < 1) {
+    return {
+      decode: blendGpuScale(decode, share),
+      prefill: blendGpuScale(prefill, share),
+    }
+  }
   return { decode, prefill }
 }
 
@@ -106,11 +159,31 @@ function scaleField(obj, key, scale) {
   obj[key] *= scale
 }
 
+/** 利用率 / 屋顶线用校准前 tok/s，避免对照物理上限出现 >100%。 */
+export function attachRoofToks(result) {
+  if (!result) return result
+  if (!Number.isFinite(result.decodeToksUncalibrated) && Number.isFinite(result.decodeToks)) {
+    result.decodeToksUncalibrated = result.decodeToks
+  }
+  if (!Number.isFinite(result.prefillToksUncalibrated) && Number.isFinite(result.prefillToks)) {
+    result.prefillToksUncalibrated = result.prefillToks
+  }
+  return result
+}
+
+export function roofDecodeToks(result) {
+  if (!result) return NaN
+  const v = result.decodeToksUncalibrated
+  return Number.isFinite(v) ? v : result.decodeToks
+}
+
 /**
  * 乘在 decode/prefill tok/s 上，并让 tpot / ttft / totalLatency 与吞吐同源。
  * 不改 bwLimit / computeLimit / roofline 比（那是物理上限）。
+ * 展示用 tok/s 为校准后；利用率与屋顶点用 decodeToksUncalibrated。
  */
 export function applySpeedCalibration(result, ctx) {
+  attachRoofToks(result)
   const { decode, prefill } = getCalibrationScales(ctx)
   result.calibrationScale = { decode, prefill }
   if (decode === 1 && prefill === 1) return result

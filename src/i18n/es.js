@@ -393,7 +393,7 @@ export default {
     kv_read: 'Lectura KV de Decodificación',
     tpot_tip: 'Tiempo por token de salida en la base de lote=1. Igual a 1000 / tok/s. Refleja el intervalo de salida por carácter en uso interactivo.',
     bw_util: 'Utilización de Ancho de Banda',
-    bw_util_tip: 'Rendimiento real de decodificación / límite teórico de ancho de banda — qué tan bien aprovecha el framework el ancho de banda de memoria.',
+    bw_util_tip: 'Rendimiento Roofline de decodificación (antes de calibrar) / límite teórico de ancho de banda — qué tan bien aprovecha el framework el ancho de banda de memoria.',
     avg_decode_seq: 'Sec. Media de Decodificación',
     avg_decode_seq_tip: 'Longitud media efectiva de la caché KV durante la decodificación (≈ prompt + salida/2), determina el volumen de lectura KV por paso.',
     flash_factor: 'Factor FlashAttention',

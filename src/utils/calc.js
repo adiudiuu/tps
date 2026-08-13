@@ -1,6 +1,6 @@
 // src/utils/calc.js
 import { getAttentionSummary, getAttentionType, getTotalHeads } from './model.js'
-import { applySpeedCalibration } from './calibrate.js'
+import { applySpeedCalibration, attachRoofToks } from './calibrate.js'
 
 /**
  * 核心计算函数，无副作用
@@ -385,6 +385,8 @@ export function calcAll({
     : 0
 
   let effectiveBw, bwLimit
+  let hybridTGpu = 0
+  let hybridTCpu = 0
   if (pureCpu && cpuMemBw != null) {
     // ── 纯 CPU 路径 ──────────────────────────────────────────────────────────
     // 所有权重和 KV Cache 都从 DDR 读取，瓶颈是内存带宽
@@ -395,9 +397,9 @@ export function calcAll({
   } else if (isLlamaCppHybrid && cpuMemBw != null) {
     // ── llama.cpp 混合推理：GPU 层走 HBM，CPU 层走 DDR，串行执行
     // t_gpu = GPU 层权重读取时间，t_cpu = CPU 层权重读取时间
-    const t_gpu = gpuLayerRatio > 0 ? gpuLayerRatio * decodeBytesPerStep / totalBw : 0
-    const t_cpu = (1 - gpuLayerRatio) > 0 ? (1 - gpuLayerRatio) * decodeBytesPerStep / cpuMemBw.bw : 0
-    bwLimit = batch / Math.max(t_gpu + t_cpu, 1e-9)
+    hybridTGpu = gpuLayerRatio > 0 ? gpuLayerRatio * decodeBytesPerStep / totalBw : 0
+    hybridTCpu = (1 - gpuLayerRatio) > 0 ? (1 - gpuLayerRatio) * decodeBytesPerStep / cpuMemBw.bw : 0
+    bwLimit = batch / Math.max(hybridTGpu + hybridTCpu, 1e-9)
     effectiveBw = cpuMemBw.bw
   } else if (cpuOffload && model.type === 'moe' && pcieBw != null) {
     // ── PCIe expert offload 路径（--cpu-moe，适用于所有框架包括 llamacpp）
@@ -703,7 +705,17 @@ export function calcAll({
   }
 
   // 独立校准层：Roofline tok/s × Π(因子)。关：skipCalibration 或 CALIBRATION_ENABLED=false
-  if (skipCalibration) return raw
+  // 纯 CPU / ngl=0 不套 GPU 残差；hybrid 只按 GPU 段墙钟时间混合，DDR 段保持 1
+  attachRoofToks(raw)
+  if (skipCalibration) {
+    raw.calibrationScale = { decode: 1, prefill: 1 }
+    return raw
+  }
+  const gpuTimeShare = pureCpu
+    ? 0
+    : (isLlamaCppHybrid && cpuMemBw != null
+      ? hybridTGpu / Math.max(hybridTGpu + hybridTCpu, 1e-9)
+      : 1)
   return applySpeedCalibration(raw, {
     gpu,
     model,
@@ -711,6 +723,11 @@ export function calcAll({
     batch,
     tpCount,
     outputLen,
+    pureCpu,
+    nglCount,
+    gpuLayerRatio: pureCpu ? 0 : gpuLayerRatio,
+    gpuTimeShare,
+    cpuMemBw,
   })
 }
 

@@ -393,7 +393,7 @@ export default {
     kv_read: 'Decode KV 읽기',
     tpot_tip: 'batch=1 기준 출력 토큰당 시간. 1000 / tok/s와 같습니다. 대화에서 글자가 나오는 간격입니다.',
     bw_util: '대역 사용률',
-    bw_util_tip: '실제 Decode 처리량 / 이론 대역 상한 — 프레임워크가 메모리 대역을 얼마나 쓰는지.',
+    bw_util_tip: 'Roofline(보정 전) Decode 처리량 / 이론 대역 상한 — 프레임워크가 메모리 대역을 얼마나 쓰는지.',
     avg_decode_seq: '평균 Decode 시퀀스',
     avg_decode_seq_tip: 'Decode 중 평균 유효 KV Cache 길이(≈ prompt + output/2). 스텝당 KV 읽기량을 정합니다.',
     flash_factor: 'FlashAttention 계수',

@@ -393,7 +393,7 @@ export default {
     kv_read: 'Decode KV読取',
     tpot_tip: 'batch=1基準での出力トークンあたり時間。1000 / tok/s に等しい。対話利用での文字出力間隔に相当します。',
     bw_util: '帯域利用率',
-    bw_util_tip: '実Decodeスループット / 理論帯域上限 — フレームワークがメモリ帯域をどれだけ活用できているか。',
+    bw_util_tip: 'Roofline（校正前）Decodeスループット / 理論帯域上限 — フレームワークがメモリ帯域をどれだけ活用できているか。',
     avg_decode_seq: '平均Decode系列長',
     avg_decode_seq_tip: 'Decode中の平均有効KV Cache長（≈ prompt + output/2）。ステップあたりのKV読取量を決めます。',
     flash_factor: 'FlashAttention係数',

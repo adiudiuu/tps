@@ -393,7 +393,7 @@ export default {
     kv_read: 'Decode KV Read',
     tpot_tip: 'Time per output token at batch=1 baseline. Equal to 1000 / tok/s. Reflects the per-character output interval in interactive use.',
     bw_util: 'BW Utilization',
-    bw_util_tip: 'Actual decode throughput / theoretical BW ceiling — how well the framework leverages memory bandwidth.',
+    bw_util_tip: 'Roofline (pre-calibration) decode throughput / theoretical BW ceiling — how well the framework leverages memory bandwidth.',
     avg_decode_seq: 'Avg Decode Seq',
     avg_decode_seq_tip: 'Average effective KV cache length during decode (≈ prompt + output/2), determines per-step KV read volume.',
     flash_factor: 'FlashAttention Factor',
