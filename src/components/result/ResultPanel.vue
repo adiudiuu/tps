@@ -48,7 +48,7 @@ const quant = defineModel('quant', { required: true })
           <span
             :class="model.type === 'moe' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'"
             class="text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
-          >{{ model.type === 'moe' ? 'MoE' : 'Dense' }}</span>
+          >{{ model.type === 'moe' ? t('library.tag_moe') : t('library.tag_dense') }}</span>
           <span
             v-if="result?.accuracyTier"
             :class="

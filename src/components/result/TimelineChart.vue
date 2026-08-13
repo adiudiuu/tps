@@ -397,7 +397,7 @@ watch(locale, () => {
         </div>
         <div class="flex items-center gap-2">
           <div class="w-3 h-3 rounded-full bg-amber-500"></div>
-          <span class="text-gray-600">MoE</span>
+          <span class="text-gray-600">{{ t('library.tag_moe') }}</span>
         </div>
       </div>
       <div class="mt-3 pt-2 border-t border-gray-200 text-gray-500">

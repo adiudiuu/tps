@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+import { currentLangParam, langQuery } from '../../utils/lang.js'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -9,9 +10,10 @@ const SESSION_KEY = 'tps_estimator_query'
 const LEGACY_SESSION_KEY = 'tps_calc_query'
 
 const homeLink = computed(() => {
-  if (route.path === '/') return '/'
+  if (route.path === '/') return { path: '/', query: langQuery() }
   const saved = sessionStorage.getItem(SESSION_KEY) ?? sessionStorage.getItem(LEGACY_SESSION_KEY) ?? ''
-  const query = Object.fromEntries(new URLSearchParams(saved))
+  const query = { ...Object.fromEntries(new URLSearchParams(saved)), ...langQuery() }
+  if (!currentLangParam()) delete query.lang
   return { path: '/', query }
 })
 
@@ -42,7 +44,7 @@ const isActive = (path) => {
       </RouterLink>
 
       <RouterLink
-        to="/solver"
+        :to="{ path: '/solver', query: langQuery() }"
         class="relative flex flex-col items-center justify-center gap-1 transition-colors text-gray-500"
         :class="isActive('/solver') ? 'bg-emerald-50' : ''"
         exact-active-class="!text-emerald-600"
@@ -58,7 +60,7 @@ const isActive = (path) => {
       </RouterLink>
 
       <RouterLink
-        to="/ranking"
+        :to="{ path: '/ranking', query: langQuery() }"
         class="relative flex flex-col items-center justify-center gap-1 transition-colors text-gray-500"
         :class="isActive('/ranking') ? 'bg-emerald-50' : ''"
         exact-active-class="!text-emerald-600"
@@ -74,7 +76,7 @@ const isActive = (path) => {
       </RouterLink>
 
       <RouterLink
-        to="/library"
+        :to="{ path: '/library', query: langQuery() }"
         class="relative flex flex-col items-center justify-center gap-1 transition-colors text-gray-500"
         :class="isActive('/library') ? 'bg-emerald-50' : ''"
         exact-active-class="!text-emerald-600"

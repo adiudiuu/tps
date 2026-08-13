@@ -2,13 +2,43 @@
 
 import { ALL_MODELS } from '../data/models/index.js'
 import { GPU_LIST } from '../data/gpus/index.js'
+import { SUPPORTED } from '../i18n/locales.js'
 
 export const SITE_ORIGIN = 'https://tps.bunai.com'
-export const SEO_LOCALES = ['zh', 'en', 'es', 'ja']
+export const SEO_LOCALES = SUPPORTED
 
-const HTML_LANG = { zh: 'zh-CN', en: 'en', es: 'es', ja: 'ja' }
-const OG_LOCALE = { zh: 'zh_CN', en: 'en_US', es: 'es_ES', ja: 'ja_JP' }
-const HREFLANG = { zh: 'zh-CN', en: 'en', es: 'es', ja: 'ja' }
+const HTML_LANG = {
+  zh: 'zh-CN',
+  'zh-TW': 'zh-TW',
+  en: 'en',
+  ru: 'ru',
+  es: 'es',
+  ko: 'ko',
+  ja: 'ja',
+}
+const OG_LOCALE = {
+  zh: 'zh_CN',
+  'zh-TW': 'zh_TW',
+  en: 'en_US',
+  ru: 'ru_RU',
+  es: 'es_ES',
+  ko: 'ko_KR',
+  ja: 'ja_JP',
+}
+const HREFLANG = {
+  zh: 'zh-CN',
+  'zh-TW': 'zh-Hant',
+  en: 'en',
+  ru: 'ru',
+  es: 'es',
+  ko: 'ko',
+  ja: 'ja',
+}
+const PRICE_CURRENCY = {
+  zh: 'CNY',
+  'zh-TW': 'TWD',
+  ru: 'RUB',
+}
 
 function setMeta(attr, key, content) {
   if (content == null || content === '') return
@@ -53,6 +83,15 @@ function syncHreflang(path) {
     link.setAttribute('rel', 'alternate')
     link.setAttribute('hreflang', HREFLANG[loc])
     link.setAttribute('href', localeUrl(path, loc))
+    link.setAttribute('data-seo-hreflang', '1')
+    document.head.appendChild(link)
+  }
+  // Extra Traditional Chinese tags share the zh-TW URL
+  for (const extra of ['zh-TW', 'zh-HK']) {
+    const link = document.createElement('link')
+    link.setAttribute('rel', 'alternate')
+    link.setAttribute('hreflang', extra)
+    link.setAttribute('href', localeUrl(path, 'zh-TW'))
     link.setAttribute('data-seo-hreflang', '1')
     document.head.appendChild(link)
   }
@@ -130,7 +169,7 @@ function syncJsonLd(t, locale) {
         offers: {
           '@type': 'Offer',
           price: '0',
-          priceCurrency: locale === 'zh' ? 'CNY' : 'USD',
+          priceCurrency: PRICE_CURRENCY[locale] || 'USD',
         },
         featureList: features,
         keywords: t('seo.keywords'),
@@ -171,7 +210,7 @@ function syncJsonLd(t, locale) {
 /**
  * @param {string} pageKey - estimator | ranking | library | solver | about
  * @param {(key: string, values?: Record<string, unknown>) => string} t
- * @param {string} locale - zh | en | es | ja
+ * @param {string} locale - zh | zh-TW | en | ru | es | ko | ja
  * @param {string} [path] - route path
  */
 export function applyPageSeo(pageKey, t, locale = 'zh', path = '/') {
@@ -195,6 +234,15 @@ export function applyPageSeo(pageKey, t, locale = 'zh', path = '/') {
   setMeta('property', 'og:description', description)
   setMeta('property', 'og:url', pageUrl)
   setMeta('property', 'og:locale', OG_LOCALE[locale] || 'en_US')
+  document.head.querySelectorAll('meta[data-seo-og-alt]').forEach(el => el.remove())
+  for (const loc of SEO_LOCALES) {
+    if (loc === locale) continue
+    const el = document.createElement('meta')
+    el.setAttribute('property', 'og:locale:alternate')
+    el.setAttribute('content', OG_LOCALE[loc] || loc)
+    el.setAttribute('data-seo-og-alt', '1')
+    document.head.appendChild(el)
+  }
   setMeta('name', 'twitter:card', 'summary')
   setMeta('name', 'twitter:title', title)
   setMeta('name', 'twitter:description', description)

@@ -5,13 +5,21 @@ import { calcAll, getWarnings } from './calc.js'
 import { QUANT_MAP } from '../data/constants.js'
 import { PCIE_BW_OPTIONS } from '../data/runtime.js'
 
-const LOCALE_TAGS = { zh: 'zh-CN', en: 'en-US', es: 'es-ES', ja: 'ja-JP' }
+const LOCALE_TAGS = {
+  zh: 'zh-CN',
+  'zh-TW': 'zh-TW',
+  en: 'en-US',
+  ru: 'ru-RU',
+  es: 'es-ES',
+  ko: 'ko-KR',
+  ja: 'ja-JP',
+}
 
 /**
  * 生成 Markdown 报告字符串
  * @param {object} opts
  * @param {function} opts.t           - i18n t()
- * @param {string} opts.locale        - 'zh' | 'en' | 'es' | 'ja'
+ * @param {string} opts.locale        - 'zh' | 'zh-TW' | 'en' | 'ru' | 'es' | 'ko' | 'ja'
  */
 export function generateMarkdown({
   gpu, gpuCount, interconnect, model, quant, framework,
@@ -56,15 +64,15 @@ export function generateMarkdown({
   lines.push(`| ${t('md.item')} | ${t('md.value')} |`)
   lines.push('|---|---|')
   lines.push(`| ${t('md.name')} | ${model.name} |`)
-  lines.push(`| ${t('md.type')} | ${model.type === 'moe' ? 'MoE' : 'Dense'} |`)
+  lines.push(`| ${t('md.type')} | ${model.type === 'moe' ? t('library.tag_moe') : t('library.tag_dense')} |`)
   lines.push(`| ${t('md.total_params')} | ${fmtParams(model.params)} |`)
   if (model.type === 'moe' && model.active_params) {
     lines.push(`| ${t('md.active_params')} | ${fmtParams(model.active_params)} |`)
   }
   lines.push(`| ${t('md.max_context')} | ${fmtCtx(model.max_ctx)} |`)
-  lines.push(`| Attention | ${result.attentionSummary} |`)
+  lines.push(`| ${t('model.attention')} | ${result.attentionSummary} |`)
   lines.push(`| ${t('md.layers')} | ${model.layers} |`)
-  lines.push(`| Hidden Size | ${model.hidden_size} |`)
+  lines.push(`| ${t('model.detail.hidden')} | ${model.hidden_size} |`)
   lines.push('')
 
   // ── 3. 运行参数 ──────────────────────────────────────

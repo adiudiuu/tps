@@ -1,33 +1,84 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
     <loc>https://tps.bunai.com/</loc>
     <lastmod>2026-08-06</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://tps.bunai.com/" />
+    <xhtml:link rel="alternate" hreflang="zh-Hant" href="https://tps.bunai.com/?lang=zh-TW" />
+    <xhtml:link rel="alternate" hreflang="zh-TW" href="https://tps.bunai.com/?lang=zh-TW" />
+    <xhtml:link rel="alternate" hreflang="zh-HK" href="https://tps.bunai.com/?lang=zh-TW" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://tps.bunai.com/?lang=en" />
+    <xhtml:link rel="alternate" hreflang="ru" href="https://tps.bunai.com/?lang=ru" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://tps.bunai.com/?lang=es" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://tps.bunai.com/?lang=ko" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://tps.bunai.com/?lang=ja" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://tps.bunai.com/" />
   </url>
   <url>
     <loc>https://tps.bunai.com/ranking</loc>
     <lastmod>2026-08-06</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://tps.bunai.com/ranking" />
+    <xhtml:link rel="alternate" hreflang="zh-Hant" href="https://tps.bunai.com/ranking?lang=zh-TW" />
+    <xhtml:link rel="alternate" hreflang="zh-TW" href="https://tps.bunai.com/ranking?lang=zh-TW" />
+    <xhtml:link rel="alternate" hreflang="zh-HK" href="https://tps.bunai.com/ranking?lang=zh-TW" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://tps.bunai.com/ranking?lang=en" />
+    <xhtml:link rel="alternate" hreflang="ru" href="https://tps.bunai.com/ranking?lang=ru" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://tps.bunai.com/ranking?lang=es" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://tps.bunai.com/ranking?lang=ko" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://tps.bunai.com/ranking?lang=ja" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://tps.bunai.com/ranking" />
   </url>
   <url>
     <loc>https://tps.bunai.com/library</loc>
     <lastmod>2026-08-06</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://tps.bunai.com/library" />
+    <xhtml:link rel="alternate" hreflang="zh-Hant" href="https://tps.bunai.com/library?lang=zh-TW" />
+    <xhtml:link rel="alternate" hreflang="zh-TW" href="https://tps.bunai.com/library?lang=zh-TW" />
+    <xhtml:link rel="alternate" hreflang="zh-HK" href="https://tps.bunai.com/library?lang=zh-TW" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://tps.bunai.com/library?lang=en" />
+    <xhtml:link rel="alternate" hreflang="ru" href="https://tps.bunai.com/library?lang=ru" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://tps.bunai.com/library?lang=es" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://tps.bunai.com/library?lang=ko" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://tps.bunai.com/library?lang=ja" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://tps.bunai.com/library" />
   </url>
   <url>
     <loc>https://tps.bunai.com/solver</loc>
     <lastmod>2026-08-06</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://tps.bunai.com/solver" />
+    <xhtml:link rel="alternate" hreflang="zh-Hant" href="https://tps.bunai.com/solver?lang=zh-TW" />
+    <xhtml:link rel="alternate" hreflang="zh-TW" href="https://tps.bunai.com/solver?lang=zh-TW" />
+    <xhtml:link rel="alternate" hreflang="zh-HK" href="https://tps.bunai.com/solver?lang=zh-TW" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://tps.bunai.com/solver?lang=en" />
+    <xhtml:link rel="alternate" hreflang="ru" href="https://tps.bunai.com/solver?lang=ru" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://tps.bunai.com/solver?lang=es" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://tps.bunai.com/solver?lang=ko" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://tps.bunai.com/solver?lang=ja" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://tps.bunai.com/solver" />
   </url>
   <url>
     <loc>https://tps.bunai.com/about</loc>
     <lastmod>2026-08-13</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://tps.bunai.com/about" />
+    <xhtml:link rel="alternate" hreflang="zh-Hant" href="https://tps.bunai.com/about?lang=zh-TW" />
+    <xhtml:link rel="alternate" hreflang="zh-TW" href="https://tps.bunai.com/about?lang=zh-TW" />
+    <xhtml:link rel="alternate" hreflang="zh-HK" href="https://tps.bunai.com/about?lang=zh-TW" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://tps.bunai.com/about?lang=en" />
+    <xhtml:link rel="alternate" hreflang="ru" href="https://tps.bunai.com/about?lang=ru" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://tps.bunai.com/about?lang=es" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://tps.bunai.com/about?lang=ko" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://tps.bunai.com/about?lang=ja" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://tps.bunai.com/about" />
   </url>
 </urlset>

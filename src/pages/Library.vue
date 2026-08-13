@@ -393,7 +393,7 @@ function closeDetail() {
                         ? 'bg-amber-100 text-amber-700'
                         : 'bg-emerald-100 text-emerald-700'"
                       class="text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0"
-                    >{{ m.type === 'moe' ? 'MoE' : 'Dense' }}</span>
+                    >{{ m.type === 'moe' ? t('library.tag_moe') : t('library.tag_dense') }}</span>
                     <span
                       class="text-sm truncate transition-colors text-gray-800 group-hover:text-emerald-700"
                     >{{ m.name }}</span>
@@ -512,10 +512,10 @@ function closeDetail() {
           <div class="border-b border-gray-200 pb-2">
             <div class="flex items-center gap-2 mb-1">
               <h3 class="text-base font-bold text-gray-900">{{ hoveredModel.name }}</h3>
-              <span v-if="hoveredModel.type === 'moe'" class="text-xs bg-amber-500 text-white px-2 py-0.5 rounded-full font-medium">MoE</span>
-              <span v-else class="text-xs bg-emerald-500 text-white px-2 py-0.5 rounded-full font-medium">Dense</span>
+              <span v-if="hoveredModel.type === 'moe'" class="text-xs bg-amber-500 text-white px-2 py-0.5 rounded-full font-medium">{{ t('library.tag_moe') }}</span>
+              <span v-else class="text-xs bg-emerald-500 text-white px-2 py-0.5 rounded-full font-medium">{{ t('library.tag_dense') }}</span>
               <span v-if="hoveredModel.status === 'preview'" class="text-xs bg-violet-600 text-white px-2 py-0.5 rounded-full font-medium">{{ t('model.tag_preview') }}</span>
-              <span v-if="isNew(hoveredModel.released)" class="text-xs bg-red-500 text-white px-2 py-0.5 rounded-full font-medium">NEW</span>
+              <span v-if="isNew(hoveredModel.released)" class="text-xs bg-red-500 text-white px-2 py-0.5 rounded-full font-medium">{{ t('library.tag_new') }}</span>
             </div>
             <div class="text-xs text-gray-500">
               {{ t('library.released') }}: {{ hoveredModel.released || '—' }}
@@ -551,15 +551,15 @@ function closeDetail() {
                 <div class="font-semibold text-gray-900">{{ hoveredModel.layers }}</div>
               </div>
               <div class="bg-gray-50 rounded px-2 py-1.5 border border-gray-200">
-                <div class="text-gray-500 text-[10px]">Hidden Size</div>
+                <div class="text-gray-500 text-[10px]">{{ t('model.detail.hidden') }}</div>
                 <div class="font-semibold text-gray-900">{{ hoveredModel.hidden_size }}</div>
               </div>
               <div class="bg-gray-50 rounded px-2 py-1.5 border border-gray-200">
-                <div class="text-gray-500 text-[10px]">KV Heads</div>
+                <div class="text-gray-500 text-[10px]">{{ t('model.detail.kv_heads') }}</div>
                 <div class="font-semibold text-gray-900">{{ hoveredModel.kv_heads }}</div>
               </div>
               <div class="bg-gray-50 rounded px-2 py-1.5 border border-gray-200">
-                <div class="text-gray-500 text-[10px]">Head Dim</div>
+                <div class="text-gray-500 text-[10px]">{{ t('model.detail.head_dim') }}</div>
                 <div class="font-semibold text-gray-900">{{ hoveredModel.head_dim }}</div>
               </div>
             </div>
@@ -577,7 +577,7 @@ function closeDetail() {
           <div v-if="hoveredModel.sliding_window" class="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg p-2 border border-blue-200">
             <div class="text-xs text-gray-600 mb-0.5">{{ t('library.hybrid_attention') }}</div>
             <div class="text-sm font-semibold text-blue-700">
-              {{ t('library.window') }}: {{ hoveredModel.sliding_window }} · Local: {{ hoveredModel.local_layers }}
+              {{ t('library.window') }}: {{ hoveredModel.sliding_window }} · {{ t('library.local') }}: {{ hoveredModel.local_layers }}
             </div>
           </div>
         </div>
@@ -601,7 +601,7 @@ function closeDetail() {
           <div class="border-b border-gray-200 pb-2">
             <div class="flex items-center gap-2 mb-1">
               <h3 class="text-base font-bold text-gray-900">{{ hoveredGpu.name }}</h3>
-              <span v-if="isNew(hoveredGpu.released)" class="text-xs bg-red-500 text-white px-2 py-0.5 rounded-full font-medium">NEW</span>
+              <span v-if="isNew(hoveredGpu.released)" class="text-xs bg-red-500 text-white px-2 py-0.5 rounded-full font-medium">{{ t('library.tag_new') }}</span>
             </div>
             <div class="text-xs text-gray-500">
               {{ hoveredGpu.vendor.toUpperCase() }} · {{ hoveredGpu.released || '—' }}
@@ -681,10 +681,10 @@ function closeDetail() {
               <div class="flex-1">
                 <div class="flex items-center gap-2 mb-1 flex-wrap">
                   <h3 class="text-base font-bold text-gray-900">{{ detailModel.name }}</h3>
-                  <span v-if="detailModel.type === 'moe'" class="text-xs bg-amber-500 text-white px-2 py-0.5 rounded-full font-medium">MoE</span>
-                  <span v-else class="text-xs bg-emerald-500 text-white px-2 py-0.5 rounded-full font-medium">Dense</span>
+                  <span v-if="detailModel.type === 'moe'" class="text-xs bg-amber-500 text-white px-2 py-0.5 rounded-full font-medium">{{ t('library.tag_moe') }}</span>
+                  <span v-else class="text-xs bg-emerald-500 text-white px-2 py-0.5 rounded-full font-medium">{{ t('library.tag_dense') }}</span>
                   <span v-if="detailModel.status === 'preview'" class="text-xs bg-violet-600 text-white px-2 py-0.5 rounded-full font-medium">{{ t('model.tag_preview') }}</span>
-                  <span v-if="isNew(detailModel.released)" class="text-xs bg-red-500 text-white px-2 py-0.5 rounded-full font-medium">NEW</span>
+                  <span v-if="isNew(detailModel.released)" class="text-xs bg-red-500 text-white px-2 py-0.5 rounded-full font-medium">{{ t('library.tag_new') }}</span>
                 </div>
                 <div class="text-xs text-gray-600">
                   {{ t('library.released') }}: {{ detailModel.released || '—' }}
@@ -729,15 +729,15 @@ function closeDetail() {
                   <div class="font-semibold text-gray-900">{{ detailModel.layers }}</div>
                 </div>
                 <div class="bg-gray-50 rounded px-2 py-1.5 border border-gray-200">
-                  <div class="text-gray-600 text-[10px]">Hidden Size</div>
+                  <div class="text-gray-600 text-[10px]">{{ t('model.detail.hidden') }}</div>
                   <div class="font-semibold text-gray-900">{{ detailModel.hidden_size }}</div>
                 </div>
                 <div class="bg-gray-50 rounded px-2 py-1.5 border border-gray-200">
-                  <div class="text-gray-600 text-[10px]">KV Heads</div>
+                  <div class="text-gray-600 text-[10px]">{{ t('model.detail.kv_heads') }}</div>
                   <div class="font-semibold text-gray-900">{{ detailModel.kv_heads }}</div>
                 </div>
                 <div class="bg-gray-50 rounded px-2 py-1.5 border border-gray-200">
-                  <div class="text-gray-600 text-[10px]">Head Dim</div>
+                  <div class="text-gray-600 text-[10px]">{{ t('model.detail.head_dim') }}</div>
                   <div class="font-semibold text-gray-900">{{ detailModel.head_dim }}</div>
                 </div>
               </div>
@@ -755,7 +755,7 @@ function closeDetail() {
             <div v-if="detailModel.sliding_window" class="bg-gradient-to-r from-blue-100 to-cyan-100 rounded-lg p-2 border border-blue-300">
               <div class="text-xs text-gray-700 mb-0.5">{{ t('library.hybrid_attention') }}</div>
               <div class="text-sm font-semibold text-blue-800">
-                {{ t('library.window') }}: {{ detailModel.sliding_window }} · Local: {{ detailModel.local_layers }}
+                {{ t('library.window') }}: {{ detailModel.sliding_window }} · {{ t('library.local') }}: {{ detailModel.local_layers }}
               </div>
             </div>
 
@@ -787,7 +787,7 @@ function closeDetail() {
               <div class="flex-1">
                 <div class="flex items-center gap-2 mb-1 flex-wrap">
                   <h3 class="text-base font-bold text-gray-900">{{ detailGpu.name }}</h3>
-                  <span v-if="isNew(detailGpu.released)" class="text-xs bg-red-500 text-white px-2 py-0.5 rounded-full font-medium">NEW</span>
+                  <span v-if="isNew(detailGpu.released)" class="text-xs bg-red-500 text-white px-2 py-0.5 rounded-full font-medium">{{ t('library.tag_new') }}</span>
                 </div>
                 <div class="text-xs text-gray-600">
                   {{ detailGpu.vendor.toUpperCase() }} · {{ detailGpu.released || '—' }}

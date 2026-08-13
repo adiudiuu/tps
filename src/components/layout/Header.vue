@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n'
 import { generateMarkdown, downloadMarkdown, buildFilename } from '../../utils/exportMd.js'
 import { UPDATED_AT_BEIJING } from '../../data/appMeta.js'
 import LanguageSelect from './LanguageSelect.vue'
+import { currentLangParam, langQuery } from '../../utils/lang.js'
 
 const { t, locale } = useI18n()
 const route = useRoute()
@@ -23,8 +24,11 @@ const updatedAtText = computed(() => {
   const sourceDate = parseBeijingTime(UPDATED_AT_BEIJING)
   if (!sourceDate) return UPDATED_AT_BEIJING
   const localeTag = locale.value === 'zh' ? 'zh-CN'
+    : locale.value === 'zh-TW' ? 'zh-TW'
     : locale.value === 'es' ? 'es-ES'
     : locale.value === 'ja' ? 'ja-JP'
+    : locale.value === 'ko' ? 'ko-KR'
+    : locale.value === 'ru' ? 'ru-RU'
     : 'en-CA'
   const formatter = new Intl.DateTimeFormat(localeTag, {
     year: 'numeric',
@@ -46,9 +50,11 @@ const updatedAtText = computed(() => {
 })
 
 const homeLink = computed(() => {
-  if (route.path === '/') return '/'
+  if (route.path === '/') return { path: '/', query: langQuery() }
   const saved = sessionStorage.getItem(SESSION_KEY) ?? sessionStorage.getItem(LEGACY_SESSION_KEY) ?? ''
-  const query = Object.fromEntries(new URLSearchParams(saved))
+  const query = { ...Object.fromEntries(new URLSearchParams(saved)), ...langQuery() }
+  const lang = currentLangParam()
+  if (!lang) delete query.lang
   return { path: '/', query }
 })
 
@@ -136,7 +142,7 @@ function exportMarkdown() {
           {{ t('nav.estimator') }}
         </RouterLink>
         <RouterLink
-          to="/solver"
+          :to="{ path: '/solver', query: langQuery() }"
           class="px-3 py-1.5 text-sm font-medium rounded-md transition-colors"
           :class="route.path === '/solver'
             ? 'text-emerald-700 bg-emerald-100 font-semibold'
@@ -145,7 +151,7 @@ function exportMarkdown() {
           {{ t('nav.solver') }}
         </RouterLink>
         <RouterLink
-          to="/ranking"
+          :to="{ path: '/ranking', query: langQuery() }"
           class="px-3 py-1.5 text-sm font-medium rounded-md transition-colors"
           :class="route.path === '/ranking'
             ? 'text-emerald-700 bg-emerald-100 font-semibold'
@@ -154,7 +160,7 @@ function exportMarkdown() {
           {{ t('nav.ranking') }}
         </RouterLink>
         <RouterLink
-          to="/library"
+          :to="{ path: '/library', query: langQuery() }"
           class="px-3 py-1.5 text-sm font-medium rounded-md transition-colors"
           :class="route.path === '/library'
             ? 'text-emerald-700 bg-emerald-100 font-semibold'
@@ -163,7 +169,7 @@ function exportMarkdown() {
           {{ t('nav.library') }}
         </RouterLink>
         <RouterLink
-          to="/about"
+          :to="{ path: '/about', query: langQuery() }"
           class="px-3 py-1.5 text-sm rounded-md transition-colors"
           :class="route.path === '/about'
             ? 'text-emerald-700 bg-emerald-100 font-semibold'
@@ -208,7 +214,7 @@ function exportMarkdown() {
         </span>
       </button>
       <RouterLink
-        to="/about"
+        :to="{ path: '/about', query: langQuery() }"
         class="sm:hidden inline-flex items-center text-xs font-medium px-2 py-1.5 text-gray-500 hover:text-gray-900 transition-colors"
         :class="route.path === '/about' ? 'text-emerald-700' : ''"
       >

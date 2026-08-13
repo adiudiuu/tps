@@ -38,10 +38,15 @@
     <meta name="author" content="TPS Calculator" />
     <link rel="canonical" href="https://tps.bunai.com/" />
 
-    <!-- hreflang: zh default (no ?lang=); en/es/ja via ?lang= -->
+    <!-- hreflang: zh default (no ?lang=); others via ?lang= -->
     <link rel="alternate" hreflang="zh-CN" href="https://tps.bunai.com/" data-seo-hreflang="1" />
+    <link rel="alternate" hreflang="zh-Hant" href="https://tps.bunai.com/?lang=zh-TW" data-seo-hreflang="1" />
+    <link rel="alternate" hreflang="zh-TW" href="https://tps.bunai.com/?lang=zh-TW" data-seo-hreflang="1" />
+    <link rel="alternate" hreflang="zh-HK" href="https://tps.bunai.com/?lang=zh-TW" data-seo-hreflang="1" />
     <link rel="alternate" hreflang="en" href="https://tps.bunai.com/?lang=en" data-seo-hreflang="1" />
+    <link rel="alternate" hreflang="ru" href="https://tps.bunai.com/?lang=ru" data-seo-hreflang="1" />
     <link rel="alternate" hreflang="es" href="https://tps.bunai.com/?lang=es" data-seo-hreflang="1" />
+    <link rel="alternate" hreflang="ko" href="https://tps.bunai.com/?lang=ko" data-seo-hreflang="1" />
     <link rel="alternate" hreflang="ja" href="https://tps.bunai.com/?lang=ja" data-seo-hreflang="1" />
     <link rel="alternate" hreflang="x-default" href="https://tps.bunai.com/" data-seo-hreflang="1" />
 
@@ -51,9 +56,12 @@
     <meta property="og:description" content="估算 Qwen3.8、Kimi K3、GLM-5.2、DeepSeek V4 等在 RTX 5090、H200、B200 等 GPU 上的 TPS 与显存。403 模型 / 251 GPU，更新至 2026-08。" />
     <meta property="og:url" content="https://tps.bunai.com/" />
     <meta property="og:locale" content="zh_CN" />
-    <meta property="og:locale:alternate" content="en_US" />
-    <meta property="og:locale:alternate" content="es_ES" />
-    <meta property="og:locale:alternate" content="ja_JP" />
+    <meta property="og:locale:alternate" content="zh_TW" data-seo-og-alt="1" />
+    <meta property="og:locale:alternate" content="en_US" data-seo-og-alt="1" />
+    <meta property="og:locale:alternate" content="ru_RU" data-seo-og-alt="1" />
+    <meta property="og:locale:alternate" content="es_ES" data-seo-og-alt="1" />
+    <meta property="og:locale:alternate" content="ko_KR" data-seo-og-alt="1" />
+    <meta property="og:locale:alternate" content="ja_JP" data-seo-og-alt="1" />
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary" />
@@ -63,6 +71,7 @@
     <!-- AI / LLM crawlers -->
     <link rel="llms-txt" href="/llms.txt" />
     <link rel="alternate" href="/llms.zh.txt" hreflang="zh-CN" type="text/plain" title="llms.txt (Chinese)" />
+    <link rel="alternate" href="/llms.txt" hreflang="en" type="text/plain" title="llms.txt (English)" />
     <meta name="llms-txt" content="/llms.txt" />
 
     <!-- JSON-LD (replaced at runtime by locale-aware graph) -->
@@ -76,7 +85,7 @@
           "url": "https://tps.bunai.com/",
           "name": "TPS Calculator",
           "description": "估算 Qwen3.8-Max、Kimi K3、GLM-5.2、DeepSeek V4 等在 RTX 5090、H200、B200 等 GPU 上的 TPS 与显存。",
-          "inLanguage": ["zh-CN", "en", "es", "ja"]
+          "inLanguage": ["zh-CN", "zh-TW", "en", "ru", "es", "ko", "ja"]
         },
         {
           "@type": "WebApplication",
@@ -145,7 +154,7 @@
           <li><a href="https://tps.bunai.com/solver">配置推荐</a></li>
           <li><a href="https://tps.bunai.com/about">说明</a></li>
         </ul>
-        <p>语言：中文默认；<a href="https://tps.bunai.com/?lang=en">?lang=en</a> / <a href="https://tps.bunai.com/?lang=es">?lang=es</a> / <a href="https://tps.bunai.com/?lang=ja">?lang=ja</a>。GEO：<a href="/llms.txt">llms.txt</a>、<a href="/llms.zh.txt">llms.zh.txt</a>。</p>
+        <p>语言：简体中文默认；<a href="https://tps.bunai.com/?lang=zh-TW">繁體中文</a> / <a href="https://tps.bunai.com/?lang=en">English</a> / <a href="https://tps.bunai.com/?lang=ru">Русский</a> / <a href="https://tps.bunai.com/?lang=es">Español</a> / <a href="https://tps.bunai.com/?lang=ko">한국어</a> / <a href="https://tps.bunai.com/?lang=ja">日本語</a>。GEO：<a href="/llms.txt">llms.txt</a>、<a href="/llms.zh.txt">llms.zh.txt</a>。</p>
       </section>
       <section lang="en">
         <h1>GPU/LLM Inference Speed &amp; VRAM Estimator · TPS Calculator</h1>

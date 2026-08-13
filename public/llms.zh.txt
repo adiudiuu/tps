@@ -5,7 +5,7 @@
 站点：https://tps.bunai.com/
 源码：https://github.com/adiudiuu/tps
 英文说明：[llms.txt](/llms.txt)
-界面另有 `?lang=en` / `?lang=es` / `?lang=ja`（中文默认，不加 lang）
+界面：简体中文默认（不加 lang）；`?lang=zh-TW`（繁體中文）/ `?lang=en` / `?lang=ru` / `?lang=es` / `?lang=ko` / `?lang=ja`
 
 站内实时数量：**403 个模型**、**251 个 GPU**。数据更新至 **2026-08-13**（`UPDATED_AT_BEIJING`）。
 

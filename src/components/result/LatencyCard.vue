@@ -38,7 +38,7 @@ defineProps({ result: Object, readonly: Boolean })
       </div>
       <div>
         <div class="text-[10px] text-gray-400">{{ t('result.runtime') }}</div>
-        <div class="text-xs font-semibold text-gray-700 mt-0.5">{{ result.flashAttention ? 'FlashAttention' : 'Vanilla Attention' }}</div>
+        <div class="text-xs font-semibold text-gray-700 mt-0.5">{{ result.flashAttention ? t('run.flash_attention') : t('result.vanilla_attention') }}</div>
       </div>
       <div>
         <div class="text-[10px] text-gray-400">{{ t('run.kv_cache_quant') }}</div>

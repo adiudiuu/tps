@@ -1,15 +1,9 @@
 <script setup>
 import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { LANGS } from '../../i18n/locales.js'
 
 const { t, locale } = useI18n()
-
-const LANGS = [
-  { code: 'zh', label: '中文' },
-  { code: 'en', label: 'English' },
-  { code: 'es', label: 'Español' },
-  { code: 'ja', label: '日本語' },
-]
 
 const open = ref(false)
 const rootRef = ref(null)
@@ -157,7 +151,7 @@ onUnmounted(() => {
       role="menu"
       :aria-label="t('nav.language')"
       tabindex="-1"
-      class="absolute right-0 top-full mt-1 z-[60] min-w-[9.5rem] max-w-[calc(100vw-1.5rem)] py-1 rounded-md bg-white border border-gray-200 shadow-lg origin-top-right"
+      class="absolute right-0 top-full mt-1 z-[60] min-w-[11rem] max-w-[calc(100vw-1.5rem)] py-1 rounded-md bg-white border border-gray-200 shadow-lg origin-top-right"
       @keydown="onMenuKeydown"
     >
       <button

@@ -1,6 +1,5 @@
 ﻿<script setup>
 import Header from './Header.vue'
-import Footer from './Footer.vue'
 
 defineProps({
   result: Object, model: Object,
@@ -31,5 +30,4 @@ defineProps({
     :cpu-offload="cpuOffload"
     :pcie-bw="pcieBw"
   />
-  <Footer />
 </template>

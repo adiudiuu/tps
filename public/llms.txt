@@ -4,7 +4,7 @@
 
 Site: https://tps.bunai.com/
 Source: https://github.com/adiudiuu/tps
-Languages: English (this file), [Chinese](/llms.zh.txt); UI also `?lang=es` / `?lang=ja` (Chinese default, no query).
+Languages: English (this file), [Chinese](/llms.zh.txt). UI: Simplified Chinese default (no query); `?lang=zh-TW` (Traditional Chinese) / `?lang=en` / `?lang=ru` / `?lang=es` / `?lang=ko` / `?lang=ja`.
 
 Catalog (live counts in-app Library): **403 models**, **251 GPUs**. Data updated **2026-08-13** (`UPDATED_AT_BEIJING`).
 

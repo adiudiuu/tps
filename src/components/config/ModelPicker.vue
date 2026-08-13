@@ -233,8 +233,8 @@ function switchTab(tab) {
               <!-- 标题行 - 包含模型名称和参数信息 -->
               <div class="flex items-start justify-between gap-3 mb-2">
                 <div class="flex items-center gap-2 flex-1 min-w-0">
-                  <span v-if="m.type === 'moe'" class="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded-md font-semibold shrink-0">MoE</span>
-                  <span v-else class="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-md font-semibold shrink-0">Dense</span>
+                  <span v-if="m.type === 'moe'" class="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded-md font-semibold shrink-0">{{ t('library.tag_moe') }}</span>
+                  <span v-else class="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-md font-semibold shrink-0">{{ t('library.tag_dense') }}</span>
                   <span
                     v-if="m.status === 'preview'"
                     class="text-xs bg-violet-100 text-violet-800 px-2 py-0.5 rounded-md font-semibold shrink-0"
@@ -257,7 +257,7 @@ function switchTab(tab) {
 
               <!-- Attention 信息 -->
               <div class="text-xs text-gray-400 mb-3 font-light">
-                Attention: {{ getAttentionSummary(m) }}
+                {{ t('model.attention') }}: {{ getAttentionSummary(m) }}
               </div>
 
               <!-- 下载链接 -->
@@ -308,7 +308,7 @@ function switchTab(tab) {
               :class="detailModel.type === 'moe' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'"
               class="px-2.5 py-1 rounded-full text-xs font-medium"
             >
-              {{ detailModel.type === 'moe' ? 'MoE' : 'Dense' }}
+              {{ detailModel.type === 'moe' ? t('library.tag_moe') : t('library.tag_dense') }}
             </span>
             <span
               v-if="detailModel.status === 'preview'"
@@ -366,7 +366,7 @@ function switchTab(tab) {
               <div class="mt-1 font-semibold text-gray-900">{{ detailModel.kv_heads }}</div>
             </div>
             <div class="rounded-xl bg-white/85 px-3 py-2 ring-1 ring-emerald-100">
-              <div class="text-gray-500">MLA KV Ratio</div>
+              <div class="text-gray-500">{{ t('model.custom.mla_ratio') }}</div>
               <div class="mt-1 font-semibold text-gray-900">{{ detailModel.mla_ratio ?? '—' }}</div>
             </div>
           </div>
