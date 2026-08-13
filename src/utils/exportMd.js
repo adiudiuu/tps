@@ -56,6 +56,9 @@ export function generateMarkdown({
   lines.push(`| ${t('md.total_tflops')} | ${gpu.bf16 * gpuCount} TFLOPS |`)
   lines.push(`| ${t('md.quantization')} | ${quant.label} |`)
   lines.push(`| ${t('md.framework')} | ${framework.labelKey ? t(framework.labelKey) : (framework.label ?? framework.id)} |`)
+  if (gpuCount > 1) {
+    lines.push(`| ${t('md.parallel')} | ${t('run.parallel_layout', { tp: result.tpCount ?? gpuCount, ep: result.epCount ?? 1, dp: result.dpCount ?? 1 })} |`)
+  }
   lines.push('')
 
   // ── 2. 模型信息 ──────────────────────────────────────
@@ -68,6 +71,13 @@ export function generateMarkdown({
   lines.push(`| ${t('md.total_params')} | ${fmtParams(model.params)} |`)
   if (model.type === 'moe' && model.active_params) {
     lines.push(`| ${t('md.active_params')} | ${fmtParams(model.active_params)} |`)
+  }
+  if (model.type === 'moe' && model.experts) {
+    lines.push(`| ${t('model.detail.experts')} | ${model.experts} |`)
+    lines.push(`| ${t('model.detail.experts_per_token')} | ${model.experts_per_token ?? '—'} |`)
+  }
+  if (model.linear_attention_layers) {
+    lines.push(`| ${t('model.detail.linear_attention')} | ${model.linear_attention_layers} |`)
   }
   lines.push(`| ${t('md.max_context')} | ${fmtCtx(model.max_ctx)} |`)
   lines.push(`| ${t('model.attention')} | ${result.attentionSummary} |`)
@@ -146,6 +156,8 @@ export function generateMarkdown({
         gpu, gpuCount, interconnect, model, quant: q, ctx, batch,
         promptLen, outputLen, framework, flashAttention, kvCacheQuant,
         prefixCacheHit, cpuOffload, pcieBw,
+        ppCount: result.ppCount ?? 1,
+        epCount: result.epCount ?? 1,
         speculativeDecoding: _speculativeDecoding, acceptanceRate: _acceptanceRate, draftLen: _draftLen,
       })
       const isCurrent = q.id === quant.id
@@ -162,6 +174,8 @@ export function generateMarkdown({
             gpu, gpuCount, interconnect, model, quant: q, ctx, batch,
             promptLen, outputLen, framework, flashAttention, kvCacheQuant,
             prefixCacheHit, cpuOffload: true, pcieBw: fallbackPcie,
+            ppCount: result.ppCount ?? 1,
+            epCount: result.epCount ?? 1,
             speculativeDecoding: _speculativeDecoding, acceptanceRate: _acceptanceRate, draftLen: _draftLen,
           })
           status = ro.vramOk
@@ -205,6 +219,9 @@ export function generateMarkdown({
   lines.push(`| ${t('md.kv_read')} | ${fmtGB(result.kvReadGB)}/step |`)
   if (result.tpEfficiency < 1) {
     lines.push(`| ${t('md.tp_eff')} | ${fmtPct(result.tpEfficiency * 100)} |`)
+  }
+  if ((result.epEfficiency ?? 1) < 1) {
+    lines.push(`| ${t('md.ep_eff')} | ${fmtPct(result.epEfficiency * 100)} |`)
   }
   lines.push('')
 

@@ -1,5 +1,6 @@
 // src/utils/calc.js
 import { getAttentionSummary, getAttentionType, getTotalHeads } from './model.js'
+import { applySpeedCalibration } from './calibrate.js'
 
 /**
  * 核心计算函数，无副作用
@@ -7,12 +8,12 @@ import { getAttentionSummary, getAttentionType, getTotalHeads } from './model.js
  * 关键设计决策：
  * - KV Cache 精度独立于权重量化（kv_bytes），INT4 权重的 KV Cache 通常仍是 FP16
  * - MoE 模型 prefill 用 active_params 计算 FLOPs，而非总参数
- * - 多卡 TP 下，每卡只存 1/N 权重，带宽效率按分片后计算
- * - EP（Expert Parallelism）：每卡只存部分 expert，需要 all-to-all token routing
+ * - 多卡：gpuCount 是物理卡数，tp×ep×dp×pp = gpuCount（默认 tp=n, ep=1, dp=1）
+ * - EP：每卡只存部分 expert，需要 all-to-all；不要再按 TP=gpuCount 叠乘
  *
  * @param {object} params
  * @param {object} params.gpu          - GPU 对象
- * @param {number} params.gpuCount     - GPU 数量（Tensor Parallel）
+ * @param {number} params.gpuCount     - 物理 GPU 数量
  * @param {object} params.interconnect - 互联方式对象
  * @param {object} params.model        - 模型对象
  * @param {object} params.quant        - 量化精度对象
@@ -21,7 +22,9 @@ import { getAttentionSummary, getAttentionType, getTotalHeads } from './model.js
  * @param {number} params.promptLen    - Prompt 长度（tokens）
  * @param {number} params.outputLen    - 输出长度（tokens）
  * @param {object} params.framework    - 推理框架对象
- * @param {number} [params.epCount]    - Expert Parallelism 度（仅 MoE 模型有效，默认 1 = 不启用）
+ * @param {number} [params.epCount]    - Expert Parallelism 度（仅 MoE，默认 1）
+ * @param {number} [params.dpCount]    - Data Parallelism 度（默认 1，无单独滑条）
+ * @param {boolean} [params.skipCalibration] - 跳过残差校准层（拟合脚本用）
  */
 export function calcAll({
   gpu, gpuCount, interconnect, model, quant, ctx, batch, promptLen, outputLen, framework,
@@ -33,12 +36,31 @@ export function calcAll({
   speculativeDecoding = false, acceptanceRate = 0.7, draftLen = 4, draftModelParams = null,
   ppCount = 1,
   epCount = 1,
+  dpCount = 1,
   imageCount = 0,
+  skipCalibration = false,
 }) {
-  const totalVram = gpu.vram * gpuCount * (gpu.usableRatio ?? 1.0)
-  const totalBw   = gpu.bw   * gpuCount * (gpu.bwUtilization ?? 0.80) * getAppleDecodeBwScale(gpu)
+  // Dense / 无 experts：强制 EP=1，按 TP=gpuCount/PP 布局（与 RunConfig.epSupported 一致）
+  const layout = resolveParallelLayout({
+    gpuCount,
+    ppCount,
+    epCount: effectiveEpCount(model, epCount),
+    dpCount,
+  })
+  const totalGpus = layout.totalGpus
+  const tpCount = layout.tpCount
+  epCount = layout.epCount
+  dpCount = layout.dpCount
+  ppCount = layout.ppCount
+
+  const replicaGpus = tpCount * epCount * ppCount
+  const totalVram = gpu.vram * totalGpus * (gpu.usableRatio ?? 1.0)
+  const singleCardBw = gpu.bw * (gpu.bwUtilization ?? 0.80) * getAppleDecodeBwScale(gpu)
+  const totalBw   = singleCardBw * replicaGpus
   const quantBytes = getQuantBytes(quant, gpu, framework)
-  const tflops    = getPrefillTflops(gpu, quant) * gpuCount
+  const actBytes = getActBytes(quant)
+  const gpuTflops = getPrefillTflops(gpu, quant, framework, model)
+  const tflops    = gpuTflops * replicaGpus
   const attentionType = getAttentionType(model)
   const attentionSummary = getAttentionSummary(model)
   const totalHeads = getTotalHeads(model) ?? model.kv_heads ?? 1
@@ -66,16 +88,62 @@ export function calcAll({
       }
     }
   }
-  // NVIDIA 消费级 + llama.cpp：小模型 CUDA kernel 效率高于通用 0.52 系数
-  if (gpu.vendor === 'nvidia' && framework.id === 'llamacpp' && model.params < 15) {
+  // NVIDIA + llama.cpp：
+  // - GDDR 8–14B Q4：消费卡 mmq 高于通用 0.52（锚点 4090 Llama 8B Q4 tg1024≈128）
+  // - GDDR 8–14B BF16：无 dequant，略高于 Q4（锚点 4090 Llama 8B F16 tg1024≈54）
+  // - HBM（A100/H100 类，bw≥1500 的 datacenter）：吃不满消费卡那套带宽利用率
+  //   （XiongjieDai H100 PCIe 8B Q4 tg1024≈144，不是 0.76×HBM）
+  // - <3B：小 GEMM（LocalScore 1B）；HBM 上更空
+  if (gpu.vendor === 'nvidia' && framework.id === 'llamacpp') {
+    const hbm = isNvidiaHbm(gpu)
+    const quantId = quant?.id ?? 'bf16'
+    const isFp16Family = quantId === 'bf16' || quantId === 'fp32'
+    if (model.params < 3) {
+      const d = hbm ? 0.15 : 0.40
+      adjustedFramework = {
+        ...adjustedFramework,
+        decode: d,
+        decodeMin: d * 0.90,
+        decodeMax: d * 1.10,
+      }
+    } else if (model.params < 15) {
+      const d = hbm ? 0.40 : (isFp16Family ? 0.88 : Math.max(adjustedFramework.decode, 0.76))
+      adjustedFramework = {
+        ...adjustedFramework,
+        decode: d,
+        decodeMin: d * 0.92,
+        decodeMax: d * 1.10,
+      }
+    }
+  }
+  // vLLM dense GPTQ/AWQ INT4：unpack 开销，不要沿用 BF16/FP8 的 0.65
+  // 锚点：Qwen 官方 A100 Qwen2.5-7B/14B GPTQ-Int4 batch=1（勿碰 MoE FP8 饱和）
+  if (
+    gpu.vendor === 'nvidia'
+    && framework.id === 'vllm'
+    && model.type !== 'moe'
+    && (quant?.id === 'int4' || quant?.id === 'int3' || quant?.id === 'int2')
+  ) {
     adjustedFramework = {
       ...adjustedFramework,
-      decode: Math.max(adjustedFramework.decode, 0.76),
-      decodeMin: Math.max(adjustedFramework.decodeMin ?? 0, 0.70),
-      decodeMax: Math.max(adjustedFramework.decodeMax ?? 0, 0.84),
+      decode: 0.36,
+      decodeMin: 0.32,
+      decodeMax: 0.40,
     }
   }
   adjustedFramework = applyAppleFrameworkAdjustments(gpu, framework, adjustedFramework)
+  // MoE CUDA：dense 的 vLLM 0.65 等 Llama 锚点保持不动，只在 MoE 上乘独立 kernel 效率
+  // Apple 已用 appleMoeDispatchUs + overfetch 标定，不要套 CUDA moeKernelEff
+  // grouped GEMM：小 batch 专家矩阵偏空，大 batch 接近 dense（见 getCudaMoeKernelEff）
+  if (model.type === 'moe' && gpu.vendor !== 'apple' && adjustedFramework.moeKernelEff != null) {
+    const k = getCudaMoeKernelEff(adjustedFramework.moeKernelEff, batch, model)
+    adjustedFramework = {
+      ...adjustedFramework,
+      decode: adjustedFramework.decode * k,
+      decodeMin: (adjustedFramework.decodeMin ?? adjustedFramework.decode) * k,
+      decodeMax: (adjustedFramework.decodeMax ?? adjustedFramework.decode) * k,
+    }
+  }
 
   // ─────────────────────────────────────────────
   // MoE non-expert 参数预计算（EP / CPU Offload 共用）
@@ -95,15 +163,13 @@ export function calcAll({
     }
   }
 
-  // EP（Expert Parallelism）：epCount > 1 且 nonExpertParams 可计算时启用
-  // 每卡只存 1/epCount 的 expert + 完整非 expert 权重
+  // EP：epCount > 1 且 nonExpertParams 可计算。权重按 tp×ep 分片，不再把 gpuCount 当第二层 TP
   const isEP = epCount > 1 && model.type === 'moe' && nonExpertParams != null
   const visionWeightGB = visionWeightParams * quantBytes
   let epWeightGB = null
   if (isEP) {
     const totalExpertParams = model.params - nonExpertParams
-    const expertParamsPerCard = totalExpertParams / epCount
-    epWeightGB = (nonExpertParams + expertParamsPerCard) * quantBytes
+    epWeightGB = (nonExpertParams / tpCount + totalExpertParams / (epCount * tpCount)) * quantBytes
   }
 
   // ─────────────────────────────────────────────
@@ -137,7 +203,7 @@ export function calcAll({
   // KV Cache 显存：精度独立于权重量化，通常为 FP16（2 bytes）
   // 混合注意力：global 全上下文；sliding 只计窗口；线性层（GatedDeltaNet 等）KV 归零
   // linear_attention_layers 与 local_layers+sliding_window===0 同等处理（Qwen3.5 仅有前者）
-  const kvBytesPerElem = kvCacheQuant?.bytes ?? quant.kv_bytes ?? 2.0
+  const kvBytesPerElem = getKvBytesPerElem(kvCacheQuant)
   const kvParts = getKvLayerParts(model)
   const kvScale = { mlaRatio: model.mla_ratio, mambaRatio: model.mamba_ratio }
   let kvGB = kvFootprintGB({
@@ -173,7 +239,7 @@ export function calcAll({
   const isContinuousBatching = (framework?.schedulingMode ?? 'continuous') === 'continuous'
   const maxFwdTokens = isContinuousBatching ? 8192 : 2048
   const actTokens = Math.max(batch, Math.min(batch * effectivePromptLen, maxFwdTokens))
-  const activationGB = actTokens * (model.hidden_size ?? 4096) * 4 * 2 / 1e9 * 4
+  const activationGB = actTokens * (model.hidden_size ?? 4096) * 4 * actBytes / 1e9 * 4
   const overheadGB  = Math.max(1.0, Math.min(targetWeightGB * 0.03, 5.0)) + activationGB
   // Dense + llamacpp + offload → NGL 分层，DDR 带宽
   // MoE 不走 NGL 分层（expert 通过 PCIe 卸载，见 decode 带宽路径）
@@ -213,7 +279,10 @@ export function calcAll({
   //   每卡 IO = 非 expert 权重 + 本卡 expert 权重 + KV Cache
   //   all-to-all 通信开销由 epCommLatencyMs 单独建模
   const activeWeightRaw = (isEP
-    ? epWeightGB  // EP 下每卡只读自己那份权重（不含 draft；draft IO 另计）
+    ? (() => {
+        const activeExpert = Math.max(0, (model.active_params ?? model.params) - (nonExpertParams ?? 0))
+        return (nonExpertParams / tpCount + activeExpert / (epCount * tpCount)) * quantBytes
+      })()
     : model.type === 'moe'
       ? model.active_params * quantBytes
       : (targetWeightGB - visionWeightGB)) + visionWeightGB
@@ -292,7 +361,13 @@ export function calcAll({
     }
   }
 
-  const decodeBytesPerStep = activeWeight + kvReadGB + draftIOPerStep
+  const decodeBytesCluster = isEP
+    ? activeWeight * tpCount + kvReadGB + draftIOPerStep
+    : activeWeight + kvReadGB + draftIOPerStep
+  const decodeBytesPerCard = isEP
+    ? activeWeight + kvReadGB / tpCount + draftIOPerStep / tpCount
+    : decodeBytesCluster / tpCount
+  const decodeBytesPerStep = decodeBytesCluster
 
   // MoE CPU Offload：精细 IO 分拆 + 串行时序模型
   // - expert FFN 权重在 CPU RAM，每步经 PCIe 读到 GPU
@@ -306,7 +381,7 @@ export function calcAll({
   // PP 阶段间 P2P 通信延迟（每个 decode step，ms）
   // 跨 stage 传递 hidden_size × batch × 2 bytes（BF16），共 ppCount-1 次
   const ppP2pMs = (ppCount > 1 && interconnect)
-    ? (ppCount - 1) * (model.hidden_size ?? 4096) * batch * 2 / (interconnect.bw * 1e9) * 1000
+    ? (ppCount - 1) * (model.hidden_size ?? 4096) * batch * actBytes / (interconnect.bw * 1e9) * 1000
     : 0
 
   let effectiveBw, bwLimit
@@ -348,8 +423,8 @@ export function calcAll({
     effectiveBw = pcieBw.bw  // 仅用于展示
   } else {
     effectiveBw = totalBw
-    // PP：decodeBytesPerStep / ppCount 是单个 stage 的 IO 量；流水满载再乘气泡效率
-    bwLimit = (effectiveBw / (decodeBytesPerStep / ppCount)) * batch * ppBubbleEff
+    // 统一按「每卡 IO / 单卡带宽」。dense TP 与旧公式 full/(N×bw) 等价；纯 EP 不再用集群带宽去除以每卡 IO
+    bwLimit = (singleCardBw / (decodeBytesPerCard / ppCount)) * batch * ppBubbleEff
   }
   // bwLimit 保持为纯物理带宽上限（不含框架效率 / 调度效率），
   // 供 Roofline 对比与 offload 串行时序反推使用；
@@ -366,31 +441,54 @@ export function calcAll({
 
   // 动态注意力 FLOPs 因子：综合考虑 seq_len、GQA/MQA、线性 attention 层
   // factor > 1 表示 attention 增加了额外 FLOPs，需要在 computeBaseLimit 中除以它
+  const visionEncoderParams = model.vision_encoder_params ?? 0
+  // params 已含 ViT 时，文本 prefill 始终扣掉 encoder；有图再把 ViT FLOPs 加回来，避免「加图反而更快」
+  const tokenActiveParams = model.vision_encoder_in_params
+    ? Math.max(0.01, activeParams - visionEncoderParams)
+    : activeParams
+  const visionPrefillFlops = (imageCount > 0 && visionEncoderParams > 0)
+    ? 2 * visionEncoderParams * 1e9 * imageCount
+    : 0
+
   const prefillAttentionFactor = getPrefillAttentionFactor({
     totalHeads,
     kvHeads:    model.kv_heads,
     headDim:    model.head_dim,
     layers:     model.layers,
     promptLen:  effectivePromptLen,
-    activeParams,
+    activeParams: tokenActiveParams,
     linearAttnLayers,
   })
 
-  // tok/s：prefill FLOPs/tok = 2 × activeParams × 1e9（FFN 部分）
-  // 加上 attention FLOPs 后，实际总 FLOPs/tok = prefillAttentionFactor × 2 × activeParams × 1e9
-  // 推导：prefill_speed = tflops × 1e12 / (prefillAttentionFactor × 2 × activeParams × 1e9)
-  const computeBaseLimit = (tflops * 1e12) / (2 * activeParams * 1e9)
+  const computeBaseLimit = (tflops * 1e12) / (2 * tokenActiveParams * 1e9)
   const computeLimit = (computeBaseLimit / prefillAttentionFactor) * flashFactor
-  const prefillFactor = adjustedFramework.prefill
+  let prefillFactor = adjustedFramework.prefill
+  let prefillLo = prefillFactorMin
+  let prefillHi = prefillFactorMax
+  // llama.cpp CUDA F16：无 unpack，消费卡 prompt eval 高于 Q4 的 0.35
+  // 锚点：XiongjieDai 4090 Llama 8B F16 pp1024≈9056（Q4 pp 仍走 0.35 + mmq）
+  if (
+    gpu.vendor === 'nvidia'
+    && framework.id === 'llamacpp'
+    && (quant?.id === 'bf16' || quant?.id === 'fp32')
+    && !isNvidiaHbm(gpu)
+  ) {
+    prefillFactor = 0.78
+    prefillLo = 0.70
+    prefillHi = 0.86
+  }
   const prefillToks  = computeLimit * prefillFactor
-  const prefillToksMin = (computeBaseLimit / prefillAttentionFactor) * prefillFactorMin * scaledFlashRange.min
-  const prefillToksMax = (computeBaseLimit / prefillAttentionFactor) * prefillFactorMax * scaledFlashRange.max
+  const prefillToksMin = (computeBaseLimit / prefillAttentionFactor) * prefillLo * scaledFlashRange.min
+  const prefillToksMax = (computeBaseLimit / prefillAttentionFactor) * prefillHi * scaledFlashRange.max
 
-  // 首 token 延迟（ms）：纯 prefill 计算时间
-  // continuous batching 模式（vLLM/TRT-LLM/TGI）下请求并发处理，TTFT 不随 batch 线性增加
-  // serial 模式（llama.cpp）下请求串行排队，TTFT × batch
-  // 实际 FLOPs/token = prefillAttentionFactor × 2 × activeParams × 1e9
-  const ttft = (effectivePromptLen * prefillAttentionFactor * 2 * activeParams * 1e9) / (tflops * 1e12) * 1000 / (flashFactor * prefillFactor) * (isContinuousBatching ? 1 : Math.max(1, batch)) * getAppleTtftScale(gpu)
+  const textTtft = (effectivePromptLen * prefillAttentionFactor * 2 * tokenActiveParams * 1e9) / (tflops * 1e12) * 1000 / (flashFactor * prefillFactor) * (isContinuousBatching ? 1 : Math.max(1, batch)) * getAppleTtftScale(gpu)
+  // 文本 prefill 用 replicaGpus（TP×EP×PP）叠算力；ViT 编码器通常不在 EP 各 rank / 各 PP stage 各算一份
+  // 只按 TP 组内一份，避免多模态 TTFT 随 EP replica 系统性偏乐观
+  const visionTflops = gpuTflops * tpCount
+  const visionTtft = visionPrefillFlops > 0
+    ? visionPrefillFlops / (visionTflops * 1e12) * 1000 / prefillFactor * getAppleTtftScale(gpu)
+    : 0
+  const ttft = textTtft + visionTtft
 
   // 单 token 生成时间（ms）基准：物理 IO 时间 + 框架效率系数
   // 此处只含物理带宽与框架系数；调度效率 / speculative / TP·EP 通信损耗在后面统一施加，
@@ -407,7 +505,7 @@ export function calcAll({
     if (cpuOffload && model.type === 'moe' && pcieBw != null) {
       return (batch / bwLimit) * 1000 / decodeFactor
     }
-    return (decodeBytesPerStep / ppCount / effectiveBw / ppBubbleEff) * 1000 / decodeFactor
+    return (decodeBytesPerCard / ppCount / singleCardBw / ppBubbleEff) * 1000 / decodeFactor
   }
 
   const moeExtraDecodeMs = getMoeExtraDecodeMs({
@@ -430,7 +528,7 @@ export function calcAll({
   // batch 调度效率：continuous batching 在高 batch 下的排队/调度损耗
   // speculative decoding：每步平均产出 speculativeSpeedup 个 token
   // 两者都折算成"每 token 有效时间"，使延迟与吞吐同源
-  const batchSchedEff = getBatchSchedulingEfficiency(batch, adjustedFramework)
+  const batchSchedEff = getBatchSchedulingEfficiency(batch, adjustedFramework, model)
   const perTokenScale = Math.max(batchSchedEff * speculativeSpeedup, 1e-9)
 
   // TP/EP 通信损耗之前的每 token 时间（ms）
@@ -454,40 +552,25 @@ export function calcAll({
 
   // ─────────────────────────────────────────────
   // TP 通信效率（多卡 Tensor Parallel）
+  // gpuCount 是物理卡数；只在 tpCount>1 时算 TP all-reduce，避免 8 卡 EP=8 再叠一层 TP=8
   // ─────────────────────────────────────────────
-  // 核心公式：efficiency = t_compute / (t_compute + t_comm)
-  //
-  // t_compute_per_layer（纯物理 HBM 时间，不含框架系数）：
-  //   (decodeBytesPerStep / ppCount) / totalBw / layers
-  //
-  // t_comm（ring all-reduce，LogP 模型：α + β × message_size）：
-  //   message_size = 2*(N-1)/N × hidden_size × batch × 2 bytes（BF16）
-  //   α（固定握手延迟）= latency_per_hop × 2*(N-1) 次握手
-  //     节点内 NVLink：~1μs/hop；跨节点 IB：~4μs/hop
-  //   β 项 = message_size / interconnect.bw
-  //
-  // pureCpu / llamacpp hybrid 不做 TP，跳过此计算
+  // efficiency = t_compute / (t_compute + t_comm)
+  // t_comm：ring all-reduce，LogP：α + β × message_size
+  //   每层默认 2 次 all-reduce（attention + MLP）；message 用 actBytes（残差精度）
+  //   α：NCCL 小消息节点内 ~8μs/hop，跨节点 IB ~25μs/hop（1μs 纯 NVLink hop 偏乐观）
   let tpEfficiency = 1.0
   const isGpuPath = !pureCpu && !isLlamaCppHybrid
-  if (isGpuPath && gpuCount > 1 && interconnect) {
-    // 每层 all-reduce 消息大小（bytes，BF16，ring 系数 2*(N-1)/N）
-    const commBytesPerLayer = 2 * (model.hidden_size ?? 4096) * batch * 2 * (gpuCount - 1) / gpuCount
-
-    // β 项：带宽传输时间（ms）
+  const tpArPerLayer = 2
+  const ncclAlphaMs = (interconnect?.scope === 'inter') ? 0.025 : 0.008
+  if (isGpuPath && tpCount > 1 && interconnect) {
+    const commBytesPerLayer = tpArPerLayer * 2 * (model.hidden_size ?? 4096) * batch * actBytes * (tpCount - 1) / tpCount
     const commBwMs = commBytesPerLayer / (interconnect.bw * 1e9) * 1000
-
-    // α 项：固定延迟（ms）
-    // 节点内（NVLink/PCIe）：~1μs；跨节点（IB）：~4μs per hop，ring 需 2*(N-1) 次握手
-    const alphaMs = (interconnect.scope === 'inter')
-      ? 0.004 * 2 * (gpuCount - 1)   // IB：4μs × 2*(N-1) 次握手
-      : 0.001 * 2 * (gpuCount - 1)   // NVLink：1μs × 2*(N-1) 次握手
-
-    const commLatencyPerLayer = commBwMs + alphaMs  // ms，总通信延迟
-
-    // 纯物理计算时间（ms/layer）：不含框架系数，只看 HBM 带宽
-    // 使用 totalBw（GPU HBM 总带宽），decodeBytesPerStep / ppCount 是单 stage IO
-    const physicalTimePerLayer = (decodeBytesPerStep / ppCount) / totalBw / (model.layers ?? 1) * 1000
-
+    const bytesPerAr = commBytesPerLayer / Math.max(1, tpArPerLayer)
+    // 大消息 all-reduce 以带宽为主；8μs/hop 只适用于小消息（否则双卡 Mixtral 高 batch 被 α 钉死）
+    const alphaScale = Math.min(1, 65536 / Math.max(bytesPerAr, 1))
+    const alphaMs = ncclAlphaMs * 2 * (tpCount - 1) * tpArPerLayer * alphaScale
+    const commLatencyPerLayer = commBwMs + alphaMs
+    const physicalTimePerLayer = (decodeBytesPerCard / ppCount) / singleCardBw / (model.layers ?? 1) * 1000
     tpEfficiency = physicalTimePerLayer / (physicalTimePerLayer + commLatencyPerLayer)
     tpEfficiency = Math.min(1.0, Math.max(0.01, tpEfficiency))
   }
@@ -495,43 +578,16 @@ export function calcAll({
   // ─────────────────────────────────────────────
   // EP 通信效率（Expert Parallelism all-to-all）
   // ─────────────────────────────────────────────
-  // EP 每个 MoE 层需要两次 all-to-all：
-  //   1. dispatch：把 token 路由到持有对应 expert 的卡（发送 hidden_size × experts_per_token tokens）
-  //   2. combine：把 expert 输出汇聚回原卡
-  //
-  // 每次 all-to-all 消息大小（per card）：
-  //   batch × experts_per_token × hidden_size × 2 bytes（BF16）/ epCount
-  //   （每卡平均接收 batch × experts_per_token / epCount 个 token）
-  //
-  // 通信延迟模型（LogP）：α + β × message_size
-  //   α：节点内 ~1μs，跨节点 ~4μs（与 TP 相同）
-  //   两次 all-to-all = 2 × (α + β × msg)
-  //
-  // MoE 层数 = layers（所有层都有 MoE FFN，attention 层不参与 EP）
   let epEfficiency = 1.0
   if (isEP && isGpuPath && interconnect) {
     const moeLayerCount = model.layers ?? 1
     const hiddenSize = model.hidden_size ?? 4096
     const expertsPerToken = model.experts_per_token ?? 1
-
-    // 每次 all-to-all 每卡消息大小（bytes）
-    const a2aMsgBytes = batch * expertsPerToken * hiddenSize * 2 / epCount
-
-    // β 项：带宽传输时间（ms），两次 all-to-all
+    const a2aMsgBytes = batch * expertsPerToken * hiddenSize * actBytes / epCount
     const a2aBwMs = 2 * a2aMsgBytes / (interconnect.bw * 1e9) * 1000
-
-    // α 项：固定延迟（ms），两次 all-to-all
-    const a2aAlphaMs = (interconnect.scope === 'inter')
-      ? 2 * 0.004  // IB：4μs × 2
-      : 2 * 0.001  // NVLink：1μs × 2
-
-    const epCommLatencyPerLayer = a2aBwMs + a2aAlphaMs  // ms，每 MoE 层
-
-    // 纯物理计算时间（ms/layer）：每卡只读自己的 expert 权重
-    // 注意：decodeBytesPerStep 是每卡 IO，应除以单卡带宽，而非 totalBw（N 卡总带宽）
-    const singleCardBw = gpu.bw * (gpu.bwUtilization ?? 0.80)
-    const physicalTimePerLayer = (decodeBytesPerStep / ppCount) / singleCardBw / moeLayerCount * 1000
-
+    const a2aAlphaMs = 2 * ncclAlphaMs
+    const epCommLatencyPerLayer = a2aBwMs + a2aAlphaMs
+    const physicalTimePerLayer = (decodeBytesPerCard / ppCount) / singleCardBw / moeLayerCount * 1000
     epEfficiency = physicalTimePerLayer / (physicalTimePerLayer + epCommLatencyPerLayer)
     epEfficiency = Math.min(1.0, Math.max(0.01, epEfficiency))
   }
@@ -554,30 +610,29 @@ export function calcAll({
   // 总延迟 = TTFT + 输出 token 数 × 单 token 时间
   const totalLatency  = ttft + outputLen * tpot  // ms
 
-  const totalPower = gpu.tdp * gpuCount * ppCount / 1000  // kW，总卡数 = TP × PP
-  // 能效比：tok/J = decode吞吐(tok/s) / 总功耗(W)
-  // 方便数据中心选型比较能效
+  const totalPower = gpu.tdp * totalGpus / 1000  // kW，物理卡数
   const tokPerJoule = totalPower > 0 ? effectiveToks / (totalPower * 1000) : null
-  const accuracyTier = (() => {
-    if (gpu.vendor !== 'apple') return 'high'
-    if (model.params < 15) return 'low'
-    if (model.type === 'moe' && model.experts_per_token === 1) return 'low'
-    if (model.type === 'moe' && gpu.bw < 580) return 'mid'
-    if (model.params >= 30 && gpu.bw >= 500) return 'high'
-    return 'mid'
-  })()
+  const accuracyTier = getAccuracyTier({
+    gpu,
+    model,
+    framework: adjustedFramework,
+    isEP,
+    tpCount,
+    quant,
+  })
 
   const perCardVram = gpu.vram * (gpu.usableRatio ?? 1.0)
   const weightKvPerCard = (() => {
-    const sharded = (weightGB + kvGB) * gpuLayerRatio / ppCount
-    if (gpuCount <= 1) return sharded
-    if (isEP) return weightGB / ppCount + kvGB * gpuLayerRatio / ppCount / gpuCount
-    return sharded / gpuCount
+    if (isEP) {
+      return (epWeightGB + draftWeightGB / tpCount) * gpuLayerRatio / ppCount
+        + kvGB * gpuLayerRatio / tpCount / ppCount
+    }
+    return (weightGB + kvGB) * gpuLayerRatio / tpCount / ppCount
   })()
   const perCardNeeded = weightKvPerCard + overheadGB
-  const displayNeeded = gpuCount > 1 ? perCardNeeded : totalNeeded
-  const displayVram = gpuCount > 1 ? perCardVram : totalVram
-  const clusterNeeded = gpuCount > 1 ? perCardNeeded * gpuCount : totalNeeded
+  const displayNeeded = totalGpus > 1 ? perCardNeeded : totalNeeded
+  const displayVram = totalGpus > 1 ? perCardVram : totalVram
+  const clusterNeeded = totalGpus > 1 ? perCardNeeded * totalGpus : totalNeeded
   const vramOk = perCardNeeded <= perCardVram
   const vramPct = perCardNeeded / perCardVram * 100
   // 纯 CPU / llama.cpp 混合 / MoE offload 会把权重压到系统内存，
@@ -586,12 +641,14 @@ export function calcAll({
   const ramOk = !(sysRam != null && cpuRamNeededGB > 0 && cpuRamNeededGB > sysRam)
   const runnable = vramOk && ramOk
 
-  return {
+  const raw = {
     // 显存
     weightGB, kvGB, overheadGB, activationGB, totalNeeded, totalVram,
     perCardNeeded, perCardVram, displayNeeded, displayVram, clusterNeeded,
-    gpuCount,
-    vramScope: gpuCount > 1 ? 'per_card' : 'total',
+    gpuCount: totalGpus,
+    tpCount,
+    dpCount,
+    vramScope: totalGpus > 1 ? 'per_card' : 'total',
     vramOk,
     ramOk,
     runnable,
@@ -644,6 +701,17 @@ export function calcAll({
     modelParams: model.params,
     modelExpertsPerToken: model.experts_per_token ?? null,
   }
+
+  // 独立校准层：Roofline tok/s × Π(因子)。关：skipCalibration 或 CALIBRATION_ENABLED=false
+  if (skipCalibration) return raw
+  return applySpeedCalibration(raw, {
+    gpu,
+    model,
+    framework,
+    batch,
+    tpCount,
+    outputLen,
+  })
 }
 
 /**
@@ -751,6 +819,108 @@ function getMoeNonExpertParams(model) {
   return (model.params * model.experts_per_token - model.experts * model.active_params) / denom
 }
 
+function getKvBytesPerElem(kvCacheQuant) {
+  // Auto / 未选：对齐 vLLM/SGLang 默认 BF16/FP16 KV，不因 FP8 权重改成 FP8 KV
+  if (!kvCacheQuant || kvCacheQuant.id === 'auto' || kvCacheQuant.bytes == null) return 2.0
+  return kvCacheQuant.bytes
+}
+
+function getActBytes(quant) {
+  return quant?.act_bytes ?? 2.0
+}
+
+/**
+ * EP 仅对带 experts 的 MoE 有效。dense / 无 experts 强制 1，与 RunConfig.epSupported 一致。
+ */
+export function effectiveEpCount(model, epCount = 1) {
+  if (model?.type === 'moe' && model?.experts != null) {
+    return Math.max(1, Math.round(Number(epCount) || 1))
+  }
+  return 1
+}
+
+/**
+ * tp × ep × dp × pp = gpuCount（物理卡数）。
+ * 默认 ep=1, dp=1, pp=1 → tp = gpuCount。无法整除时回退 ep/dp，避免 TP=8 再叠 EP=8。
+ */
+export function resolveParallelLayout({ gpuCount = 1, ppCount = 1, epCount = 1, dpCount = 1 } = {}) {
+  const totalGpus = Math.max(1, Math.round(Number(gpuCount) || 1))
+  let pp = Math.max(1, Math.round(Number(ppCount) || 1))
+  let ep = Math.max(1, Math.round(Number(epCount) || 1))
+  let dp = Math.max(1, Math.round(Number(dpCount) || 1))
+  if (totalGpus % pp !== 0) pp = 1
+  const perStage = totalGpus / pp
+  if (perStage % (ep * dp) !== 0) {
+    if (perStage % ep !== 0) {
+      let nextEp = 1
+      for (let n = ep; n >= 1; n--) {
+        if (perStage % n === 0 && ep % n === 0) { nextEp = n; break }
+      }
+      ep = nextEp
+    }
+    if (perStage % (ep * dp) !== 0) dp = 1
+  }
+  const tp = Math.max(1, perStage / (ep * dp))
+  return { totalGpus, tpCount: tp, epCount: ep, dpCount: dp, ppCount: pp }
+}
+
+function gpuHasNativeFp8(gpu) {
+  if (gpu?.fp8 != null && gpu.fp8 > 0) return true
+  const id = gpu?.id ?? ''
+  // Ada / Hopper / Blackwell：原生 FP8 Tensor Core；Ampere 及更早走 BF16 回落
+  if (/^(h100|h200|h800|b200|b300|gb200|gb300|l4|l40|rtx40|rtx50|rtx_pro)/.test(id)) return true
+  if (/^rtx4[0-9]{3}/.test(id) || /^rtx5[0-9]{3}/.test(id)) return true
+  return false
+}
+
+function gpuHasNativeFp4(gpu) {
+  if (gpu?.fp4 != null && gpu.fp4 > 0) return true
+  const id = gpu?.id ?? ''
+  // Blackwell 5th-gen Tensor：NVFP4 / MXFP4 可走 FP4 峰值；Hopper/Ada 无原生 FP4
+  return /^(b200|b300|gb200|gb300|rtx50|rtx_pro_6000)/.test(id) || /^rtx5[0-9]{3}/.test(id)
+}
+
+/** 按卡能力取 TFLOPS；缺字段时按架构回落，不把消费卡 FP8 默默当成 BF16 */
+function getGpuTflops(gpu, key) {
+  if (gpu?.[key] != null && gpu[key] > 0) return gpu[key]
+  if (key === 'fp8') {
+    if (gpuHasNativeFp8(gpu) && gpu.int8 != null && gpu.int8 > 0) return gpu.int8
+    return gpu?.bf16 ?? 1
+  }
+  if (key === 'fp4' || key === 'nvfp4') {
+    if (gpu?.fp4 != null && gpu.fp4 > 0) return gpu.fp4
+    if (gpuHasNativeFp4(gpu) && gpu.int4 != null && gpu.int4 > 0) return gpu.int4
+    // 无 FP4 算力：bytes 仍按 4-bit 计，prefill 回落 BF16
+    return gpu?.bf16 ?? 1
+  }
+  if (key === 'int4') return gpu?.int4 ?? gpu?.bf16 ?? 1
+  if (key === 'int8') return gpu?.int8 ?? gpu?.bf16 ?? 1
+  return gpu?.bf16 ?? 1
+}
+
+function getAccuracyTier({ gpu, model, framework, isEP, tpCount, quant }) {
+  const rank = { high: 2, mid: 1, low: 0 }
+  const worse = (a, b) => (rank[a] <= rank[b] ? a : b)
+  let tier = 'high'
+
+  if (gpu.vendor === 'apple') {
+    if (model.params < 15) return 'low'
+    if (model.type === 'moe' && model.experts_per_token === 1) return 'low'
+    if (model.type === 'moe' && gpu.bw < 580) return 'mid'
+    if (model.params >= 30 && gpu.bw >= 500) return 'high'
+    return 'mid'
+  }
+
+  if (model.id === 'custom' || model.status === 'preview') tier = worse(tier, 'low')
+  if (model.type === 'moe' && model.experts_per_token === 1) tier = worse(tier, 'low')
+  if (model.type === 'moe' && ['vllm', 'sglang', 'tgi'].includes(framework?.id)) {
+    tier = worse(tier, 'mid')
+  }
+  if (isEP && tpCount > 1) tier = worse(tier, 'mid')
+  if (quant && ['int2', 'int3'].includes(quant.id)) tier = worse(tier, 'mid')
+  return tier
+}
+
 /** GGUF/Ollama 用 gguf_bytes；Apple 默认走 GGUF 体积 */
 export function getQuantBytes(quant, gpu, framework) {
   const useGguf = gpu?.vendor === 'apple'
@@ -759,10 +929,59 @@ export function getQuantBytes(quant, gpu, framework) {
   return useGguf ? (quant?.gguf_bytes ?? quant?.bytes ?? 0.5) : (quant?.bytes ?? 0.5)
 }
 
-/** Prefill 算力：量化权重通常不走 INT4 Tensor Core 峰值 */
-function getPrefillTflops(gpu, quant) {
-  const key = quant?.prefill_flops_key ?? quant?.flops_key ?? 'bf16'
-  return gpu?.[key] ?? gpu?.bf16 ?? 1
+/** NVIDIA HBM 数据中心卡（A100/H100/H200/B200…）。5090 虽带宽高但是 GDDR，不算 HBM。 */
+function isNvidiaHbm(gpu) {
+  return gpu?.vendor === 'nvidia' && gpu?.tier === 'datacenter' && (gpu.bw ?? 0) >= 1500
+}
+
+/** Prefill 算力：llama.cpp 量化默认 BF16；消费卡 Q4 mmq 吃一部分 INT4 TC；vLLM/Marlin 走满额 INT4/FP4 */
+function getPrefillTflops(gpu, quant, framework, model) {
+  const fw = framework?.id
+  const quantId = quant?.id ?? 'bf16'
+  const marlinLike = ['vllm', 'sglang', 'trtllm', 'lmdeploy', 'exllamav2'].includes(fw)
+  const isInt4Family = quantId === 'int4' || quantId === 'int3' || quantId === 'int2'
+  const isInt8Family = quantId === 'int8' || quantId === 'int5' || quantId === 'int6'
+  const isFp4Family = quantId === 'mxfp4' || quantId === 'nvfp4'
+  let tflops
+  if (marlinLike && isInt4Family) tflops = getGpuTflops(gpu, 'int4')
+  else if (marlinLike && isFp4Family) tflops = getGpuTflops(gpu, 'fp4')
+  else if (!marlinLike && (isInt4Family || isFp4Family || isInt8Family)) {
+    const bf16 = getGpuTflops(gpu, 'bf16')
+    // 消费卡 llama.cpp mmq：Q4 prompt eval 会吃到一部分 INT4 TC，短上下文不要钉死 unpack→BF16
+    // 锚点：4090 Llama 8B Q4 LocalScore 9 项 PP 均值 ~6697–7594（decode 仍走带宽，不走这条）
+    // <3B 小 GEMM 吃不满 INT4 TC（LocalScore 1B PP），不要套 8B 的 mmq 加成
+    if (
+      gpu?.vendor === 'nvidia'
+      && gpu?.tier === 'consumer'
+      && isInt4Family
+      && fw === 'llamacpp'
+      && (model?.params ?? 8) >= 3
+    ) {
+      const int4 = getGpuTflops(gpu, 'int4')
+      tflops = (int4 > bf16) ? bf16 + 0.27 * (int4 - bf16) : bf16
+    } else {
+      tflops = bf16
+    }
+  } else {
+    const key = quant?.prefill_flops_key ?? quant?.flops_key ?? 'bf16'
+    tflops = getGpuTflops(gpu, key)
+  }
+  return capLlamacppCudaPrefillTflops(gpu, quant, framework, model, tflops)
+}
+
+/** llama.cpp CUDA 吃不满 Hopper/Ada 数据中心标称 BF16 TC（无 Transformer Engine） */
+function capLlamacppCudaPrefillTflops(gpu, quant, framework, model, tflops) {
+  if (gpu?.vendor !== 'nvidia' || framework?.id !== 'llamacpp') return tflops
+  const quantId = quant?.id ?? 'bf16'
+  const isInt4Family = quantId === 'int4' || quantId === 'int3' || quantId === 'int2'
+  const isFp16Family = quantId === 'bf16' || quantId === 'fp32'
+  const hbm = isNvidiaHbm(gpu)
+  if (hbm && (model?.params ?? 8) < 3) return Math.min(tflops, 120)
+  if (hbm && isInt4Family) return Math.min(tflops, 330)
+  if (hbm && isFp16Family) return Math.min(tflops, 440)
+  // L40S：标称 BF16 362 但 llama.cpp Q4 pp 只相当于 ~250 TFLOPS（XiongjieDai 8B Q4 pp≈5908）
+  if (!hbm && gpu?.tier === 'datacenter' && isInt4Family && tflops > 250) return 250
+  return tflops
 }
 
 /**
@@ -772,7 +991,7 @@ function getPrefillTflops(gpu, quant) {
  */
 function getDecodeWeightReadRatio(gpu, quant, model, framework) {
   const quantId = quant?.id ?? 'bf16'
-  const isGgufQuant = ['int2', 'int3', 'int4', 'int5', 'int6'].includes(quantId)
+  const isGgufQuant = ['int2', 'int3', 'int4', 'int5', 'int6', 'mxfp4', 'nvfp4'].includes(quantId)
   const chipId = gpu?.id ?? ''
 
   if (gpu?.vendor === 'apple') {
@@ -802,6 +1021,18 @@ function getDecodeWeightReadRatio(gpu, quant, model, framework) {
     return 0.82
   }
 
+  // FP8 权重更小，更易进 L2；用 active_params 衡量 MoE 每步实际读的矩阵
+  // 锚点：vLLM H100 NVL Qwen3-30B-A3B FP8 饱和（active<8B 略低于 BF16 读比）
+  if (quantId === 'fp8') {
+    const p = model?.type === 'moe'
+      ? (model.active_params ?? model.params ?? 8)
+      : (model?.params ?? 8)
+    if (p < 8) return 0.57
+    if (p < 15) return 0.68
+    if (p < 30) return 0.74
+    return 0.80
+  }
+
   if (isGgufQuant) return 0.96
   return 1.0
 }
@@ -822,11 +1053,28 @@ function getAppleDecodeBwScale(gpu) {
   return 1.0
 }
 
-/** Continuous batching 高 batch 调度效率衰减（batch>8 后显著） */
-function getBatchSchedulingEfficiency(batch, framework) {
+/** Continuous batching 高 batch 调度效率衰减（batch≤8 不打折，避免打残低并发） */
+function getBatchSchedulingEfficiency(batch, framework, model) {
   if ((framework?.schedulingMode ?? 'continuous') !== 'continuous') return 1.0
   if (batch <= 8) return 1.0
-  return 1 / (1 + (batch - 8) * 0.048)
+  // Apple 高 batch 不是本次校准靶，保持原斜率，避免为 CUDA serving 改 MLX
+  const appleFw = framework?.id === 'mlx' || framework?.id === 'llamacpp_metal'
+  // MoE 饱和已用 0.028 对齐 arXiv:2606.11690；dense 同斜率会把 Llama 8B/70B serving 打到一半
+  // dense 更缓：H100 NVL Llama 8B / A100 ShareGPT / 4×H100 70B，且不碰 MoE 锚点
+  const slope = appleFw ? 0.048 : (model?.type === 'moe' ? 0.028 : 0.007)
+  return Math.max(appleFw ? 0 : 0.20, 1 / (1 + (batch - 8) * slope))
+}
+
+/**
+ * CUDA MoE grouped GEMM 效率：moeKernelEff 是 batch=1 的低值，随 batch 升向 dense（1.0）
+ * 专家少（Mixtral 8）更快变满；128 专家更慢。锚点：SGLang H100 batch=4；vLLM 饱和 ~batch 32–64
+ */
+function getCudaMoeKernelEff(kSmall, batch, model) {
+  const b = Math.max(1, Number(batch) || 1)
+  const experts = Math.max(1, model?.experts ?? 8)
+  const denom = experts >= 64 ? 6 : 4.5
+  const t = Math.min(1, Math.log2(b) / denom)
+  return kSmall + (1 - kSmall) * t
 }
 
 /** Apple TTFT 修正：Metal prefill 效率低于 Roofline 估算 */
@@ -871,14 +1119,11 @@ function getMoeExtraDecodeMs({ gpu, framework, model, batch }) {
   const totalExperts = model.experts ?? activeExperts
   if (totalExperts <= 1) return 0
 
-  // 按 vendor 选择 dispatch 延迟基准值
   const dispatchUsBase = gpu?.vendor === 'apple'
     ? framework.appleMoeDispatchUs
     : framework.cudaMoeDispatchUs
   if (dispatchUsBase == null) return 0
 
-  // 缺省 routed：纯 routed（Mixtral / Qwen3-30B 无 shared expert）保持乐观系数。
-  // 有 shared expert 的家族在 catalog 填 moe_execution: 'shared_routed'，不要把全局缺省改成 shared_routed。
   const executionMode = model.moe_execution ?? (activeExperts <= 1 ? 'top1_routed' : 'routed')
   const executionScaleMap = {
     top1_routed: 0.20,
@@ -888,23 +1133,22 @@ function getMoeExtraDecodeMs({ gpu, framework, model, batch }) {
   }
   const executionScale = executionScaleMap[executionMode] ?? 0.55
   const batchScale = 1 / Math.sqrt(Math.max(1, batch))
-
-  // MLX MoE dispatch 轻于 Metal（Ante：MLX-py≈130 vs Metal≈71 @ M4 Max 35B-A3B）
   const moeDispatchScale = framework?.id === 'mlx' ? 0.50
     : (gpu?.vendor === 'apple' ? 0.85 : 1.0)
 
-  // top-1 routing（如 Llama 4 Scout）存在显著固定 gate/dispatch 开销，
-  // 不应被 fanoutScale 和 activeFragments 稀释。
+  // CUDA：不要用 max(1, sqrt(600/bw)) 把 H100 dispatch 钉在满额
+  // Apple：保留带宽缩放，与既有 MLX/Metal 标定一致
+  const bwScale = gpu?.vendor === 'apple'
+    ? Math.max(1.0, Math.sqrt(600 / (gpu.bw ?? 600)))
+    : 1.0
+
   if (activeExperts <= 1) {
     const top1FixedUsPerLayer = 450
-    const bwScale = Math.max(1.0, Math.sqrt(600 / (gpu.bw ?? 600)))
     return ((model.layers ?? 1) * top1FixedUsPerLayer * batchScale * bwScale * moeDispatchScale) / 1000
   }
 
   const fanoutScale = Math.sqrt(Math.max(1, totalExperts / 128))
   const activeFragmentCount = activeExperts - 1
-  const bwScale = Math.max(1.0, Math.sqrt(600 / (gpu.bw ?? 600)))
-
   const extraUs =
     (model.layers ?? 1) *
     activeFragmentCount *
@@ -961,6 +1205,7 @@ export function getWarnings(result, t) {
     totalNeeded,
     totalVram,
     tpEfficiency,
+    epEfficiency,
     singleToks,
     singleToksMin,
     roofline,
@@ -991,6 +1236,10 @@ export function getWarnings(result, t) {
 
   if (tpEfficiency < 0.7) {
     warnings.push({ level: 'warn', key: 'tp_comm' })
+  }
+
+  if ((epEfficiency ?? 1) < 0.7) {
+    warnings.push({ level: 'warn', key: 'ep_comm' })
   }
 
   if ((singleToksMin ?? singleToks) < 20) {
@@ -1080,6 +1329,8 @@ export function aggregateGpuSlots(slots) {
   const totalBf16 = slots.reduce((s, g) => s + (g.gpu.bf16 ?? 0) * g.count, 0)
   const totalInt8 = slots.reduce((s, g) => s + (g.gpu.int8 ?? g.gpu.bf16 ?? 0) * g.count, 0)
   const totalInt4 = slots.reduce((s, g) => s + (g.gpu.int4 ?? g.gpu.bf16 ?? 0) * g.count, 0)
+  const totalFp8  = slots.reduce((s, g) => s + (g.gpu.fp8 ?? 0) * g.count, 0)
+  const totalFp4  = slots.reduce((s, g) => s + (g.gpu.fp4 ?? 0) * g.count, 0)
   const totalTdp  = slots.reduce((s, g) => s + g.gpu.tdp * g.count, 0)
 
   return {
@@ -1090,6 +1341,8 @@ export function aggregateGpuSlots(slots) {
     bf16: totalBf16 / totalCount,
     int8: totalInt8 / totalCount,
     int4: totalInt4 / totalCount,
+    fp8:  totalFp8  / totalCount || null,
+    fp4:  totalFp4  / totalCount || null,
     tdp:  totalTdp  / totalCount,
     // bwUtilization 已内联到 bw 里，usableRatio 保持 1.0（vram 已是单卡最小值）
     bwUtilization: 1.0,

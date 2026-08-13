@@ -75,6 +75,18 @@ const sections = [
         </section>
       </div>
 
+      <section class="rounded-xl border border-gray-200 bg-white shadow-sm p-5 sm:p-6">
+        <div class="flex items-center gap-2.5 mb-3">
+          <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-gray-100 text-gray-700">
+            <svg viewBox="0 0 20 20" class="w-4 h-4" fill="currentColor" aria-hidden="true">
+              <path fill-rule="evenodd" d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0zm-8-5a.75.75 0 0 1 .75.75v4.5a.75.75 0 0 1-1.5 0v-4.5A.75.75 0 0 1 10 5zm0 10a1 1 0 1 0 0-2 1 1 0 0 0 0 2z" clip-rule="evenodd"/>
+            </svg>
+          </div>
+          <h2 class="text-sm font-semibold text-gray-900">{{ t('about.limits_title') }}</h2>
+        </div>
+        <p class="text-sm text-gray-600 leading-relaxed">{{ t('about.limits') }}</p>
+      </section>
+
       <div class="bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200 shadow-sm p-5 sm:p-6">
         <p class="text-sm text-gray-600 leading-relaxed mb-4">{{ t('about.support') }}</p>
         <div class="flex flex-wrap items-center gap-3">

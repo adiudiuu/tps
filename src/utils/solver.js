@@ -31,12 +31,12 @@ function getPpOptions(model, totalGpuCount) {
   return SOLVER_GPU_COUNTS.filter(n => n <= totalGpuCount && totalGpuCount % n === 0)
 }
 
-function getEpOptions(model, tpCount) {
-  if (model?.type !== 'moe' || model?.experts == null || tpCount < 2) return [1]
-  const maxEp = Math.min(model.experts, tpCount)
+function getEpOptions(model, stageGpus) {
+  if (model?.type !== 'moe' || model?.experts == null || stageGpus < 2) return [1]
+  const maxEp = Math.min(model.experts, stageGpus)
   const options = [1]
   for (const n of SOLVER_GPU_COUNTS) {
-    if (n <= maxEp && model.experts % n === 0) options.push(n)
+    if (n <= maxEp && model.experts % n === 0 && stageGpus % n === 0) options.push(n)
   }
   return options
 }
@@ -180,35 +180,29 @@ export async function solveForModel(opts) {
       if (model.params < 1 && totalGpuCount > 1) continue
 
       for (const ppCount of getPpOptions(model, totalGpuCount)) {
-        const gpuCount = totalGpuCount / ppCount
-        const interconnect = autoInterconnect(gpu, gpuCount)
-        const epOptions = getEpOptions(model, gpuCount)
+        const stageGpus = totalGpuCount / ppCount
+        const interconnect = autoInterconnect(gpu, stageGpus)
+        const epOptions = getEpOptions(model, stageGpus)
 
         for (const quant of quants) {
-          // EP 循环提前到 quant 同层，让剪枝能感知 EP 分片
           for (const epCount of epOptions) {
-            // 第二层剪枝：计算 EP 感知的每卡权重
-            // 剪枝先于 framework 循环，按 GPU 厂商默认口径取字节数（Apple 走 GGUF）
+            const tpCount = stageGpus / epCount
             let perCardWeightGB
             const quantBytes = getQuantBytes(quant, gpu, null)
             if (epCount > 1 && totalExpertParams != null) {
-              // MoE + EP: 每卡存完整 non-expert + 1/epCount 的 expert，再除以 TP 分片数
-              perCardWeightGB = ((nonExpertParams + totalExpertParams / epCount) * quantBytes) / gpuCount
+              perCardWeightGB = (nonExpertParams / tpCount + totalExpertParams / (epCount * tpCount)) * quantBytes
             } else {
-              // Dense 或 EP=1: 总参数 / TP 分片数
-              perCardWeightGB = (model.params * quantBytes) / gpuCount
+              perCardWeightGB = (model.params * quantBytes) / tpCount
             }
 
-            // 与单卡可用显存比较（而非总显存）
             if (perCardWeightGB > usableVram * 1.1) continue
 
             for (const framework of frameworks) {
               if (!frameworkSupportsGpu(framework, gpu)) continue
 
-              // 提前剪枝：极小模型（< 1B）只保留高效框架
               if (model.params < 1 && !['vllm', 'sglang', 'llamacpp', 'mlx', 'llamacpp_metal'].includes(framework.id)) continue
 
-              tasks.push({ gpu, gpuCount, ppCount, epCount, interconnect, quant, framework })
+              tasks.push({ gpu, gpuCount: totalGpuCount, ppCount, epCount, interconnect, quant, framework })
             }
           }
         }
@@ -251,7 +245,7 @@ export async function solveForModel(opts) {
           gpuCount: task.gpuCount,
           ppCount: task.ppCount,
           epCount: task.epCount,
-          totalGpuCount: task.gpuCount * task.ppCount,
+          totalGpuCount: task.gpuCount,
           interconnect: task.interconnect,
           quant: task.quant,
           framework: task.framework,
@@ -261,6 +255,8 @@ export async function solveForModel(opts) {
           totalVram: r.totalVram,
           vramPct: r.vramPct,
           tpEfficiency: r.tpEfficiency,
+          epEfficiency: r.epEfficiency,
+          tpCount: r.tpCount,
           bottleneck: r.bottleneck,
         }
         row.insight = generateInsight(row)
@@ -300,7 +296,7 @@ function generateInsight(row) {
   }
 
   // 多卡效率检查
-  if (row.gpuCount > 1 && row.tpEfficiency != null) {
+  if ((row.tpCount ?? row.gpuCount) > 1 && row.tpEfficiency != null) {
     if (row.tpEfficiency < 0.75) {
       lines.push({ key: 'solver.insight_tp_low' })
     } else if (row.tpEfficiency > 0.95) {

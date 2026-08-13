@@ -562,6 +562,14 @@ function closeDetail() {
                 <div class="text-gray-500 text-[10px]">{{ t('model.detail.head_dim') }}</div>
                 <div class="font-semibold text-gray-900">{{ hoveredModel.head_dim }}</div>
               </div>
+              <div v-if="hoveredModel.type === 'moe' && hoveredModel.experts" class="bg-gray-50 rounded px-2 py-1.5 border border-gray-200">
+                <div class="text-gray-500 text-[10px]">{{ t('library.experts') }}</div>
+                <div class="font-semibold text-gray-900">{{ hoveredModel.experts }}</div>
+              </div>
+              <div v-if="hoveredModel.type === 'moe' && hoveredModel.experts_per_token" class="bg-gray-50 rounded px-2 py-1.5 border border-gray-200">
+                <div class="text-gray-500 text-[10px]">{{ t('library.experts_per_token') }}</div>
+                <div class="font-semibold text-gray-900">{{ hoveredModel.experts_per_token }}</div>
+              </div>
             </div>
           </div>
 
@@ -571,6 +579,11 @@ function closeDetail() {
             <div class="text-sm font-semibold text-purple-700">
               {{ (hoveredModel.mla_ratio * 100).toFixed(2) }}% ({{ (1 / hoveredModel.mla_ratio).toFixed(0) }}x)
             </div>
+          </div>
+
+          <div v-if="hoveredModel.linear_attention_layers" class="bg-gradient-to-r from-teal-50 to-emerald-50 rounded-lg p-2 border border-teal-200">
+            <div class="text-xs text-gray-600 mb-0.5">{{ t('library.linear_attention') }}</div>
+            <div class="text-sm font-semibold text-teal-700">{{ hoveredModel.linear_attention_layers }}</div>
           </div>
 
           <!-- 混合注意力 -->
@@ -740,6 +753,14 @@ function closeDetail() {
                   <div class="text-gray-600 text-[10px]">{{ t('model.detail.head_dim') }}</div>
                   <div class="font-semibold text-gray-900">{{ detailModel.head_dim }}</div>
                 </div>
+                <div v-if="detailModel.type === 'moe' && detailModel.experts" class="bg-gray-50 rounded px-2 py-1.5 border border-gray-200">
+                  <div class="text-gray-600 text-[10px]">{{ t('library.experts') }}</div>
+                  <div class="font-semibold text-gray-900">{{ detailModel.experts }}</div>
+                </div>
+                <div v-if="detailModel.type === 'moe' && detailModel.experts_per_token" class="bg-gray-50 rounded px-2 py-1.5 border border-gray-200">
+                  <div class="text-gray-600 text-[10px]">{{ t('library.experts_per_token') }}</div>
+                  <div class="font-semibold text-gray-900">{{ detailModel.experts_per_token }}</div>
+                </div>
               </div>
             </div>
 
@@ -749,6 +770,11 @@ function closeDetail() {
               <div class="text-sm font-semibold text-purple-800">
                 {{ (detailModel.mla_ratio * 100).toFixed(2) }}% ({{ (1 / detailModel.mla_ratio).toFixed(0) }}x)
               </div>
+            </div>
+
+            <div v-if="detailModel.linear_attention_layers" class="bg-gradient-to-r from-teal-100 to-emerald-100 rounded-lg p-2 border border-teal-300">
+              <div class="text-xs text-gray-700 mb-0.5">{{ t('library.linear_attention') }}</div>
+              <div class="text-sm font-semibold text-teal-800">{{ detailModel.linear_attention_layers }}</div>
             </div>
 
             <!-- 混合注意力 -->

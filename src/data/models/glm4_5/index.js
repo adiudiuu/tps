@@ -10,7 +10,7 @@ export default {
   experts: 160,
   experts_per_token: 8,
   moe_execution: 'shared_routed', // DeepSeek-style：1 shared + routed
-  mla_ratio: null,
+  mla_ratio: null, // HF config.json 为 GQA（num_key_value_heads=8），不是 MLA；勿填估算值
   layers: 92,
   kv_heads: 8,
   head_dim: 128,

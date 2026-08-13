@@ -358,6 +358,10 @@ async function copyCmd() {
             <div class="text-[10px] text-yellow-700 mb-0.5">{{ t('result.tp_eff') }}</div>
             <div class="text-sm font-bold text-yellow-700">{{ fmtPct(result.tpEfficiency * 100) }}</div>
           </div>
+          <div v-if="(result.epEfficiency ?? 1) < 1" class="bg-yellow-50 rounded-lg px-3 py-2 border border-yellow-200">
+            <div class="text-[10px] text-yellow-700 mb-0.5">{{ t('result.ep_eff') }}</div>
+            <div class="text-sm font-bold text-yellow-700">{{ fmtPct(result.epEfficiency * 100) }}</div>
+          </div>
           <div v-if="result.speculativeDecoding" class="bg-emerald-50 rounded-lg px-3 py-2 border border-emerald-200">
             <div class="text-[10px] text-emerald-700 mb-0.5 flex items-center gap-1">
               {{ t('result.speculative_speedup') }}

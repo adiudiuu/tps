@@ -2,6 +2,7 @@
 // 数据来源：NVIDIA 官方规格 / TechPowerUp / laptopmedia / nanoreview
 // bf16 = FP16 TFLOPS（Blackwell Tensor Core，2:1 ratio）
 // int8 = INT8 TOPS（4:1 ratio）；int4 = INT4 TOPS（8:1 ratio）
+// fp8 未单列时 calc 回落到 int8；NVFP4/MXFP4 的 fp4 未单列时回落到 int4（见 getGpuTflops）
 // 笔记本 TDP 取 Max-Q 至 Max-P 中间值（实际由 OEM 配置决定）
 export default [
   // ── 桌面 ──────────────────────────────────────────────

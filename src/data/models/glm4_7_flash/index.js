@@ -9,6 +9,7 @@ export default {
   active_params: 3,
   experts: 16,
   experts_per_token: 2,
+  moe_execution: 'shared_routed', // GLM-4.7 同族：1 shared + routed
   layers: 32,
   kv_heads: 4,
   head_dim: 128,

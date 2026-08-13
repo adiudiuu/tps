@@ -1,5 +1,6 @@
 // RTX 40 系列（Ada Lovelace，2022-2024）
 // 数据来源：NVIDIA 官方规格 / TechPowerUp
+// FP8：Ada 有 FP8 Tensor Core，峰值与 INT8 同档；未单列 fp8 字段时 calc.getGpuTflops 回落到 int8
 export default [
   // 桌面
   { id: 'rtx4090',          name: 'RTX 4090',           vendor: 'nvidia', tier: 'consumer', released: '2022-10', vram: 24, bw: 1008, bwUtilization: 0.78, bf16: 165, int8: 330, int4: 661, nvlink_bw: null, tdp: 450 },

@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { QUANT_MAP } from '../../data/constants.js'
 import { KV_CACHE_MAP, PREFIX_CACHE_OPTIONS, PCIE_BW_OPTIONS, PCIE_WIDTH_OPTIONS, CPU_MEM_BW_OPTIONS, RAM_CAPACITY_OPTIONS } from '../../data/runtime.js'
 import { fmtCtx } from '../../utils/format.js'
+import { resolveParallelLayout } from '../../utils/calc.js'
 import TipIcon from '../ui/TipIcon.vue'
 
 const { t } = useI18n()
@@ -48,19 +49,35 @@ const epSupported = computed(() =>
   props.model?.experts != null &&
   props.gpuCount >= 2
 )
-// EP 可选值：1（不启用）+ experts 的因子（不超过 gpuCount）
+const stageGpus = computed(() => {
+  const pp = ppSupported.value ? Math.max(1, ppCount.value) : 1
+  const n = Math.max(1, props.gpuCount)
+  if (n % pp !== 0) return n
+  return n / pp
+})
+// EP 可选值：必须整除 stage GPU（gpuCount/PP），避免 8 卡时 TP=8 再叠 EP=8
 const epOptions = computed(() => {
   if (!epSupported.value) return [1]
   const experts = props.model.experts
-  const maxEp = Math.min(experts, props.gpuCount)
+  const stage = stageGpus.value
+  const maxEp = Math.min(experts, stage)
   const options = [1]
   for (const n of [2, 4, 8, 16, 32, 64, 128, 256]) {
-    if (n <= maxEp && experts % n === 0) options.push(n)
+    if (n <= maxEp && experts % n === 0 && stage % n === 0) options.push(n)
   }
   return options
 })
-// 隐藏 EP 控件时自动重置为 1
+const parallelLayout = computed(() =>
+  resolveParallelLayout({
+    gpuCount: props.gpuCount,
+    ppCount: ppSupported.value ? ppCount.value : 1,
+    epCount: epSupported.value ? epCount.value : 1,
+  })
+)
 watch(epSupported, (v) => { if (!v) epCount.value = 1 })
+watch(epOptions, (opts) => {
+  if (!opts.includes(epCount.value)) epCount.value = 1
+}, { immediate: true })
 // continuous-batching 服务端框架普遍支持 speculative（vLLM / TRT-LLM / SGLang / LMDeploy）
 const speculativeSupported = computed(() => {
   const supportedFrameworks = ['vllm', 'trtllm', 'sglang', 'lmdeploy']
@@ -538,6 +555,9 @@ const ctxOptions = computed(() => {
           ]"
         >PP{{ n }}</button>
       </div>
+      <p v-if="gpuCount > 1" class="text-[11px] text-gray-500 mt-2">
+        {{ t('run.parallel_layout', { tp: parallelLayout.tpCount, ep: parallelLayout.epCount, dp: parallelLayout.dpCount }) }}
+      </p>
     </div>
 
     <!-- Expert Parallel（仅 MoE 模型 + 多卡时显示）-->

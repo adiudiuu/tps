@@ -38,6 +38,8 @@ const customModel = ref({
   params: 7,
   active_params: 7,
   mla_ratio: null,
+  experts: 8,
+  experts_per_token: 2,
   layers: 32,
   kv_heads: 8,
   head_dim: 128,
@@ -92,6 +94,11 @@ function applyCustom() {
   if (!customIsMoe.value) {
     m.active_params = m.params
     m.mla_ratio = null
+    delete m.experts
+    delete m.experts_per_token
+  } else {
+    if (!m.experts) m.experts = 8
+    if (!m.experts_per_token) m.experts_per_token = 2
   }
   model.value = { ...m }
 }
@@ -193,6 +200,14 @@ function switchTab(tab) {
             <div>
               <label class="block text-xs text-gray-500 mb-0.5">{{ t('model.custom.active_params') }}</label>
               <input v-model.number="customModel.active_params" type="number" class="w-full bg-gray-50 border border-gray-300 rounded-lg px-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-500" />
+            </div>
+            <div>
+              <label class="block text-xs text-gray-500 mb-0.5">{{ t('model.custom.experts') }}</label>
+              <input v-model.number="customModel.experts" type="number" min="2" class="w-full bg-gray-50 border border-gray-300 rounded-lg px-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-500" />
+            </div>
+            <div>
+              <label class="block text-xs text-gray-500 mb-0.5">{{ t('model.custom.experts_per_token') }}</label>
+              <input v-model.number="customModel.experts_per_token" type="number" min="1" class="w-full bg-gray-50 border border-gray-300 rounded-lg px-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-500" />
             </div>
             <div>
               <label class="block text-xs text-gray-500 mb-0.5">{{ t('model.custom.mla_ratio') }}</label>
@@ -368,6 +383,18 @@ function switchTab(tab) {
             <div class="rounded-xl bg-white/85 px-3 py-2 ring-1 ring-emerald-100">
               <div class="text-gray-500">{{ t('model.custom.mla_ratio') }}</div>
               <div class="mt-1 font-semibold text-gray-900">{{ detailModel.mla_ratio ?? '—' }}</div>
+            </div>
+            <div v-if="detailModel.type === 'moe'" class="rounded-xl bg-white/85 px-3 py-2 ring-1 ring-emerald-100">
+              <div class="text-gray-500">{{ t('model.detail.experts') }}</div>
+              <div class="mt-1 font-semibold text-gray-900">{{ detailModel.experts ?? '—' }}</div>
+            </div>
+            <div v-if="detailModel.type === 'moe'" class="rounded-xl bg-white/85 px-3 py-2 ring-1 ring-emerald-100">
+              <div class="text-gray-500">{{ t('model.detail.experts_per_token') }}</div>
+              <div class="mt-1 font-semibold text-gray-900">{{ detailModel.experts_per_token ?? '—' }}</div>
+            </div>
+            <div v-if="detailModel.linear_attention_layers" class="rounded-xl bg-white/85 px-3 py-2 ring-1 ring-emerald-100">
+              <div class="text-gray-500">{{ t('model.detail.linear_attention') }}</div>
+              <div class="mt-1 font-semibold text-gray-900">{{ detailModel.linear_attention_layers }}</div>
             </div>
           </div>
         </div>

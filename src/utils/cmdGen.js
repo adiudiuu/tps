@@ -2,6 +2,16 @@
  * cmdGen.js — 推理框架 CLI 启动命令生成器
  * 纯函数模块，无副作用，无 Vue 依赖。
  */
+import { resolveParallelLayout, effectiveEpCount } from './calc.js'
+
+function getLayout(config) {
+  return resolveParallelLayout({
+    gpuCount: config.gpuCount,
+    ppCount: config.ppCount,
+    epCount: effectiveEpCount(config.model, config.epCount),
+    dpCount: config.dpCount,
+  })
+}
 
 /**
  * 从 HuggingFace URL 提取模型 ID
@@ -64,13 +74,20 @@ function calcNgl(model, cpuOffload, pureCpu, nglCount) {
  * 生成 vLLM 启动命令
  */
 function genVllm(hfModel, config) {
-  const { gpuCount, ppCount, epCount, ctx, batch, quant, kvCacheQuant, prefixCacheHit, speculativeDecoding, draftLen } = config
+  const { ctx, batch, quant, kvCacheQuant, prefixCacheHit, speculativeDecoding, draftLen } = config
+  const layout = getLayout(config)
   const parts = [`vllm serve ${hfModel}`]
   const notes = []
 
-  if (gpuCount > 1) parts.push(`--tensor-parallel-size ${gpuCount}`)
-  if (ppCount > 1)  parts.push(`--pipeline-parallel-size ${ppCount}`)
-  if (epCount > 1)  parts.push(`--expert-parallel-size ${epCount}`)
+  // gpuCount 是物理卡数；vLLM EP 挂在 DP 上，不要再叠 TP=N 且 EP=N
+  if (layout.tpCount > 1) parts.push(`--tensor-parallel-size ${layout.tpCount}`)
+  if (layout.ppCount > 1) parts.push(`--pipeline-parallel-size ${layout.ppCount}`)
+  if (layout.epCount > 1) {
+    parts.push(`--data-parallel-size ${layout.epCount * layout.dpCount}`)
+    parts.push(`--enable-expert-parallel`)
+  } else if (layout.dpCount > 1) {
+    parts.push(`--data-parallel-size ${layout.dpCount}`)
+  }
   parts.push(`--max-model-len ${ctx}`)
   parts.push(`--max-num-seqs ${batch}`)
   parts.push(`--gpu-memory-utilization 0.90`)
@@ -78,6 +95,11 @@ function genVllm(hfModel, config) {
   // 量化
   if (quant.id === 'fp8') {
     parts.push(`--quantization fp8`)
+  } else if (quant.id === 'mxfp4') {
+    parts.push(`--quantization mxfp4`)
+  } else if (quant.id === 'nvfp4') {
+    parts.push(`--quantization modelopt_fp4`)
+    notes.push(`# Note: some NVFP4 checkpoints use --quantization nvfp4 or compressed-tensors depending on vLLM version`)
   } else if (quant.id === 'int8') {
     parts.push(`--quantization compressed-tensors`)
     notes.push(`# Note: use --quantization bitsandbytes --load-in-8bit for older vLLM (<0.4) or non-compressed-tensors checkpoints`)
@@ -107,20 +129,26 @@ function genVllm(hfModel, config) {
  * 生成 SGLang 启动命令
  */
 function genSglang(hfModel, config) {
-  const { gpuCount, ppCount, epCount, ctx, batch, quant, kvCacheQuant, prefixCacheHit, speculativeDecoding, draftLen } = config
+  const { ctx, batch, quant, kvCacheQuant, prefixCacheHit, speculativeDecoding, draftLen } = config
+  const layout = getLayout(config)
   const parts = [`python -m sglang.launch_server`]
   const notes = []
 
   parts.push(`--model-path ${hfModel}`)
-  if (gpuCount > 1) parts.push(`--tp ${gpuCount}`)
-  if (ppCount > 1)  parts.push(`--pp ${ppCount}`)
-  if (epCount > 1)  parts.push(`--ep ${epCount}`)
+  if (layout.tpCount > 1) parts.push(`--tp ${layout.tpCount}`)
+  if (layout.ppCount > 1) parts.push(`--pp ${layout.ppCount}`)
+  if (layout.epCount > 1) parts.push(`--ep ${layout.epCount}`)
+  if (layout.dpCount > 1) parts.push(`--dp ${layout.dpCount}`)
   parts.push(`--context-length ${ctx}`)
   parts.push(`--max-running-requests ${batch}`)
 
   // 量化
   if (quant.id === 'fp8') {
     parts.push(`--quantization fp8`)
+  } else if (quant.id === 'mxfp4') {
+    parts.push(`--quantization mxfp4`)
+  } else if (quant.id === 'nvfp4') {
+    parts.push(`--quantization modelopt_fp4`)
   } else if (quant.id === 'int4') {
     parts.push(`--quantization awq`)
   }
@@ -145,10 +173,15 @@ function genSglang(hfModel, config) {
  * 生成 LMDeploy 启动命令
  */
 function genLmdeploy(hfModel, config) {
-  const { gpuCount, ctx, batch, quant, kvCacheQuant, prefixCacheHit } = config
+  const { ctx, batch, quant, kvCacheQuant, prefixCacheHit } = config
+  const layout = getLayout(config)
   const parts = [`lmdeploy serve api_server ${hfModel}`]
+  const notes = []
 
-  if (gpuCount > 1) parts.push(`--tp ${gpuCount}`)
+  if (layout.tpCount > 1) parts.push(`--tp ${layout.tpCount}`)
+  if (layout.epCount > 1) {
+    notes.push(`# Note: LMDeploy EP flags vary by version; calculator layout is TP${layout.tpCount}×EP${layout.epCount}`)
+  }
   parts.push(`--session-len ${ctx}`)
   parts.push(`--max-batch-size ${batch}`)
 
@@ -168,24 +201,29 @@ function genLmdeploy(hfModel, config) {
 
   parts.push(`--server-port 23333`)
 
-  return formatCmd(parts)
+  return formatCmd(parts, notes)
 }
 
 /**
  * 生成 TGI (Text Generation Inference) 启动命令
  */
 function genTgi(hfModel, config) {
-  const { gpuCount, ctx, batch, quant } = config
+  const { ctx, batch, quant } = config
+  const layout = getLayout(config)
   const parts = [
     `docker run --gpus all`,
     `-p 8080:80`,
     `-v \${HF_HOME}:/data`,
     `ghcr.io/huggingface/text-generation-inference:latest`,
     `--model-id ${hfModel}`,
-    `--num-shard ${gpuCount}`,
+    `--num-shard ${layout.tpCount}`,
     `--max-total-tokens ${ctx}`,
     `--max-batch-prefill-tokens ${batch * ctx}`,
   ]
+  const notes = []
+  if (layout.epCount > 1) {
+    notes.push(`# Note: TGI --num-shard is TP; calculator layout is TP${layout.tpCount}×EP${layout.epCount}. Prefer vLLM/SGLang for native EP.`)
+  }
 
   // 量化
   if (quant.id === 'int8') {
@@ -196,7 +234,7 @@ function genTgi(hfModel, config) {
     parts.push(`--quantize fp8`)
   }
 
-  return formatCmd(parts)
+  return formatCmd(parts, notes)
 }
 
 /**
@@ -228,6 +266,8 @@ const GGUF_QUANT_MAP = {
   fp32: { suffix: 'F32', note: null },
   bf16: { suffix: 'F16', note: null },  // llama.cpp 不区分 BF16/FP16
   fp8:  { suffix: 'F16', note: `# llama.cpp does not support FP8, using F16` },
+  mxfp4: { suffix: 'MXFP4', note: null },
+  nvfp4: { suffix: 'MXFP4', note: `# llama.cpp GGUF uses MXFP4; NVFP4 is a vLLM/TensorRT-LLM path` },
   int8: { suffix: 'Q8_0', note: null },
   int6: { suffix: 'Q6_K', note: null },
   int5: { suffix: 'Q5_K_M', note: null },
@@ -306,6 +346,68 @@ function genMlx(hfModel, config) {
 }
 
 /**
+ * TensorRT-LLM：legacy 引擎流走 convert_checkpoint + trtllm-build；
+ * EP 官方 flag 在 convert_checkpoint.py（--moe_ep_size / --moe_tp_size），
+ * 且 moe_tp_size × moe_ep_size = tp_size。PyTorch 流等价 flag 是 trtllm-serve --ep_size。
+ * trtllm-build 本身没有 --moe_ep_size，不要写到 build 行上。
+ */
+function genTrtllm(hfModel, config) {
+  const { ctx, batch, quant } = config
+  const layout = getLayout(config)
+  const dtMap = { bf16: 'bfloat16', fp8: 'fp8', nvfp4: 'nvfp4', mxfp4: 'nvfp4', int8: 'int8', int4: 'int4_awq' }
+  const dtype = dtMap[quant?.id] ?? 'bfloat16'
+  // TRT-LLM 的 tp_size 是 attention+MoE 的并行世界（= calc TP × EP）；world_size = tp_size × pp_size
+  const trtTpSize = layout.tpCount * layout.epCount
+  const hasEp = layout.epCount > 1
+  // EP 已写入 convert_checkpoint；trtllm-build 无 --moe_ep_size，不要把 EP 编进 build
+  const tpFlag = !hasEp && trtTpSize > 1 ? `--tp_size ${trtTpSize} ` : ''
+  const ppFlag = !hasEp && layout.ppCount > 1 ? `--pp_size ${layout.ppCount} ` : ''
+  const lines = []
+
+  if (hasEp) {
+    const convertFlags = [`--dtype ${dtype}`, `--tp_size ${trtTpSize}`]
+    if (layout.tpCount > 1) convertFlags.push(`--moe_tp_size ${layout.tpCount}`)
+    convertFlags.push(`--moe_ep_size ${layout.epCount}`)
+    if (layout.ppCount > 1) convertFlags.push(`--pp_size ${layout.ppCount}`)
+    lines.push(`# 0. Convert checkpoint (MoE: moe_tp_size × moe_ep_size = tp_size)`)
+    lines.push(`python convert_checkpoint.py \\`)
+    lines.push(`  --model_dir ${hfModel} \\`)
+    lines.push(`  --output_dir ./model_checkpoint \\`)
+    convertFlags.forEach((flag, i) => {
+      lines.push(`  ${flag}${i < convertFlags.length - 1 ? ' \\' : ''}`)
+    })
+    lines.push('')
+  }
+
+  lines.push(
+    `# 1. Build engine`,
+    `trtllm-build \\`,
+    `  --checkpoint_dir ./model_checkpoint \\`,
+    `  --output_dir ./engine \\`,
+    `  --dtype ${dtype} \\`,
+    `  ${tpFlag}${ppFlag}--max_batch_size ${batch} \\`,
+    `  --max_input_len ${ctx} --max_seq_len ${ctx + 2048}`,
+    ``,
+    `# 2. Run inference server`,
+    `python -m tensorrt_llm.serve \\`,
+    `  --engine_dir ./engine \\`,
+    `  --max_batch_size ${batch}`,
+    ``,
+  )
+
+  if (hasEp) {
+    const serveFlags = [`--tp_size ${trtTpSize}`, `--ep_size ${layout.epCount}`]
+    if (layout.ppCount > 1) serveFlags.push(`--pp_size ${layout.ppCount}`)
+    lines.push(`# PyTorch workflow: trtllm-serve ${hfModel} ${serveFlags.join(' ')}`)
+    lines.push(`# Note: convert_checkpoint --moe_ep_size / trtllm-serve --ep_size; layout TP${layout.tpCount}×EP${layout.epCount}×PP${layout.ppCount}`)
+  } else {
+    lines.push(`# Note: convert checkpoint first with convert_checkpoint.py for your model family`)
+  }
+
+  return lines.join('\n')
+}
+
+/**
  * 各框架官方文档链接
  */
 export const FRAMEWORK_DOCS = {
@@ -332,7 +434,7 @@ export function getFrameworkDocsUrl(frameworkId) {
  * @param {Object} framework  - FRAMEWORK_MAP 中的框架对象（含 id）
  * @param {Object} config
  * @param {Object} config.model          - 当前模型对象（含 links.hf, type, layers, local_layers）
- * @param {number} config.gpuCount       - TP 并行数（已是聚合后总数）
+ * @param {number} config.gpuCount       - 物理 GPU 数量（内部拆成 tp×ep×dp×pp）
  * @param {number} config.ppCount        - PP 并行数
  * @param {number} config.ctx            - 上下文长度
  * @param {number} config.batch          - 并发请求数
@@ -384,34 +486,12 @@ export function generateCmd(framework, config) {
       cmd = genMlx(hfModel, config)
       break
 
-    // theory 和 trtllm 不支持生成命令
     case 'theory':
       return null
 
-    case 'trtllm': {
-      const { gpuCount, ppCount, ctx, batch, quant } = config
-      const dtMap = { bf16: 'bfloat16', fp8: 'fp8', int8: 'int8', int4: 'int4_awq' }
-      const dtype = dtMap[quant?.id] ?? 'bfloat16'
-      const tpFlag = gpuCount > 1 ? `--tp_size ${gpuCount} ` : ''
-      const ppFlag = ppCount > 1  ? `--pp_size ${ppCount} ` : ''
-      cmd = [
-        `# 1. Build engine`,
-        `trtllm-build \\`,
-        `  --checkpoint_dir ./model_checkpoint \\`,
-        `  --output_dir ./engine \\`,
-        `  --dtype ${dtype} \\`,
-        `  ${tpFlag}${ppFlag}--max_batch_size ${batch} \\`,
-        `  --max_input_len ${ctx} --max_seq_len ${ctx + 2048}`,
-        ``,
-        `# 2. Run inference server`,
-        `python -m tensorrt_llm.serve \\`,
-        `  --engine_dir ./engine \\`,
-        `  --max_batch_size ${batch}`,
-        ``,
-        `# Note: convert checkpoint first with convert_checkpoint.py for your model family`,
-      ].join('\n')
+    case 'trtllm':
+      cmd = genTrtllm(hfModel, config)
       break
-    }
 
     default:
       return null

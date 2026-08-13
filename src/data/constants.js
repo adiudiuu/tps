@@ -2,21 +2,24 @@
 
 // bytes: 权重每参数字节数（GPTQ/AWQ 等紧凑格式）
 // gguf_bytes: GGUF Q*_K 典型值（llama.cpp / Ollama 常用，略高于 bytes）
-// kv_bytes: KV Cache 每元素字节数（通常比权重精度高，独立于权重量化）
+// kv_bytes: 仅作「该权重量化常见搭配」参考；Auto KV 固定 2B（vLLM 默认 BF16 KV），不跟 FP8 权重走
+// act_bytes: TP all-reduce / 激活峰值用的残差精度（FP8 权重的 residual 仍多为 BF16）
 // flops_key: Decode 算力字段（Roofline 参考）
-// prefill_flops_key: Prefill 算力字段（量化权重 prefill 通常仍走 BF16/INT8 路径）
+// prefill_flops_key: llama.cpp 路径；vLLM/Marlin 的 INT4 prefill 在 calc.js 改走 int4 Tensor Core
 // ppl_loss: 量化困惑度损失参考值（相对 BF16 基准的 PPL 增量，基于 llama.cpp 实测数据）
-//           数值越小质量越好，0 = 无损，来源：llama.cpp wiki quantization comparison
+// MXFP4/NVFP4：bytes 按 4-bit 存储；无 gpu.fp4 时 prefill FLOPS 回落到 int4 或 bf16（见 getGpuTflops）
 export const QUANT_MAP = [
-  { id: 'fp32',  label: 'FP32',          bytes: 4.00, gguf_bytes: 4.00, kv_bytes: 4.0, flops_key: 'bf16', prefill_flops_key: 'bf16', quality: 'best',  ppl_loss: 0.00 },
-  { id: 'bf16',  label: 'BF16/FP16',     bytes: 2.00, gguf_bytes: 2.00, kv_bytes: 2.0, flops_key: 'bf16', prefill_flops_key: 'bf16', quality: 'great', ppl_loss: 0.00 },
-  { id: 'fp8',   label: 'FP8',           bytes: 1.00, gguf_bytes: 1.00, kv_bytes: 1.0, flops_key: 'fp8',  prefill_flops_key: 'fp8',  quality: 'great', ppl_loss: 0.10 },
-  { id: 'int8',  label: 'INT8/Q8',       bytes: 1.00, gguf_bytes: 1.05, kv_bytes: 2.0, flops_key: 'int8', prefill_flops_key: 'int8', quality: 'good',  ppl_loss: 0.10 },
-  { id: 'int6',  label: 'Q6_K',          bytes: 0.75, gguf_bytes: 0.80, kv_bytes: 2.0, flops_key: 'bf16', prefill_flops_key: 'bf16', quality: 'good',  ppl_loss: 0.20 },
-  { id: 'int5',  label: 'Q5_K',          bytes: 0.625,gguf_bytes: 0.69, kv_bytes: 2.0, flops_key: 'bf16', prefill_flops_key: 'bf16', quality: 'ok',    ppl_loss: 0.40 },
-  { id: 'int4',  label: 'INT4/GPTQ/AWQ', bytes: 0.50, gguf_bytes: 0.615,kv_bytes: 2.0, flops_key: 'int4', prefill_flops_key: 'bf16', quality: 'ok',    ppl_loss: 0.80 },
-  { id: 'int3',  label: 'Q3_K',          bytes: 0.375,gguf_bytes: 0.42, kv_bytes: 2.0, flops_key: 'int4', prefill_flops_key: 'bf16', quality: 'poor',  ppl_loss: 2.00 },
-  { id: 'int2',  label: 'INT2/NF2',      bytes: 0.25, gguf_bytes: 0.28, kv_bytes: 2.0, flops_key: 'int4', prefill_flops_key: 'bf16', quality: 'bad',   ppl_loss: 8.00 },
+  { id: 'fp32',  label: 'FP32',          bytes: 4.00, gguf_bytes: 4.00, kv_bytes: 4.0, act_bytes: 4.0, flops_key: 'bf16', prefill_flops_key: 'bf16', quality: 'best',  ppl_loss: 0.00 },
+  { id: 'bf16',  label: 'BF16/FP16',     bytes: 2.00, gguf_bytes: 2.00, kv_bytes: 2.0, act_bytes: 2.0, flops_key: 'bf16', prefill_flops_key: 'bf16', quality: 'great', ppl_loss: 0.00 },
+  { id: 'fp8',   label: 'FP8',           bytes: 1.00, gguf_bytes: 1.00, kv_bytes: 2.0, act_bytes: 2.0, flops_key: 'fp8',  prefill_flops_key: 'fp8',  quality: 'great', ppl_loss: 0.10 },
+  { id: 'nvfp4', label: 'NVFP4',         bytes: 0.50, gguf_bytes: 0.50, kv_bytes: 2.0, act_bytes: 2.0, flops_key: 'fp4',  prefill_flops_key: 'fp4',  quality: 'ok',    ppl_loss: 0.50 },
+  { id: 'mxfp4', label: 'MXFP4',         bytes: 0.50, gguf_bytes: 0.53, kv_bytes: 2.0, act_bytes: 2.0, flops_key: 'fp4',  prefill_flops_key: 'fp4',  quality: 'ok',    ppl_loss: 0.70 },
+  { id: 'int8',  label: 'INT8/Q8',       bytes: 1.00, gguf_bytes: 1.05, kv_bytes: 2.0, act_bytes: 2.0, flops_key: 'int8', prefill_flops_key: 'int8', quality: 'good',  ppl_loss: 0.10 },
+  { id: 'int6',  label: 'Q6_K',          bytes: 0.75, gguf_bytes: 0.80, kv_bytes: 2.0, act_bytes: 2.0, flops_key: 'bf16', prefill_flops_key: 'bf16', quality: 'good',  ppl_loss: 0.20 },
+  { id: 'int5',  label: 'Q5_K',          bytes: 0.625,gguf_bytes: 0.69, kv_bytes: 2.0, act_bytes: 2.0, flops_key: 'bf16', prefill_flops_key: 'bf16', quality: 'ok',    ppl_loss: 0.40 },
+  { id: 'int4',  label: 'INT4/GPTQ/AWQ', bytes: 0.50, gguf_bytes: 0.615,kv_bytes: 2.0, act_bytes: 2.0, flops_key: 'int4', prefill_flops_key: 'bf16', quality: 'ok',    ppl_loss: 0.80 },
+  { id: 'int3',  label: 'Q3_K',          bytes: 0.375,gguf_bytes: 0.42, kv_bytes: 2.0, act_bytes: 2.0, flops_key: 'int4', prefill_flops_key: 'bf16', quality: 'poor',  ppl_loss: 2.00 },
+  { id: 'int2',  label: 'INT2/NF2',      bytes: 0.25, gguf_bytes: 0.28, kv_bytes: 2.0, act_bytes: 2.0, flops_key: 'int4', prefill_flops_key: 'bf16', quality: 'bad',   ppl_loss: 8.00 },
 ]
 
 export const INTERCONNECT_MAP = [
@@ -34,22 +37,26 @@ export const INTERCONNECT_MAP = [
 
 export const FRAMEWORK_MAP = [
   // vendors: null = 全平台通用
+  // decode/prefill：dense Llama 锚点（vLLM 0.65 等）
+  // moeKernelEff：CUDA MoE 在 batch=1 的 grouped GEMM 效率，calc.js 随 batch 升向 dense
+  // Apple 只用 appleMoeDispatchUs，不要套 CUDA MoE 系数
   { id: 'theory',        labelKey: 'framework.theory',        decode: 1.00, prefill: 1.00, decodeMin: 1.00, decodeMax: 1.00, prefillMin: 1.00, prefillMax: 1.00, vendors: null,                    schedulingMode: 'serial'     },
-  { id: 'trtllm',        labelKey: 'framework.trtllm',        decode: 0.80, prefill: 0.75, decodeMin: 0.75, decodeMax: 0.85, prefillMin: 0.80, prefillMax: 0.90, vendors: ['nvidia'],             schedulingMode: 'continuous' },
+  { id: 'trtllm',        labelKey: 'framework.trtllm',        decode: 0.80, prefill: 0.75, decodeMin: 0.75, decodeMax: 0.85, prefillMin: 0.80, prefillMax: 0.90, vendors: ['nvidia'],             schedulingMode: 'continuous', moeKernelEff: 0.50, cudaMoeDispatchUs: 10 },
   // SGLang vs vLLM v0.6.0（sgl-project/sglang benchmark_vllm_060 实测）
   // Llama 3.1 8B A100 offline: SGLang 4281 vs vLLM 4132 tok/s (+3.6%)
   // Llama 3.1 70B 4×H100 online rate=8: SGLang 4064 vs vLLM 3752 tok/s (+8.3%)
   // 早期 29% 差距来自对比旧版 vLLM 0.5.x，vLLM 0.6+ 已基本持平
-  { id: 'sglang',        labelKey: 'framework.sglang',        decode: 0.68, prefill: 0.72, decodeMin: 0.65, decodeMax: 0.75, prefillMin: 0.65, prefillMax: 0.80, vendors: ['nvidia', 'amd'],       schedulingMode: 'continuous' },
+  { id: 'sglang',        labelKey: 'framework.sglang',        decode: 0.68, prefill: 0.72, decodeMin: 0.65, decodeMax: 0.75, prefillMin: 0.65, prefillMax: 0.80, vendors: ['nvidia', 'amd'],       schedulingMode: 'continuous', moeKernelEff: 0.32, cudaMoeDispatchUs: 18 },
   // vLLM 已默认支持 Speculative Decoding（需配置 draft model），可带来 1.5-3x 加速
   // 当前效率系数未包含 Speculative Decoding 增益，实际部署时可能更快
-  { id: 'vllm',          labelKey: 'framework.vllm',          decode: 0.65, prefill: 0.68, decodeMin: 0.55, decodeMax: 0.75, prefillMin: 0.60, prefillMax: 0.80, vendors: ['nvidia', 'amd'],       schedulingMode: 'continuous' },
+  { id: 'vllm',          labelKey: 'framework.vllm',          decode: 0.65, prefill: 0.68, decodeMin: 0.55, decodeMax: 0.75, prefillMin: 0.60, prefillMax: 0.80, vendors: ['nvidia', 'amd'],       schedulingMode: 'continuous', moeKernelEff: 0.35, cudaMoeDispatchUs: 20 },
   // LMDeploy 效率与 SGLang 接近，支持 TurboMind 引擎
-  { id: 'lmdeploy',      labelKey: 'framework.lmdeploy',      decode: 0.76, prefill: 0.70, decodeMin: 0.73, decodeMax: 0.80, prefillMin: 0.62, prefillMax: 0.78, vendors: ['nvidia'],             schedulingMode: 'continuous' },
+  { id: 'lmdeploy',      labelKey: 'framework.lmdeploy',      decode: 0.76, prefill: 0.70, decodeMin: 0.73, decodeMax: 0.80, prefillMin: 0.62, prefillMax: 0.78, vendors: ['nvidia'],             schedulingMode: 'continuous', moeKernelEff: 0.38, cudaMoeDispatchUs: 16 },
   // TGI decode 假设取 0.40-0.55 中间值，待实测校准
-  { id: 'tgi',           labelKey: 'framework.tgi',           decode: 0.47, prefill: 0.55, decodeMin: 0.40, decodeMax: 0.55, prefillMin: 0.50, prefillMax: 0.65, vendors: ['nvidia', 'amd'],       schedulingMode: 'continuous' },
+  { id: 'tgi',           labelKey: 'framework.tgi',           decode: 0.47, prefill: 0.55, decodeMin: 0.40, decodeMax: 0.55, prefillMin: 0.50, prefillMax: 0.65, vendors: ['nvidia', 'amd'],       schedulingMode: 'continuous', moeKernelEff: 0.28, cudaMoeDispatchUs: 24 },
   // ExLlamaV2 针对消费级显卡（RTX 系列）优化，CUDA 核高度定制
-  { id: 'exllamav2',     labelKey: 'framework.exllamav2',     decode: 0.70, prefill: 0.55, decodeMin: 0.65, decodeMax: 0.75, prefillMin: 0.48, prefillMax: 0.62, vendors: ['nvidia'],             schedulingMode: 'serial'     },
+  // ExLlamaV2 README：4090 Llama 7B GPTQ ~205 t/s，高于 llama.cpp Q4 ~120
+  { id: 'exllamav2',     labelKey: 'framework.exllamav2',     decode: 0.90, prefill: 0.55, decodeMin: 0.85, decodeMax: 0.95, prefillMin: 0.48, prefillMax: 0.62, vendors: ['nvidia'],             schedulingMode: 'serial', moeKernelEff: 0.35, cudaMoeDispatchUs: 18 },
   // Apple 专属框架
   {
     id: 'mlx',
