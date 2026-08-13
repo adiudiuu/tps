@@ -14,6 +14,7 @@ export default {
   tags: ['vision'],
   // Vision encoder: ViT-H cross-attention, ~2.5B params, 1601 tokens per image
   vision_encoder_params: 2.5,
+  vision_encoder_in_params: true, // 11B 为含视觉的总参数（≈8B 文本 + ViT）
   vision_seq_tokens: 1601,
   links: {
     ollama: 'ollama pull llama3.2-vision:11b',

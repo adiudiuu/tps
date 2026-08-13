@@ -16,6 +16,7 @@ export default {
   // PaliGemma-3B-pt-224：SigLIP patch14 @ 224×224 → (224/14)² = 256
   // Source: Hugging Face PaliGemma blog / model card
   vision_encoder_params: 0.4,
+  vision_encoder_in_params: true, // PaliGemma-3B 为 Gemma-2B + SigLIP 的总参数
   vision_seq_tokens: 256,
   links: {
     hf: 'https://huggingface.co/google/paligemma-3b-pt-224',

@@ -9,6 +9,7 @@ export default {
   active_params: 3,
   experts: 256,
   experts_per_token: 8,
+  moe_execution: 'shared_routed', // 与 Qwen3.5 同构：routed + 1 shared
   layers: 40,
   kv_heads: 2,           // full attention KV heads
   head_dim: 256,

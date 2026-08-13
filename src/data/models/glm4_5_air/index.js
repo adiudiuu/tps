@@ -9,6 +9,7 @@ export default {
   active_params: 12,
   experts: 128,
   experts_per_token: 8,
+  moe_execution: 'shared_routed', // DeepSeek-style：1 shared + routed
   mla_ratio: null,
   layers: 46,
   kv_heads: 8,

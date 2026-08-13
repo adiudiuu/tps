@@ -16,6 +16,7 @@ export default {
   max_ctx: 131072,
   // ViT-G/14 perception encoder ~1.8B; max visual tokens per image from model card
   vision_encoder_params: 1.8,
+  vision_encoder_in_params: true, // 29.6B = 28B 文本 + ~1.8B ViT
   vision_seq_tokens: 4096,
   tags: ['chat', 'vision', 'multimodal', 'coding'],
   released: '2026-08',

@@ -44,7 +44,13 @@ export function calcAll({
   const totalHeads = getTotalHeads(model) ?? model.kv_heads ?? 1
   const prefixHitRatio = Math.min(0.99, Math.max(0, Number(prefixCacheHit || 0) / 100))
   const effectivePromptLen = Math.max(1, Math.round(promptLen * (1 - prefixHitRatio)))
-  const avgDecodeSeqLen = Math.max(1, Math.min(ctx, promptLen + Math.round(outputLen / 2)))
+  const visionPatchTokens = (model.vision_seq_tokens && imageCount > 0)
+    ? model.vision_seq_tokens * imageCount
+    : 0
+  const visionWeightParams = getVisionWeightParams(model)
+  // decode 每步读取长度 = 文本前缀均值 + vision patch 前缀（图像不占用 sliding 窗外的增量）
+  const textDecodeSeqLen = Math.max(1, Math.min(ctx, promptLen + Math.round(outputLen / 2)))
+  const avgDecodeSeqLen = textDecodeSeqLen + visionPatchTokens
 
   // 框架效率按模型规模动态调整（CUDA llama.cpp 等；Apple 走独立校准路径）
   let adjustedFramework = framework
@@ -92,6 +98,7 @@ export function calcAll({
   // EP（Expert Parallelism）：epCount > 1 且 nonExpertParams 可计算时启用
   // 每卡只存 1/epCount 的 expert + 完整非 expert 权重
   const isEP = epCount > 1 && model.type === 'moe' && nonExpertParams != null
+  const visionWeightGB = visionWeightParams * quantBytes
   let epWeightGB = null
   if (isEP) {
     const totalExpertParams = model.params - nonExpertParams
@@ -106,13 +113,13 @@ export function calcAll({
   // 权重显存：总参数 × 每参数字节数
   // EP 模式：每卡只存 1/epCount 的 expert + 完整非 expert 权重
   // MoE CPU Offload：expert 权重卸载到 CPU RAM，GPU 只需保留 non-expert dense 层
-  const targetWeightGB = isEP
+  const targetWeightGB = (isEP
     ? epWeightGB
     : (cpuOffload && model.type === 'moe')
       ? (nonExpertParams != null
           ? nonExpertParams * quantBytes
           : model.active_params * 0.20 * quantBytes)  // 无 experts 字段时按 active 的 20% 估算 non-expert
-      : model.params * quantBytes
+      : model.params * quantBytes) + visionWeightGB
   // Speculative Decoding：draft 模型常驻显存（与权重同 quantBytes；未指定规模时按主模型激活参数 10%）
   // 不并入 targetWeightGB，避免 MoE offload / decode activeWeight 重复或口径错乱
   let draftParams = 0
@@ -126,41 +133,31 @@ export function calcAll({
     draftWeightGB = draftParams * quantBytes
   }
   const weightGB = targetWeightGB + draftWeightGB
-  // Vision encoder：encoder 权重独立于 LLM backbone（如已包含在 params 内则不重复计算）
-  // vision_encoder_params 已从 params 中独立出来的情况：视具体模型而定
-  // 当前约定：vision_encoder_params 已包含在 params 内，无需额外加；
-  //           但需要额外的 KV token 显存（vision_seq_tokens × imageCount）
-  // 额外 vision token 对 KV Cache 的增量在 kvGB 之后加入
-  const visionPatchTokens = (model.vision_seq_tokens && imageCount > 0)
-    ? model.vision_seq_tokens * imageCount
-    : 0
 
   // KV Cache 显存：精度独立于权重量化，通常为 FP16（2 bytes）
-  // 公式（混合注意力）：global 层用全上下文，local sliding 层只用窗口大小
-  // 混合注意力模型字段：local_layers（sliding 层数）、sliding_window（窗口 tokens）
-  //                    global_kv_heads / global_head_dim（global 层独立头配置）
+  // 混合注意力：global 全上下文；sliding 只计窗口；线性层（GatedDeltaNet 等）KV 归零
+  // linear_attention_layers 与 local_layers+sliding_window===0 同等处理（Qwen3.5 仅有前者）
   const kvBytesPerElem = kvCacheQuant?.bytes ?? quant.kv_bytes ?? 2.0
-  let kvGB
-  if (model.sliding_window != null && model.local_layers != null) {
-    const globalLayers  = model.layers - model.local_layers
-    const globalKvHeads = model.global_kv_heads ?? model.kv_heads
-    const globalHeadDim = model.global_head_dim ?? model.head_dim
-    kvGB = 2 * batch * kvBytesPerElem * (
-      globalLayers * globalKvHeads * globalHeadDim * ctx +
-      model.local_layers * model.kv_heads * model.head_dim * Math.min(ctx, model.sliding_window)
-    ) / 1e9
-  } else {
-    kvGB = 2 * model.layers * model.kv_heads * model.head_dim * ctx * batch * kvBytesPerElem / 1e9
-  }
-  // MLA（Multi-head Latent Attention）压缩 KV Cache，如 DeepSeek V2/V3/R1
-  if (model.mla_ratio) kvGB *= model.mla_ratio
-  // Mamba 混合架构（Jamba 系列）：只有 Transformer 层有 KV Cache，Mamba 层无 KV Cache
-  // mamba_ratio = attention 层占总层数的比例（如 Jamba 1/4 Transformer → mamba_ratio=0.25）
-  if (model.mamba_ratio) kvGB *= model.mamba_ratio
-  // Vision patch token 额外 KV Cache：每张图的 patch token 占用同等 KV 显存
+  const kvParts = getKvLayerParts(model)
+  const kvScale = { mlaRatio: model.mla_ratio, mambaRatio: model.mamba_ratio }
+  let kvGB = kvFootprintGB({
+    parts: kvParts,
+    globalSeq: ctx,
+    slidingSeq: ctx,
+    batch,
+    kvBytesPerElem,
+    ...kvScale,
+  })
+  // vision patch 前缀：与文本同一套层数 / GQA / MLA 逻辑；滑动窗已按 window 计满，不再加 vision
   if (visionPatchTokens > 0) {
-    const kvPatchGB = 2 * model.layers * model.kv_heads * model.head_dim * visionPatchTokens * batch * kvBytesPerElem / 1e9
-    kvGB += kvPatchGB
+    kvGB += kvFootprintGB({
+      parts: kvParts,
+      globalSeq: visionPatchTokens,
+      slidingSeq: 0,
+      batch,
+      kvBytesPerElem,
+      ...kvScale,
+    })
   }
 
   // 系统开销（CUDA context、激活值、临时 buffer 等）
@@ -196,7 +193,8 @@ export function calcAll({
     if (pureCpu) return weightGB + kvGB + overheadGB
     if (isLlamaCppHybrid) return (1 - gpuLayerRatio) * (model.params * quantBytes + kvGB)
     if (cpuOffload && model.type === 'moe') {  // 去掉 !== 'llamacpp'，MoE offload 统一计算
-      return Math.max(0, model.params * quantBytes - targetWeightGB)
+      // vision encoder 常驻 GPU，不从 params 里扣到 CPU
+      return Math.max(0, model.params * quantBytes - (targetWeightGB - visionWeightGB))
     }
     return 0
   })()
@@ -214,11 +212,11 @@ export function calcAll({
   // EP 模式：每卡只读自己那份 expert 权重（1/epCount），带宽需求大幅降低
   //   每卡 IO = 非 expert 权重 + 本卡 expert 权重 + KV Cache
   //   all-to-all 通信开销由 epCommLatencyMs 单独建模
-  const activeWeightRaw = isEP
+  const activeWeightRaw = (isEP
     ? epWeightGB  // EP 下每卡只读自己那份权重（不含 draft；draft IO 另计）
     : model.type === 'moe'
       ? model.active_params * quantBytes
-      : targetWeightGB
+      : (targetWeightGB - visionWeightGB)) + visionWeightGB
   const decodeWeightReadRatio = (() => {
     let ratio = getDecodeWeightReadRatio(gpu, quant, model, framework)
     // Apple MoE：expert gather/scatter 会 overfetch；按 top-k 缩放（Mixtral k=2 远轻于 Qwen A3B k=8）
@@ -259,20 +257,24 @@ export function calcAll({
     max: 1 + (flashRange.max - 1) * faLayerRatio,
   }
   const flashFactor = scaledFlashRange.mid
-  let kvReadGB
-  if (model.sliding_window != null && model.local_layers != null) {
-    const globalLayers  = model.layers - model.local_layers
-    const globalKvHeads = model.global_kv_heads ?? model.kv_heads
-    const globalHeadDim = model.global_head_dim ?? model.head_dim
-    kvReadGB = 2 * batch * kvBytesPerElem * (
-      globalLayers * globalKvHeads * globalHeadDim * Math.min(avgDecodeSeqLen, ctx) +
-      model.local_layers * model.kv_heads * model.head_dim * Math.min(avgDecodeSeqLen, model.sliding_window)
-    ) / 1e9
-  } else {
-    kvReadGB = 2 * model.layers * model.kv_heads * model.head_dim * avgDecodeSeqLen * batch * kvBytesPerElem / 1e9
+  let kvReadGB = kvFootprintGB({
+    parts: kvParts,
+    globalSeq: Math.min(textDecodeSeqLen, ctx),
+    slidingSeq: textDecodeSeqLen,
+    batch,
+    kvBytesPerElem,
+    ...kvScale,
+  })
+  if (visionPatchTokens > 0) {
+    kvReadGB += kvFootprintGB({
+      parts: kvParts,
+      globalSeq: visionPatchTokens,
+      slidingSeq: 0,
+      batch,
+      kvBytesPerElem,
+      ...kvScale,
+    })
   }
-  if (model.mla_ratio) kvReadGB *= model.mla_ratio
-  if (model.mamba_ratio) kvReadGB *= model.mamba_ratio
 
   // Speculative Decoding 加速：每步尝试验证 draftLen 个 token，接受率为 acceptanceRate
   // 期望接受 token 数：mean_accepted = (1 - α^(γ+1)) / (1 - α)，其中 α=acceptanceRate，γ=draftLen
@@ -645,6 +647,53 @@ export function calcAll({
 }
 
 /**
+ * 混合 / 线性注意力的 KV 层拆分。
+ * linear_attention_layers 与 local_layers+sliding_window===0 同等：这些层不占标准 KV。
+ * 已同时填写两者的条目（qwen38_max / qwen3_next / kimi_k3）只扣一次，不重复。
+ * sliding_window>0 的 local_layers 仍按滑动窗计 KV（Gemma 3 / GPT-OSS 等）。
+ */
+function getKvLayerParts(model) {
+  const layers = model.layers ?? 1
+  const linearLayers = model.linear_attention_layers
+    ?? (model.local_layers != null && model.sliding_window === 0 ? model.local_layers : 0)
+  const hasSliding = model.sliding_window != null && model.local_layers != null && model.sliding_window > 0
+  const slidingLayers = hasSliding ? model.local_layers : 0
+  return {
+    globalLayers: Math.max(0, layers - linearLayers - slidingLayers),
+    slidingLayers,
+    slidingWindow: hasSliding ? model.sliding_window : 0,
+    linearLayers,
+    globalKvHeads: model.global_kv_heads ?? model.kv_heads,
+    globalHeadDim: model.global_head_dim ?? model.head_dim,
+    kvHeads: model.kv_heads,
+    headDim: model.head_dim,
+  }
+}
+
+function kvFootprintGB({ parts, globalSeq, slidingSeq, batch, kvBytesPerElem, mlaRatio, mambaRatio }) {
+  const {
+    globalLayers, slidingLayers, slidingWindow,
+    globalKvHeads, globalHeadDim, kvHeads, headDim,
+  } = parts
+  const localSeq = slidingLayers > 0
+    ? Math.min(Math.max(0, slidingSeq), slidingWindow)
+    : 0
+  let gb = 2 * batch * kvBytesPerElem * (
+    globalLayers * globalKvHeads * globalHeadDim * Math.max(0, globalSeq) +
+    slidingLayers * kvHeads * headDim * localSeq
+  ) / 1e9
+  if (mlaRatio) gb *= mlaRatio
+  if (mambaRatio) gb *= mambaRatio
+  return gb
+}
+
+/** params 已含视觉时（vision_encoder_in_params）不再加；否则加上独立的 vision_encoder_params */
+function getVisionWeightParams(model) {
+  if (model?.vision_encoder_in_params) return 0
+  return model?.vision_encoder_params ?? 0
+}
+
+/**
  * 动态计算 prefill 总 FLOPs 修正因子
  *
  * 返回值 factor = total_flops_per_token / ffn_flops_per_token（≥ 1）
@@ -828,6 +877,8 @@ function getMoeExtraDecodeMs({ gpu, framework, model, batch }) {
     : framework.cudaMoeDispatchUs
   if (dispatchUsBase == null) return 0
 
+  // 缺省 routed：纯 routed（Mixtral / Qwen3-30B 无 shared expert）保持乐观系数。
+  // 有 shared expert 的家族在 catalog 填 moe_execution: 'shared_routed'，不要把全局缺省改成 shared_routed。
   const executionMode = model.moe_execution ?? (activeExperts <= 1 ? 'top1_routed' : 'routed')
   const executionScaleMap = {
     top1_routed: 0.20,

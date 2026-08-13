@@ -10,6 +10,7 @@ export default {
   active_params: 32,
   experts: 384,
   experts_per_token: 8,
+  moe_execution: 'shared_routed', // 384 routed top-8 + 1 shared
   // 本条目的 kv_heads × head_dim 已按 MLA latent 维度（1 × 512）填写，
   // ratio 只需补上 rope 分量：(512 + 64) / (2 × 1 × 512)
   mla_ratio: 0.5625,

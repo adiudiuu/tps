@@ -10,6 +10,7 @@ export default {
   active_params: 2.7,
   experts: 60,
   experts_per_token: 4,
+  moe_execution: 'shared_routed', // Qwen1.5-MoE：4 shared + routed
   mla_ratio: null,
   layers: 24,
   kv_heads: 8,

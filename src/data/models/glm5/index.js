@@ -10,6 +10,7 @@ export default {
   active_params: 40,
   experts: 256,
   experts_per_token: 8,
+  moe_execution: 'shared_routed',
   mla_ratio: 0.0703,  // MLA latent (512 + 64) / (2 × 64 × 64)
   layers: 78,
   kv_heads: 64,

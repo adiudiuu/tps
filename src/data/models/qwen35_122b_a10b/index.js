@@ -9,6 +9,7 @@ export default {
   active_params: 10,
   experts: 256,
   experts_per_token: 8,
+  moe_execution: 'shared_routed', // 8 routed + 1 shared
   layers: 48,
   linear_attention_layers: 36,  // GatedDeltaNet，不支持 Flash Attention（full_attention_interval=4）
   kv_heads: 2,

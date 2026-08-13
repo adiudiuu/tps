@@ -15,6 +15,7 @@ export default {
   // vision: InternViT-300M-448px；每 448×448 tile → 256 tokens（pixel shuffle downsample_ratio=0.5）
   // Source: InternVL2 docs / config force_image_size=448, downsample_ratio=0.5
   vision_encoder_params: 0.3,
+  vision_encoder_in_params: true, // 8.1B = InternLM2-7B + InternViT-300M
   vision_seq_tokens: 256,
   links: {
     hf: 'https://huggingface.co/OpenGVLab/InternVL2-8B',
