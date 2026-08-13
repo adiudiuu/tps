@@ -68,6 +68,10 @@ export default {
         title: 'GPU構成ソルバー · TPS Calculator',
         description: 'DeepSeek V4、GLM-5.2、Kimi K3 等に対し、RTX 5090 / H100 / H200 / B200 / MI300X × 量子化 × フレームワークの候補を列挙。{updated}更新。',
       },
+      about: {
+        title: '説明 · TPS Calculator',
+        description: '広告なし。モデルとGPUの仕様は公開資料から。古い・誤りがあり得ます。TPSとVRAMは理論見積もりで、実測ではありません。役に立ったら GitHub で star を。',
+      },
     },
   },
   nav: {
@@ -87,6 +91,17 @@ export default {
     library_short: 'Library',
     solver: 'Solver',
     solver_short: 'Solver',
+    about: '説明',
+  },
+  about: {
+    title: '説明',
+    intro: 'このサイトは LLM の推論を見積もるためのものです。GPU、モデル、量子化、フレームワークを選ぶと、VRAM に載るか、だいたい何 token/s かが分かります。カードを比較するたびに手計算するのが面倒になって、ページにしました。',
+    why: '世に出ているベンチは、特定のマシン・スタック・負荷の数字です。量子化を変えたり、コンテキストを伸ばしたり、GPU を替えたりすると、そのままでは使えません。他人のランキングをもう一枚貼るのではなく、パラメータをいじってすぐオーダー感が出るものが欲しかった、というだけです。',
+    ads: '広告はありません。GPU のアフィリエイトもありません。静的なフロントエンドで、数字はリポジトリに入っています。clone しても使えます。',
+    sources: 'モデルと GPU のスペックは論文、公式ドキュメント、Hugging Face などの公開資料からです。新しいカードやモデルはこちらへの反映が遅れることがあります。転記ミスもあります。メーカーのページを優先してください。',
+    estimates: 'TPS と VRAM は理論計算です。帯域、演算性能、重みのサイズ、KV Cache に、フレームワークの効率係数を掛けます。上限であって、実測ではありません。ドライバ、kernel、バッチの形、どの最適化を入れるかで実数は動きます。SLA にはしないでください。',
+    support: '役に立ったら、GitHub で star をもらえると嬉しいです。コーヒーをおごっていただけるなら、それも嬉しいです。',
+    star: 'GitHub で star',
   },
   notice: {
     theoretical_value: '💡 理論推定値 — 参考用です',

@@ -68,6 +68,10 @@ export default {
         title: 'GPU Config Solver · TPS Calculator',
         description: 'For DeepSeek V4, GLM-5.2, Kimi K3 and similar, enumerate RTX 5090 / H100 / H200 / B200 / MI300X × quant × framework options that fit. Updated {updated}.',
       },
+      about: {
+        title: 'Notes · TPS Calculator',
+        description: 'No ads. Model and GPU specs come from public sources and may be stale or wrong. TPS and VRAM are theoretical estimates, not measured benches. If it helped, a GitHub star is plenty.',
+      },
     },
   },
   nav: {
@@ -87,6 +91,17 @@ export default {
     library_short: 'Library',
     solver: 'Solver',
     solver_short: 'Solver',
+    about: 'Notes',
+  },
+  about: {
+    title: 'Notes',
+    intro: 'This site estimates LLM inference. Pick a GPU, a model, a quant, and a framework, and you get a sense of whether it fits in VRAM and roughly how many tokens/s. I kept doing that math by hand when comparing cards. Got tired of it, so I made a page.',
+    why: 'Published benches are one box, one stack, one load. Change the quant, stretch the context, swap the GPU, and those numbers don\'t travel. I wanted something I could poke at — not another leaderboard.',
+    ads: 'No ads, no GPU affiliate links. It\'s a static frontend; the numbers live in the repo. Clone it if you want.',
+    sources: 'Model and GPU specs come from papers, vendor docs, Hugging Face — public sources. New releases can sit here stale for a while, and I do mistype a spec now and then. Trust the vendor page over this.',
+    estimates: 'TPS and VRAM are theoretical. Bandwidth, FLOPs, weight size, KV cache, times a framework efficiency factor. That\'s a ceiling, not a bench. Drivers, kernels, batch shape, and which knobs you flipped will move the real number. Don\'t treat it as an SLA.',
+    support: 'If it helped, a GitHub star is plenty. A coffee would be nice too.',
+    star: 'Star on GitHub',
   },
   notice: {
     theoretical_value: '💡 Theoretical estimates — for reference only',

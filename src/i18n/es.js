@@ -68,6 +68,10 @@ export default {
         title: 'Recomendación de configuración GPU · TPS Calculator',
         description: 'Para DeepSeek V4, GLM-5.2, Kimi K3 y similares, enumera RTX 5090 / H100 / H200 / B200 / MI300X × cuantización × framework viables. Act. {updated}.',
       },
+      about: {
+        title: 'Notas · TPS Calculator',
+        description: 'Sin anuncios. Specs de modelos y GPUs de fuentes públicas; pueden estar desactualizadas o mal. TPS y VRAM son estimaciones teóricas, no benches medidos. Si sirve, un star en GitHub está bien.',
+      },
     },
   },
   nav: {
@@ -87,6 +91,17 @@ export default {
     library_short: 'Biblioteca',
     solver: 'Solucionador',
     solver_short: 'Solucionador',
+    about: 'Notas',
+  },
+  about: {
+    title: 'Notas',
+    intro: 'Esta página estima inferencia de LLM. Eliges GPU, modelo, cuantización y framework, y te da una idea de si cabe en VRAM y de cuántos tokens/s. Me cansé de hacer esas cuentas a mano cada vez que comparaba tarjetas, así que lo dejé en una web.',
+    why: 'Los benches publicados son de una máquina, un stack, una carga. Cambias la cuantización, alargas el contexto, cambias de GPU, y esos números no viajan. Quería algo que pudiera toquetear, no otra tabla ajena.',
+    ads: 'No hay anuncios ni enlaces de afiliado a GPUs. Es frontend estático; los datos están en el repo. Si quieres, clónalo.',
+    sources: 'Los specs de modelos y GPUs salen de papers, docs oficiales, Hugging Face: fuentes públicas. Lo nuevo a veces tarda en entrar, y de vez en cuando copio mal un número. Fíate de la página del fabricante.',
+    estimates: 'TPS y VRAM se calculan en teoría: ancho de banda, FLOPs, tamaño de pesos, KV cache, por un factor de eficiencia del framework. Es un techo, no un bench medido. Drivers, kernels, forma del batch y qué opciones actives van a mover el número real. No lo uses como SLA.',
+    support: 'Si te sirvió, un star en GitHub está bien. Invitar a un café también vale.',
+    star: 'Dar star en GitHub',
   },
   notice: {
     theoretical_value: '💡 Estimaciones teóricas — solo como referencia',

@@ -162,6 +162,15 @@ function exportMarkdown() {
         >
           {{ t('nav.library') }}
         </RouterLink>
+        <RouterLink
+          to="/about"
+          class="px-3 py-1.5 text-sm rounded-md transition-colors"
+          :class="route.path === '/about'
+            ? 'text-emerald-700 bg-emerald-100 font-semibold'
+            : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'"
+        >
+          {{ t('nav.about') }}
+        </RouterLink>
       </nav>
     </div>
     <div class="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
@@ -198,6 +207,13 @@ function exportMarkdown() {
           {{ shareState === 'copied' ? t('nav.copied') : shareState === 'error' ? t('nav.share_failed') : t('nav.share') }}
         </span>
       </button>
+      <RouterLink
+        to="/about"
+        class="sm:hidden inline-flex items-center text-xs font-medium px-2 py-1.5 text-gray-500 hover:text-gray-900 transition-colors"
+        :class="route.path === '/about' ? 'text-emerald-700' : ''"
+      >
+        {{ t('nav.about') }}
+      </RouterLink>
       <a
         :href="githubUrl"
         target="_blank"

@@ -169,13 +169,13 @@ function syncJsonLd(t, locale) {
 }
 
 /**
- * @param {string} pageKey - estimator | ranking | library | solver
+ * @param {string} pageKey - estimator | ranking | library | solver | about
  * @param {(key: string, values?: Record<string, unknown>) => string} t
  * @param {string} locale - zh | en | es | ja
  * @param {string} [path] - route path
  */
 export function applyPageSeo(pageKey, t, locale = 'zh', path = '/') {
-  const key = ['estimator', 'ranking', 'library', 'solver'].includes(pageKey)
+  const key = ['estimator', 'ranking', 'library', 'solver', 'about'].includes(pageKey)
     ? pageKey
     : 'estimator'
 

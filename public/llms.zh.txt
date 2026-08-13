@@ -50,6 +50,7 @@
 - [速度排行](https://tps.bunai.com/ranking)
 - [资源库](https://tps.bunai.com/library)
 - [配置推荐](https://tps.bunai.com/solver)
+- [说明](https://tps.bunai.com/about)
 
 ## 框架 / 量化
 

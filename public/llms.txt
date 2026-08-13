@@ -49,6 +49,7 @@ Roofline + public GPU specs × framework efficiency. Theoretical upper bounds, n
 - [Ranking](https://tps.bunai.com/ranking?lang=en)
 - [Library](https://tps.bunai.com/library?lang=en)
 - [Solver](https://tps.bunai.com/solver?lang=en)
+- [Notes](https://tps.bunai.com/about?lang=en)
 
 ## Frameworks / quants
 

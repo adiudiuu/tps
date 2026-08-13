@@ -68,6 +68,10 @@ export default {
         title: 'GPU 配置推荐 · TPS Calculator',
         description: '给定 DeepSeek V4、GLM-5.2、Kimi K3 等模型与约束，枚举 RTX 5090 / H100 / H200 / B200 / MI300X × 量化 × 框架的可行方案。更新至 {updated}。',
       },
+      about: {
+        title: '说明 · TPS Calculator',
+        description: '本站不加广告。模型与显卡参数来自公开资料，可能滞后或有误。TPS 与显存是理论估算，不是实测跑分。觉得有用可去 GitHub 点星。',
+      },
     },
   },
   nav: {
@@ -87,6 +91,17 @@ export default {
     library_short: '资源库',
     solver: '配置推荐',
     solver_short: '配置',
+    about: '说明',
+  },
+  about: {
+    title: '说明',
+    intro: '这个站用来估 LLM 推理。选一张卡、一个模型、量化和框架，看显存够不够、大概能跑多少 token/s。自己比配置的时候老是手算，烦了，就做成网页了。',
+    why: '外面那些跑分都是特定机器、特定框架、特定负载。换个量化、把上下文拉长、换成另一张卡，数字就对不上。我想要的是能自己改参数、马上出个量级的东西，不是再贴一张别人的榜。',
+    ads: '页面上没有广告，也不卖卡、不导流。纯前端，数据都在仓库里，clone 下来自己也能跑。',
+    sources: '模型和显卡参数来自论文、官方文档、Hugging Face 这类公开资料。新卡、新模型出来之后，这边可能还没补上；抄规格偶尔也会看走眼。以厂商和模型页为准。',
+    estimates: 'TPS 和显存是按理论算的：带宽、算力、权重体积、KV Cache，再乘个框架效率。那是上界，不是实测跑分。驱动、kernel、batch 形状、开关哪些优化，都会让真实数字偏掉。要上线还是自己压测。',
+    support: '觉得有用的话，去 GitHub 点个星星就很好。想请杯咖啡也行。',
+    star: '去 GitHub 点星星',
   },
   notice: {
     theoretical_value: '💡 计算结果为理论值，仅供参考',
