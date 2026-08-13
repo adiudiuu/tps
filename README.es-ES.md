@@ -53,7 +53,7 @@
 - 🎯 **Modelado preciso** — Cobertura completa de pesos, KV Cache y sobrecarga del sistema, con alerta de riesgo OOM
 - ⚡ **Análisis de rendimiento** — Cálculo preciso de tokens/s en Decode/Prefill; evaluación de TTFT/TPOT/latencia total
 - 📊 **Modelo Roofline** — Identificación científica de cuellos de botella de ancho de banda y cómputo
-- 🌍 **Amplia cobertura** — 250+ GPUs, 398+ modelos principales (Dense 312 + MoE 86)
+- 🌍 **Amplia cobertura** — 250+ GPUs, 403+ modelos principales (Dense 312 + MoE 91)
 - 🔗 **Funciones avanzadas** — Tensor Parallel, Flash Attention, cuantización de KV Cache, Prefix Cache
 - 🎨 **Multi-framework** — vLLM, TensorRT-LLM, SGLang, LMDeploy, TGI, llama.cpp, ExLlamaV2, MLX
 
@@ -61,7 +61,7 @@
 
 | Categoría | Detalles |
 | --- | --- |
-| **Modelos** | 398+ modelos principales (Dense 312 + MoE 86) · 0.5B - 2.8T parámetros · Publicados 2022-2026 |
+| **Modelos** | 403+ modelos principales (Dense 312 + MoE 91) · 0.5B - 2.8T parámetros · Publicados 2022-2026 |
 | **Arquitecturas** | Dense · MoE · MLA (DeepSeek) · Atención híbrida (Gemma) · Mamba (SSM) |
 | **GPU** | 250+ modelos · NVIDIA (RTX/Tesla/H100/B200/B300) · AMD (RX/MI) · Intel Arc · Apple Silicon · Chips chinos |
 | **Cuantización** | FP32 · BF16 · FP8 · INT8 · INT4 · Q6_K · Q5_K · Q3_K · INT2 |
@@ -126,7 +126,7 @@ src/
 │   └── ui/          # UI genérica
 ├── data/            # Datos
 │   ├── gpus/        # Especificaciones GPU (por fabricante)
-│   ├── models/      # Parámetros de modelos (398+)
+│   ├── models/      # Parámetros de modelos (403+)
 │   ├── constants.js # Constantes de cuantización / framework / interconexión
 │   └── runtime.js   # Opciones de configuración en runtime
 ├── utils/           # Utilidades
@@ -267,7 +267,7 @@ Este proyecto usa una **licencia personalizada de uso no comercial**. Consulta [
 
 - **Parámetros de modelo** — [HuggingFace](https://huggingface.co), [Ollama](https://ollama.com), [ModelScope](https://modelscope.cn) y otros repositorios oficiales
 - **Especificaciones de GPU** — Documentación técnica oficial de los fabricantes
-- **Cobertura de modelos** — 398+ modelos open source principales (2022-2026), de 0.5B a 2.8T parámetros
+- **Cobertura de modelos** — 403+ modelos open source principales (2022-2026), de 0.5B a 2.8T parámetros
 
 ### Base teórica
 

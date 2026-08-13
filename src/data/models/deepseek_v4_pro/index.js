@@ -1,5 +1,7 @@
 // DeepSeek-V4-Pro: 1.6T MoE, 49B active, CSA+HCA hybrid attention, 1M context
-// Released: April 24, 2026
+// Preview: 2026-04-24; Official API build DeepSeek-V4-Pro-0813: 2026-08-13
+// API docs: version bump to Pro-0813, calling method unchanged (deepseek-v4-pro)
+// Public HF config.json geometry unchanged vs Preview — no new architecture published
 // Source: https://huggingface.co/deepseek-ai/DeepSeek-V4-Pro
 // Config: num_hidden_layers=61, hidden_size=7168, num_attention_heads=128,
 //         num_key_value_heads=1 (HCA), head_dim=512 (latent KV dim),

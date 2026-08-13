@@ -1,9 +1,8 @@
-// Qwen3.8-27B: dense companion to Qwen3.8-Max (official PlannedArtifact)
-// Released: 2026-08 (announced with Max; ModelScope: 稠密模型，将陆续开源)
+// Qwen3.8-27B: dense companion to Qwen3.8-Max (announced; weights not published as of 2026-08-13)
 // Geometry provisional: mirror Qwen3.6-27B hybrid Gated DeltaNet + full attention
-// Official has NOT published 27B layer/head/hidden/context yet — align to Qwen3.6-27B config
-// Source: Alibaba Qwen3.8 announcement; ModelScope PreRelease PlannedArtifacts include Qwen/Qwen3.8-27B
-// Weights not live yet (as of 2026-08-12): HF repo 404/401; MS 27B page missing — link to org / PlannedArtifacts
+// Official has NOT published 27B layer/head/hidden/context — no config.json yet
+// Checked 2026-08-13: HF Qwen/Qwen3.8-27B → 401 (repo missing); ModelScope same id → 404
+// Source: Alibaba Qwen3.8 announcement; keep preview until a real repo + config.json exist
 export default {
   id: 'qwen38_27b',
   name: 'Qwen3.8-27B',
@@ -23,7 +22,7 @@ export default {
   hf_id: 'Qwen/Qwen3.8-27B',
   links: {
     hf: 'https://huggingface.co/Qwen',
-    // PlannedArtifacts page lists Qwen3.8-27B; dedicated 27B model page not published yet
-    ms: 'https://www.modelscope.cn/models/Qwen/Qwen3.8-2.4T-A95B',
+    // Dedicated 27B model page not published; Max repo is the live Qwen3.8 open-weight page
+    ms: 'https://modelscope.cn/models/Qwen/Qwen3.8-2.4T-A95B',
   },
 }

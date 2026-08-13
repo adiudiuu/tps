@@ -37,6 +37,15 @@ import devstral_2_123b from './devstral_2_123b/index.js'
 import devstral_small_2_24b from './devstral_small_2_24b/index.js'
 import gpt_oss_120b from './gpt_oss_120b/index.js'
 import gpt_oss_20b from './gpt_oss_20b/index.js'
+import qwen3_vl_8b from './qwen3_vl_8b/index.js'
+import qwen3_next_80b from './qwen3_next_80b/index.js'
+import magistral_small_24b from './magistral_small_24b/index.js'
+import hunyuan_7b from './hunyuan_7b/index.js'
+import hunyuan_a13b from './hunyuan_a13b/index.js'
+import exaone_4_32b from './exaone_4_32b/index.js'
+import ernie45_300b_a47b from './ernie45_300b_a47b/index.js'
+import ernie45_21b_a3b from './ernie45_21b_a3b/index.js'
+import qwen3_30b_a3b from './qwen3_30b_a3b/index.js'
 import phi4_reasoning_14b from './phi4_reasoning_14b/index.js'
 import mistral_small_3_1_24b from './mistral_small_3_1_24b/index.js'
 import mistral_small_4 from './mistral_small_4/index.js'
@@ -184,7 +193,6 @@ import pythia_6_9b from './pythia_6_9b/index.js'
 import pythia_12b from './pythia_12b/index.js'
 import amber_7b from './amber_7b/index.js'
 import mpt_30b from './mpt_30b/index.js'
-import miqu_70b from './miqu_70b/index.js'
 import olmo2_13b from './olmo2_13b/index.js'
 import olmo2_7b from './olmo2_7b/index.js'
 import olmo_7b from './olmo_7b/index.js'
@@ -331,12 +339,10 @@ import orca2_13b from './orca2_13b/index.js'
 import vicuna_7b from './vicuna_7b/index.js'
 import vicuna_13b from './vicuna_13b/index.js'
 import vicuna_33b from './vicuna_33b/index.js'
-import mythomax_13b from './mythomax_13b/index.js'
 import xwin_70b from './xwin_70b/index.js'
 import openchat_3_5 from './openchat_3_5/index.js'
 import nous_hermes2_mixtral from './nous_hermes2_mixtral/index.js'
 import dolphin_mixtral from './dolphin_mixtral/index.js'
-import goliath_120b from './goliath_120b/index.js'
 import samantha_7b from './samantha_7b/index.js'
 import neural_chat_7b from './neural_chat_7b/index.js'
 import nous_capybara_34b from './nous_capybara_34b/index.js'
@@ -344,7 +350,6 @@ import airoboros_70b from './airoboros_70b/index.js'
 import zephyr_7b from './zephyr_7b/index.js'
 import starling_7b from './starling_7b/index.js'
 import solar_10_7b_instruct from './solar_10_7b_instruct/index.js'
-import chronos_hermes_13b from './chronos_hermes_13b/index.js'
 import openhermes_2_5 from './openhermes_2_5/index.js'
 import aquila2_7b from './aquila2_7b/index.js'
 import baichuan_7b from './baichuan_7b/index.js'
@@ -401,7 +406,7 @@ import llama_pro_8b from './llama_pro_8b/index.js'
 import llama2_chinese_13b from './llama2_chinese_13b/index.js'
 import linly_7b from './linly_7b/index.js'
 
-// Registered model counts: 398 unique (Dense 312 + MoE 86 by type)
+// Registered model counts: 403 unique (Dense 312 + MoE 91 by type)
 export const DENSE_MODELS = [
   // 2026
   muse_glimmer,
@@ -427,6 +432,10 @@ export const DENSE_MODELS = [
   translategemma_4b,
   medgemma_1_5_4b,
   // 2025
+  qwen3_vl_8b,
+  magistral_small_24b,
+  hunyuan_7b,
+  exaone_4_32b,
   seed_oss_36b,
   smollm3_3b,
   phi4_reasoning_14b,
@@ -604,8 +613,6 @@ export const DENSE_MODELS = [
   openhermes_llama3_8b,
   nous_hermes2_llama3_8b,
   // 2023
-  miqu_70b,
-  goliath_120b,
   xwin_70b,
   airoboros_70b,
   xuanyuan_70b,
@@ -629,8 +636,6 @@ export const DENSE_MODELS = [
   chinese_alpaca_13b,
   orca2_13b,
   vicuna_13b,
-  mythomax_13b,
-  chronos_hermes_13b,
   tigerbot_13b,
   skywork_13b,
   ziya_13b,
@@ -737,6 +742,11 @@ export const MOE_MODELS = [
   nemotron_cascade_2_30b,
   mistral_small_4,
   // 2025
+  qwen3_next_80b,
+  hunyuan_a13b,
+  ernie45_300b_a47b,
+  ernie45_21b_a3b,
+  qwen3_30b_a3b,
   mimo_v2_flash,
   granite_4_0_h_small,
   qwen3_vl_235b_a22b,
@@ -831,7 +841,6 @@ export const COMMUNITY_MODELS = [
   nous_hermes2_yi_34b,
   nous_hermes2_mixtral,
   dolphin_mixtral,
-  miqu_70b,
   stable_beluga_13b,
   stable_beluga_7b,
   stablelm2_12b,
@@ -840,15 +849,12 @@ export const COMMUNITY_MODELS = [
   stablelm_3b,
   zephyr_3b,
   // 2023
-  goliath_120b,
   xwin_70b,
   airoboros_70b,
   nous_capybara_34b,
   vicuna_33b,
   orca2_13b,
   vicuna_13b,
-  mythomax_13b,
-  chronos_hermes_13b,
   solar_10_7b_instruct,
   openchat_3_5,
   openhermes_2_5,
