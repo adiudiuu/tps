@@ -1,0 +1,62 @@
+# TPS Calculator（繁體中文）
+
+> 按 GPU、模型、量化與推理框架，估計 LLM 的推理速度（token/s）、顯存佔用與延遲。
+
+站點：https://tps.bunai.com/
+源碼：https://github.com/adiudiuu/tps
+其他語言：[簡體中文](/llms.zh.txt) / [English](/llms.txt) / [Русский](/llms.ru.txt) / [Español](/llms.es.txt) / [한국어](/llms.ko.txt) / [日本語](/llms.ja.txt)
+界面：簡體中文預設（不加 lang）；`?lang=zh-TW`（繁體中文）/ `?lang=en` / `?lang=ru` / `?lang=es` / `?lang=ko` / `?lang=ja`
+
+站內即時數量：**403 個模型**、**251 個 GPU**。資料更新至 **2026-08-17**（`UPDATED_AT_BEIJING`）。
+
+## 可估計的熱門模型（均已入庫）
+
+| 模型 | 選取原因 |
+|------|----------|
+| **Qwen3.8-Max** | 開源權重 2.4T-A95B（HF / ModelScope，2026-08-12） |
+| **Qwen3.8-27B** | 開源稠密多模態（HF / ModelScope，2026-08-14） |
+| **Kimi K3** | 大 MoE，2026-07 |
+| **GLM-5.2** | GLM-5 線最新（2026-06） |
+| **DeepSeek V4**（Pro / Flash） | 當前 DeepSeek 代際（2026-04） |
+| **MiniMax M3** | 2026-06 |
+| **Gemma 4** | Google Gemma 4 系列（2026-06） |
+| **Llama 4**（Maverick / Scout） | Meta Llama 4 MoE |
+| **Nemotron 3**（Ultra / Super / Nano） | NVIDIA Nemotron 3 |
+
+資源庫仍含 Qwen3 / DeepSeek V3 / Llama 3.x 等更早條目。
+
+## 可估計的熱門 GPU（均已入庫）
+
+| GPU | 類型 |
+|-----|------|
+| **RTX 5090 / 5080 / 4090** | 消費級 |
+| **B200 SXM / H200 SXM / H100 SXM** | NVIDIA 資料中心 |
+| **MI300X** | AMD 資料中心 |
+
+典型問題：DeepSeek V4 在 8×H200？GLM-5.2 在 B200 要多少顯存？Gemma 4 在 RTX 5090 的 TPS？Kimi K3 在 MI300X？
+
+## 計算內容
+
+- Decode / Prefill TPS
+- 顯存：權重、KV Cache、開銷；標出可能 OOM
+- 延遲：TTFT、TPOT、端到端
+- Roofline：頻寬 vs 算力
+- 多卡 Tensor Parallel
+
+基於 Roofline 與公開規格 × 框架效率。理論上界，非實測榜。
+
+## 頁面
+
+- [估計](https://tps.bunai.com/?lang=zh-TW)
+- [速度排行](https://tps.bunai.com/ranking?lang=zh-TW)
+- [資源庫](https://tps.bunai.com/library?lang=zh-TW)
+- [設定建議](https://tps.bunai.com/solver?lang=zh-TW)
+- [說明](https://tps.bunai.com/about?lang=zh-TW)
+
+## 框架 / 量化
+
+vLLM、TensorRT-LLM、llama.cpp、MLX、SGLang、TGI · FP32–INT2 / GGUF K-quants
+
+## 技術
+
+Vue 3 + Vite + Tailwind。純前端。

@@ -1,0 +1,62 @@
+# TPS Calculator (español)
+
+> Estima la velocidad de inferencia LLM (token/s), VRAM y latencia según GPU, modelo, cuantización y framework.
+
+Sitio: https://tps.bunai.com/
+Código: https://github.com/adiudiuu/tps
+Otros idiomas: [简体中文](/llms.zh.txt) / [繁體中文](/llms.zh-TW.txt) / [English](/llms.txt) / [Русский](/llms.ru.txt) / [한국어](/llms.ko.txt) / [日本語](/llms.ja.txt)
+Interfaz: chino simplificado por defecto (sin query); `?lang=zh-TW` / `?lang=en` / `?lang=ru` / `?lang=es` / `?lang=ko` / `?lang=ja`
+
+Catálogo (conteos en vivo en Library): **403 modelos**, **251 GPUs**. Datos actualizados el **2026-08-17** (`UPDATED_AT_BEIJING`).
+
+## Modelos populares en el catálogo
+
+| Modelo | Por qué está |
+|--------|--------------|
+| **Qwen3.8-Max** | Pesos abiertos 2.4T-A95B (HF / ModelScope, 2026-08-12) |
+| **Qwen3.8-27B** | VLM denso de pesos abiertos (HF / ModelScope, 2026-08-14) |
+| **Kimi K3** | MoE grande, 2026-07 |
+| **GLM-5.2** | Línea GLM-5 más reciente (2026-06) |
+| **DeepSeek V4** (Pro / Flash) | Generación actual de DeepSeek (2026-04) |
+| **MiniMax M3** | Lanzamiento 2026-06 |
+| **Gemma 4** | Familia Google Gemma 4 (2026-06) |
+| **Llama 4** (Maverick / Scout) | Meta Llama 4 MoE |
+| **Nemotron 3** (Ultra / Super / Nano) | Línea NVIDIA Nemotron 3 |
+
+Library sigue incluyendo entradas anteriores de Qwen3 / DeepSeek V3 / Llama 3.x.
+
+## GPUs populares en el catálogo
+
+| GPU | Clase |
+|-----|--------|
+| **RTX 5090 / 5080 / 4090** | Consumo |
+| **B200 SXM / H200 SXM / H100 SXM** | NVIDIA datacenter |
+| **MI300X** | AMD datacenter |
+
+Preguntas típicas: ¿DeepSeek V4 en 8×H200? ¿VRAM de GLM-5.2 en B200? ¿TPS de Gemma 4 en RTX 5090? ¿Kimi K3 en MI300X?
+
+## Qué calcula
+
+- Decode / Prefill TPS
+- VRAM: pesos, KV cache, overhead; marcas de OOM
+- Latencia: TTFT, TPOT, extremo a extremo
+- Roofline: ancho de banda vs cómputo
+- Tensor Parallel multi-GPU
+
+Roofline + specs públicas de GPU × eficiencia del framework. Límite teórico, no bench de laboratorio.
+
+## Páginas
+
+- [Estimador](https://tps.bunai.com/?lang=es)
+- [Ranking](https://tps.bunai.com/ranking?lang=es)
+- [Biblioteca](https://tps.bunai.com/library?lang=es)
+- [Recomendación](https://tps.bunai.com/solver?lang=es)
+- [Notas](https://tps.bunai.com/about?lang=es)
+
+## Frameworks / cuantización
+
+vLLM, TensorRT-LLM, llama.cpp, MLX, SGLang, TGI · FP32–INT2 / GGUF K-quants
+
+## Stack
+
+Vue 3 + Vite + Tailwind. Solo cliente.

@@ -1,0 +1,62 @@
+# TPS Calculator（日本語）
+
+> GPU・モデル・量子化・推論フレームワークから、LLMの推論速度（token/s）、VRAM、レイテンシを見積もります。
+
+サイト: https://tps.bunai.com/
+ソース: https://github.com/adiudiuu/tps
+他言語: [简体中文](/llms.zh.txt) / [繁體中文](/llms.zh-TW.txt) / [English](/llms.txt) / [Русский](/llms.ru.txt) / [Español](/llms.es.txt) / [한국어](/llms.ko.txt)
+UI: 簡体中国語がデフォルト（クエリなし）；`?lang=zh-TW` / `?lang=en` / `?lang=ru` / `?lang=es` / `?lang=ko` / `?lang=ja`
+
+カタログ（Libraryのライブ件数）: **モデル403**、**GPU251**。データ更新 **2026-08-17**（`UPDATED_AT_BEIJING`）。
+
+## カタログの主要モデル
+
+| モデル | 掲載理由 |
+|--------|----------|
+| **Qwen3.8-Max** | オープンウェイト 2.4T-A95B（HF / ModelScope、2026-08-12） |
+| **Qwen3.8-27B** | オープンウェイト密なVLM（HF / ModelScope、2026-08-14） |
+| **Kimi K3** | 大規模MoE、2026-07 |
+| **GLM-5.2** | GLM-5系の最新（2026-06） |
+| **DeepSeek V4**（Pro / Flash） | 現行DeepSeek世代（2026-04） |
+| **MiniMax M3** | 2026-06リリース |
+| **Gemma 4** | Google Gemma 4ファミリー（2026-06） |
+| **Llama 4**（Maverick / Scout） | Meta Llama 4 MoE |
+| **Nemotron 3**（Ultra / Super / Nano） | NVIDIA Nemotron 3ライン |
+
+Libraryには従来のQwen3 / DeepSeek V3 / Llama 3.xも残っています。
+
+## カタログの主要GPU
+
+| GPU | 区分 |
+|-----|------|
+| **RTX 5090 / 5080 / 4090** | コンシューマ |
+| **B200 SXM / H200 SXM / H100 SXM** | NVIDIAデータセンター |
+| **MI300X** | AMDデータセンター |
+
+典型例: 8×H200のDeepSeek V4？B200のGLM-5.2 VRAM？RTX 5090のGemma 4 TPS？MI300XのKimi K3？
+
+## 計算内容
+
+- Decode / Prefill TPS
+- VRAM: 重み、KVキャッシュ、オーバーヘッド；OOM表示
+- レイテンシ: TTFT、TPOT、エンドツーエンド
+- Roofline: 帯域 vs 演算
+- マルチGPU Tensor Parallel
+
+公開GPU仕様のRoofline × フレームワーク効率。理論上界であり、実測ベンチではありません。
+
+## ページ
+
+- [見積もり](https://tps.bunai.com/?lang=ja)
+- [速度ランキング](https://tps.bunai.com/ranking?lang=ja)
+- [ライブラリ](https://tps.bunai.com/library?lang=ja)
+- [構成提案](https://tps.bunai.com/solver?lang=ja)
+- [説明](https://tps.bunai.com/about?lang=ja)
+
+## フレームワーク / 量子化
+
+vLLM、TensorRT-LLM、llama.cpp、MLX、SGLang、TGI · FP32–INT2 / GGUF K-quants
+
+## スタック
+
+Vue 3 + Vite + Tailwind。クライアントのみ。
