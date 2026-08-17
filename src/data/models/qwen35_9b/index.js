@@ -9,6 +9,9 @@ export default {
   layers: 32,
   kv_heads: 4,
   head_dim: 256,
+  linear_attention_layers: 24, // full every 4 layers: 24 linear + 8 full
+  local_layers: 24,
+  sliding_window: 0,
   hidden_size: 4096,
   max_ctx: 262144,
   tags: ['chat', 'multilingual'],

@@ -9,6 +9,7 @@ export default {
   layers: 64,
   kv_heads: 4,           // full attention KV heads
   head_dim: 256,
+  linear_attention_layers: 48,
   local_layers: 48,      // linear attention layers (no standard KV cache)
   sliding_window: 0,     // 约定：window=0 表示这些层不产生 KV cache（GatedDeltaNet 线性 attention）
                          // calc.js 中 Math.min(ctx, 0) = 0，使这 48 层的 KV 贡献归零

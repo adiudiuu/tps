@@ -16,7 +16,7 @@ export default {
   kv_heads: 64,
   head_dim: 64,
   hidden_size: 6144,
-  max_ctx: 200000,
+  max_ctx: 202752, // HF config max_position_embeddings
   tags: ['chat', 'multilingual'],
   released: '2026-02',
   links: {

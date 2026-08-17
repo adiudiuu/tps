@@ -6,13 +6,14 @@ Site: https://tps.bunai.com/
 Source: https://github.com/adiudiuu/tps
 Languages: English (this file), [Chinese](/llms.zh.txt). UI: Simplified Chinese default (no query); `?lang=zh-TW` (Traditional Chinese) / `?lang=en` / `?lang=ru` / `?lang=es` / `?lang=ko` / `?lang=ja`.
 
-Catalog (live counts in-app Library): **403 models**, **251 GPUs**. Data updated **2026-08-13** (`UPDATED_AT_BEIJING`).
+Catalog (live counts in-app Library): **403 models**, **251 GPUs**. Data updated **2026-08-17** (`UPDATED_AT_BEIJING`).
 
 ## Popular models you can estimate (in catalog)
 
 | Model | Why listed |
 |-------|------------|
-| **Qwen3.8-Max** | Open-weight 2.4T-A95B (HF / ModelScope, 2026-08-12); catalog updated 2026-08-13 |
+| **Qwen3.8-Max** | Open-weight 2.4T-A95B (HF / ModelScope, 2026-08-12) |
+| **Qwen3.8-27B** | Open-weight dense VLM (HF / ModelScope, 2026-08-14) |
 | **Kimi K3** | Large MoE, 2026-07 |
 | **GLM-5.2** | Latest GLM-5 line (2026-06) |
 | **DeepSeek V4** (Pro / Flash) | Current DeepSeek generation (2026-04) |

@@ -1,8 +1,8 @@
-// Qwen3.8-27B: dense companion to Qwen3.8-Max (announced; weights not published as of 2026-08-13)
-// Geometry provisional: mirror Qwen3.6-27B hybrid Gated DeltaNet + full attention
-// Official has NOT published 27B layer/head/hidden/context — no config.json yet
-// Checked 2026-08-13: HF Qwen/Qwen3.8-27B → 401 (repo missing); ModelScope same id → 404
-// Source: Alibaba Qwen3.8 announcement; keep preview until a real repo + config.json exist
+// Qwen3.8-27B: dense VLM, 64 layers, hybrid Gated DeltaNet + full attention
+// full_attention_interval=4: 48 linear layers (no KV cache) + 16 full attention
+// Official: 27B language + ViT (HF/ModelScope checkpoint ≈ 27.78B / 28B)
+// Native ctx 262,144; extensible to 1,000,000. Open weights: 2026-08-14
+// Source: https://huggingface.co/Qwen/Qwen3.8-27B/blob/main/config.json
 export default {
   id: 'qwen38_27b',
   name: 'Qwen3.8-27B',
@@ -11,18 +11,19 @@ export default {
   layers: 64,
   kv_heads: 4,
   head_dim: 256,
-  local_layers: 48,      // 估算：对齐 Qwen3.6-27B full_attention_interval=4
+  linear_attention_layers: 48, // GatedDeltaNet，不支持 Flash Attention
+  local_layers: 48,
   sliding_window: 0,     // 线性注意力层不产生标准 KV cache
   hidden_size: 5120,
-  max_ctx: 262144,       // 估算：对齐 Qwen3.6-27B；官方 27B ctx 未公布
-  tags: ['chat', 'multilingual', 'coding'],
+  max_ctx: 262144,
+  // ViT: depth=27, hidden=1152, intermediate=4304, patch=16, spatial_merge=2
+  // Official language=27B; ModelScope/HF total ≈ 27.78–28B
+  vision_encoder_params: 0.8,
+  vision_seq_tokens: 1280,
+  tags: ['chat', 'multilingual', 'coding', 'vision', 'multimodal'],
   released: '2026-08',
-  status: 'preview',
-  // Intended HF id once weights land (cmdGen placeholder); do not use as links.hf until repo exists
-  hf_id: 'Qwen/Qwen3.8-27B',
   links: {
-    hf: 'https://huggingface.co/Qwen',
-    // Dedicated 27B model page not published; Max repo is the live Qwen3.8 open-weight page
-    ms: 'https://modelscope.cn/models/Qwen/Qwen3.8-2.4T-A95B',
+    hf: 'https://huggingface.co/Qwen/Qwen3.8-27B',
+    ms: 'https://modelscope.cn/models/Qwen/Qwen3.8-27B',
   },
 }
