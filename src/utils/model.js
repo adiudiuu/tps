@@ -1,4 +1,8 @@
 export function getTotalHeads(model) {
+  // query_heads 显式优先：Q 投影升维的架构（DeepSeek-V4 / MiMo / Step-3.5 等）
+  // num_attention_heads × head_dim ≠ hidden_size，不能从 hidden/head_dim 反推
+  const explicit = Number(model?.query_heads)
+  if (Number.isFinite(explicit) && explicit > 0) return Math.round(explicit)
   const hiddenSize = Number(model?.hidden_size)
   const headDim = Number(model?.head_dim)
   if (!Number.isFinite(hiddenSize) || !Number.isFinite(headDim) || headDim <= 0) return null

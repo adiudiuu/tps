@@ -460,6 +460,8 @@ export function calcAll({
     promptLen:  effectivePromptLen,
     activeParams: tokenActiveParams,
     linearAttnLayers,
+    slidingLayers: kvParts.slidingLayers,
+    slidingWindow: kvParts.slidingWindow,
   })
 
   const computeBaseLimit = (tflops * 1e12) / (2 * tokenActiveParams * 1e9)
@@ -789,11 +791,16 @@ function getVisionWeightParams(model) {
  *   - 线性 attention 层 FLOPs（O(n)，per token，参数已计入 activeParams）
  *
  * 需要额外修正的只有 softmax attention 的 O(n²) 开销：
- *   4 × query_heads × head_dim × seq_len × softmax_layers
+ *   4 × query_heads × head_dim × effective_seq × softmax_layers
  *   （QK^T + AV；GQA/MQA 下 query 头数 ≥ kv_heads，须用 query heads）
  *
  * 线性 attention 层（GatedDeltaNet 等）无 O(n²) 开销，其 FLOPs 已被 activeParams 覆盖，
  * 不需要额外计入 factor。
+ *
+ * 滑动窗口层（slidingLayers + slidingWindow）prefill 只 attend 窗口内 token，
+ * O(n × window) 而非 O(n²)：effective_seq = min(seq_len, sliding_window)。
+ * 混合架构（Gemma-3 / GPT-OSS / MiMo / Step-3.5 等）多数层是 SWA，
+ * 不封顶会把 attention FLOPs 高估数倍。
  *
  * @param {object} params
  * @param {number} params.totalHeads        - Query 头数（决定 softmax attention FLOPs）
@@ -803,11 +810,15 @@ function getVisionWeightParams(model) {
  * @param {number} params.promptLen         - prompt 长度（tokens）
  * @param {number} params.activeParams      - 激活参数量（B）
  * @param {number} [params.linearAttnLayers] - 线性注意力层数（从总层数中排除，不计入 softmax attention）
+ * @param {number} [params.slidingLayers]   - 滑动窗口层数（effective_seq 封顶到 slidingWindow）
+ * @param {number} [params.slidingWindow]   - 滑动窗口大小（tokens）
  */
-function getPrefillAttentionFactor({ totalHeads, kvHeads, headDim, layers, promptLen, activeParams, linearAttnLayers }) {
+function getPrefillAttentionFactor({ totalHeads, kvHeads, headDim, layers, promptLen, activeParams, linearAttnLayers, slidingLayers, slidingWindow }) {
   // softmax attention 层数（排除线性 attention 层）
   const linLayers = linearAttnLayers ?? 0
-  const softmaxLayers = Math.max(0, (layers ?? 1) - linLayers)
+  // 滑动窗口层单算 effective_seq；窗口缺失时并入全注意力层（保守）
+  const swLayers = (slidingWindow ?? 0) > 0 ? (slidingLayers ?? 0) : 0
+  const fullLayers = Math.max(0, (layers ?? 1) - linLayers - swLayers)
 
   // GQA/MQA：注意力 FLOPs 由 query heads 决定，不能用 kv_heads 低估
   const qHeads = totalHeads ?? kvHeads ?? 1
@@ -815,8 +826,9 @@ function getPrefillAttentionFactor({ totalHeads, kvHeads, headDim, layers, promp
   const seqLen = promptLen ?? 512
 
   // softmax attention 额外 FLOPs/token（O(n²)，不在 activeParams 里）：
-  //   QK^T + AV = 4 × query_heads × head_dim × seq_len × softmax_layers
-  const softmaxAttnFlops = 4 * qHeads * hDim * seqLen * softmaxLayers
+  //   QK^T + AV = 4 × query_heads × head_dim × effective_seq × softmax_layers
+  const swSeq = Math.min(seqLen, slidingWindow ?? seqLen)
+  const softmaxAttnFlops = 4 * qHeads * hDim * (fullLayers * seqLen + swLayers * swSeq)
 
   // FFN FLOPs/token（O(n)，已被 activeParams 覆盖，作为分母基准）
   const ffnFlopsPerToken = 2 * (activeParams ?? 1) * 1e9

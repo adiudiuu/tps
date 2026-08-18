@@ -1,4 +1,5 @@
 // Mistral Small 4: 119B MoE, 6.5B active, MLA, 256K ctx
+// params.json max_position_embeddings=1048576 是 YaRN 8K×128；官方宣传 256K，按 256K 记
 // Released: March 2026
 // Source: https://huggingface.co/mistralai/Mistral-Small-4-119B-2603
 export default {

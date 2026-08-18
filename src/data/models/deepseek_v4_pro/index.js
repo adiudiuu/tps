@@ -19,6 +19,7 @@ export default {
   // 而基线公式按 K/V 各一份算成 2 × 1 × 512 = 1024
   mla_ratio: 0.5625,  // 576 / 1024
   layers: 61,
+  query_heads: 128,      // num_attention_heads；hidden/head_dim 推不出（7168/512=14）
   kv_heads: 1,
   head_dim: 512,
   hidden_size: 7168,

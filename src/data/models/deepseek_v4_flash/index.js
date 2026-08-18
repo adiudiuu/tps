@@ -17,6 +17,7 @@ export default {
   // head_dim=512 即 latent KV 维度，实际缓存 512 + qk_rope_head_dim(64) = 576，基线为 2 × 1 × 512
   mla_ratio: 0.5625,  // 576 / 1024
   layers: 43,
+  query_heads: 64,       // num_attention_heads；hidden/head_dim 推不出（4096/512=8）
   kv_heads: 1,
   head_dim: 512,
   hidden_size: 4096,

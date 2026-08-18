@@ -1,6 +1,7 @@
-// Leanstral 1.5: 119B MoE / 6.5B active, MLA, multimodal, 256K context
-// Source: https://mistral.ai/news/leanstral-1-5/
-// Config: https://huggingface.co/mistralai/Leanstral-1.5-119B-A6B/blob/main/params.json
+// Leanstral 1.5: 119B MoE / 6.5B active, MLA, multimodal
+// HF card Key Features + recommended settings: 256K (suggest ≤200K in practice)
+// params.json max_position_embeddings=1048576 is YaRN 8K×128; keep advertised 256K
+// Source: https://huggingface.co/mistralai/Leanstral-1.5-119B-A6B
 export default {
   id: 'leanstral_1_5',
   released: '2026-07',
