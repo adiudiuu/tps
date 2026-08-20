@@ -2,9 +2,9 @@
 export default {
   seo: {
     siteName: 'TPS Calculator',
-    keywords: 'GPU推理,LLM推理速度,TPS估算,显存估算,Qwen3.8,Kimi K3,GLM-5.2,DeepSeek V4,MiniMax M3,Gemma 4,Llama 4,Nemotron 3,RTX 5090,RTX 4090,B200,H200,H100,MI300X,vLLM,llama.cpp',
+    keywords: 'GPU推理,LLM推理速度,TPS估算,显存估算,Qwen3.8,Kimi K3,Hy3,GLM-5.2,DeepSeek V4,MiniMax M3,Gemma 4,Llama 4,Nemotron 3,RTX 5090,RTX 4090,B200,H200,H100,MI300X,vLLM,llama.cpp',
     highlights: {
-      models: 'Qwen3.8-Max（开源）、Kimi K3、GLM-5.2、DeepSeek V4、MiniMax M3、Gemma 4、Llama 4、Nemotron 3',
+      models: 'Qwen3.8-Max（开源）、Kimi K3、Hy3、GLM-5.2、DeepSeek V4、MiniMax M3、Gemma 4、Llama 4、Nemotron 3',
       gpus: 'RTX 5090 / 5080 / 4090、B200、H200、H100、MI300X',
       updated: '2026-08',
     },
@@ -14,7 +14,7 @@ export default {
       description: '估算 Qwen3.8 / Kimi K3 / GLM-5.2 / DeepSeek V4 等在 RTX 5090、H200、B200 等 GPU 上的 TPS 与显存。{models} 个模型，{gpus} 个 GPU（更新至 {updated}）。',
     },
     jsonLd: {
-      websiteDescription: '按 GPU、模型、量化与框架估算 LLM 的 TPS、显存与延迟。覆盖 Qwen3.8-Max、Kimi K3、GLM-5.2、DeepSeek V4 等与 RTX 5090、H200、B200 等组合。',
+      websiteDescription: '按 GPU、模型、量化与框架估算 LLM 的 TPS、显存与延迟。覆盖 Qwen3.8-Max、Kimi K3、Hy3、GLM-5.2、DeepSeek V4 等与 RTX 5090、H200、B200 等组合。',
       appDescription: '估算 LLM 在指定 GPU 上的 TPS、显存与延迟。含 {highlightModels}；GPU 含 {highlightGpus}。共 {models} 个模型、{gpus} 个 GPU，数据更新至 {updated}。框架：vLLM、TensorRT-LLM、llama.cpp、MLX、SGLang、TGI。',
       orgDescription: '开源的 GPU/LLM 推理速度与显存估算工具。',
       features: {
@@ -26,7 +26,7 @@ export default {
         frameworks: '框架：vLLM、TensorRT-LLM、llama.cpp、MLX、SGLang、TGI',
         quants: '量化：FP32 / BF16 / FP8 / INT8 / INT4 等',
         gpuCount: '{gpus} 个 GPU（含 RTX 5090/4090、B200、H200、H100、MI300X）',
-        modelCount: '{models} 个模型（含 Qwen3.8、Kimi K3、GLM-5.2、DeepSeek V4 等）',
+        modelCount: '{models} 个模型（含 Qwen3.8、Kimi K3、Hy3、GLM-5.2、DeepSeek V4 等）',
       },
       faq: {
         tps: {
@@ -35,7 +35,7 @@ export default {
         },
         vram: {
           q: 'DeepSeek V4 / GLM-5.2 这类大模型显存怎么估？',
-          a: '合计权重、KV Cache 与框架开销。大 MoE（如 DeepSeek V4、GLM-5.2、Kimi K3）通常要多卡 H100/H200/B200；小到中等模型可试 RTX 5090/4090。用估算页填具体卡数与上下文。',
+          a: '合计权重、KV Cache 与框架开销。大 MoE（如 DeepSeek V4、GLM-5.2、Kimi K3、Hy3）通常要多卡 H100/H200/B200；小到中等模型可试 RTX 5090/4090。用估算页填具体卡数与上下文。',
         },
         gpuSize: {
           q: 'RTX 5090 / 4090 大概能跑多大模型？',

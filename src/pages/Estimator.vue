@@ -449,6 +449,7 @@ const pinnedBatchSweepData = computed(() => {
                   :draft-len="draftLen"
                   :cpu-offload="cpuOffload"
                   :pure-cpu="pureCpu"
+                  :ngl-count="nglCount"
                 />
               </div>
             </div>

@@ -2,7 +2,7 @@
 // Preview: 2026-04-24; Official API build DeepSeek-V4-Pro-0813: 2026-08-13
 // API docs: version bump to Pro-0813, calling method unchanged (deepseek-v4-pro)
 // Public HF config.json geometry unchanged vs Preview — no new architecture published
-// Source: https://huggingface.co/deepseek-ai/DeepSeek-V4-Pro
+// Source: https://huggingface.co/deepseek-ai/DeepSeek-V4-Pro-0813
 // Config: num_hidden_layers=61, hidden_size=7168, num_attention_heads=128,
 //         num_key_value_heads=1 (HCA), head_dim=512 (latent KV dim),
 //         n_routed_experts=384, num_experts_per_tok=6, n_shared_experts=1
@@ -27,7 +27,7 @@ export default {
   tags: ['chat', 'multilingual', 'coding', 'reasoning'],
   released: '2026-04',
   links: {
-    hf: 'https://huggingface.co/deepseek-ai/DeepSeek-V4-Pro',
-    ms: 'https://modelscope.cn/models/deepseek-ai/DeepSeek-V4-Pro',
+    hf: 'https://huggingface.co/deepseek-ai/DeepSeek-V4-Pro-0813',
+    ms: 'https://modelscope.cn/models/deepseek-ai/DeepSeek-V4-Pro-0813',
   },
 }

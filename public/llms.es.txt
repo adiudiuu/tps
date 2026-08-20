@@ -7,7 +7,7 @@ Código: https://github.com/adiudiuu/tps
 Otros idiomas: [简体中文](/llms.zh.txt) / [繁體中文](/llms.zh-TW.txt) / [English](/llms.txt) / [Русский](/llms.ru.txt) / [한국어](/llms.ko.txt) / [日本語](/llms.ja.txt)
 Interfaz: chino simplificado por defecto (sin query); `?lang=zh-TW` / `?lang=en` / `?lang=ru` / `?lang=es` / `?lang=ko` / `?lang=ja`
 
-Catálogo (conteos en vivo en Library): **403 modelos**, **251 GPUs**. Datos actualizados el **2026-08-17** (`UPDATED_AT_BEIJING`).
+Catálogo (conteos en vivo en Library): **400 modelos**, **251 GPUs**. Datos actualizados el **2026-08-20** (`UPDATED_AT_BEIJING`).
 
 ## Modelos populares en el catálogo
 
@@ -16,6 +16,7 @@ Catálogo (conteos en vivo en Library): **403 modelos**, **251 GPUs**. Datos act
 | **Qwen3.8-Max** | Pesos abiertos 2.4T-A95B (HF / ModelScope, 2026-08-12) |
 | **Qwen3.8-27B** | VLM denso de pesos abiertos (HF / ModelScope, 2026-08-14) |
 | **Kimi K3** | MoE grande, 2026-07 |
+| **Hy3** | Tencent MoE 295B-A21B (HF / ModelScope, 2026-07) |
 | **GLM-5.2** | Línea GLM-5 más reciente (2026-06) |
 | **DeepSeek V4** (Pro / Flash) | Generación actual de DeepSeek (2026-04) |
 | **MiniMax M3** | Lanzamiento 2026-06 |
@@ -33,7 +34,7 @@ Library sigue incluyendo entradas anteriores de Qwen3 / DeepSeek V3 / Llama 3.x.
 | **B200 SXM / H200 SXM / H100 SXM** | NVIDIA datacenter |
 | **MI300X** | AMD datacenter |
 
-Preguntas típicas: ¿DeepSeek V4 en 8×H200? ¿VRAM de GLM-5.2 en B200? ¿TPS de Gemma 4 en RTX 5090? ¿Kimi K3 en MI300X?
+Preguntas típicas: ¿DeepSeek V4 en 8×H200? ¿VRAM de GLM-5.2 en B200? ¿TPS de Gemma 4 en RTX 5090? ¿Kimi K3 / Hy3 en MI300X?
 
 ## Qué calcula
 
@@ -60,3 +61,9 @@ vLLM, TensorRT-LLM, llama.cpp, MLX, SGLang, TGI · FP32–INT2 / GGUF K-quants
 ## Stack
 
 Vue 3 + Vite + Tailwind. Solo cliente.
+
+## Historial de estrellas
+
+Estrellas de GitHub a lo largo del tiempo. Haz clic en el gráfico para ver la versión completa en Star History.
+
+[![Star History Chart](https://api.star-history.com/svg?repos=adiudiuu/tps&type=Date)](https://star-history.com/#adiudiuu/tps&Date)

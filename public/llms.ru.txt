@@ -7,7 +7,7 @@
 Другие языки: [简体中文](/llms.zh.txt) / [繁體中文](/llms.zh-TW.txt) / [English](/llms.txt) / [Español](/llms.es.txt) / [한국어](/llms.ko.txt) / [日本語](/llms.ja.txt)
 Интерфейс: упрощённый китайский по умолчанию (без query); `?lang=zh-TW` / `?lang=en` / `?lang=ru` / `?lang=es` / `?lang=ko` / `?lang=ja`
 
-Каталог (живые счётчики в Library): **403 модели**, **251 GPU**. Данные обновлены **2026-08-17** (`UPDATED_AT_BEIJING`).
+Каталог (живые счётчики в Library): **400 модели**, **251 GPU**. Данные обновлены **2026-08-20** (`UPDATED_AT_BEIJING`).
 
 ## Популярные модели в каталоге
 
@@ -16,6 +16,7 @@
 | **Qwen3.8-Max** | Открытые веса 2.4T-A95B (HF / ModelScope, 2026-08-12) |
 | **Qwen3.8-27B** | Открытая плотная VLM (HF / ModelScope, 2026-08-14) |
 | **Kimi K3** | Крупный MoE, 2026-07 |
+| **Hy3** | Tencent MoE 295B-A21B (HF / ModelScope, 2026-07) |
 | **GLM-5.2** | Актуальная линейка GLM-5 (2026-06) |
 | **DeepSeek V4** (Pro / Flash) | Текущее поколение DeepSeek (2026-04) |
 | **MiniMax M3** | Релиз 2026-06 |
@@ -33,7 +34,7 @@
 | **B200 SXM / H200 SXM / H100 SXM** | NVIDIA датацентр |
 | **MI300X** | AMD датацентр |
 
-Типичные вопросы: DeepSeek V4 на 8×H200? Сколько VRAM у GLM-5.2 на B200? TPS Gemma 4 на RTX 5090? Kimi K3 на MI300X?
+Типичные вопросы: DeepSeek V4 на 8×H200? Сколько VRAM у GLM-5.2 на B200? TPS Gemma 4 на RTX 5090? Kimi K3 / Hy3 на MI300X?
 
 ## Что считает
 
@@ -60,3 +61,9 @@ vLLM, TensorRT-LLM, llama.cpp, MLX, SGLang, TGI · FP32–INT2 / GGUF K-quants
 ## Стек
 
 Vue 3 + Vite + Tailwind. Только клиент.
+
+## История звёзд
+
+Число звёзд на GitHub по времени. Нажмите на график, чтобы открыть полную версию на Star History.
+
+[![Star History Chart](https://api.star-history.com/svg?repos=adiudiuu/tps&type=Date)](https://star-history.com/#adiudiuu/tps&Date)

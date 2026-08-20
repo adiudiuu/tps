@@ -2,9 +2,9 @@
 export default {
   seo: {
     siteName: 'TPS Calculator',
-    keywords: 'GPU 추론,LLM TPS,VRAM 추정,Qwen3.8,Kimi K3,GLM-5.2,DeepSeek V4,MiniMax M3,Gemma 4,Llama 4,Nemotron 3,RTX 5090,RTX 4090,B200,H200,H100,MI300X,vLLM,llama.cpp',
+    keywords: 'GPU 추론,LLM TPS,VRAM 추정,Qwen3.8,Kimi K3,Hy3,GLM-5.2,DeepSeek V4,MiniMax M3,Gemma 4,Llama 4,Nemotron 3,RTX 5090,RTX 4090,B200,H200,H100,MI300X,vLLM,llama.cpp',
     highlights: {
-      models: 'Qwen3.8-Max(오픈웨이트), Kimi K3, GLM-5.2, DeepSeek V4, MiniMax M3, Gemma 4, Llama 4, Nemotron 3',
+      models: 'Qwen3.8-Max(오픈웨이트), Kimi K3, Hy3, GLM-5.2, DeepSeek V4, MiniMax M3, Gemma 4, Llama 4, Nemotron 3',
       gpus: 'RTX 5090 / 5080 / 4090, B200, H200, H100, MI300X',
       updated: '2026-08',
     },
@@ -14,7 +14,7 @@ export default {
       description: 'Qwen3.8 / Kimi K3 / GLM-5.2 / DeepSeek V4 등을 RTX 5090, H200, B200에서 TPS와 VRAM으로 가늠합니다. 모델 {models}개, GPU {gpus}개({updated} 갱신).',
     },
     jsonLd: {
-      websiteDescription: 'GPU·모델·양자화·프레임워크로 LLM의 TPS, VRAM, 지연을 추정합니다. Qwen3.8-Max, Kimi K3, GLM-5.2, DeepSeek V4와 RTX 5090, H200, B200 등을 다룹니다.',
+      websiteDescription: 'GPU·모델·양자화·프레임워크로 LLM의 TPS, VRAM, 지연을 추정합니다. Qwen3.8-Max, Kimi K3, Hy3, GLM-5.2, DeepSeek V4와 RTX 5090, H200, B200 등을 다룹니다.',
       appDescription: '선택한 GPU에서 LLM의 TPS, VRAM, 지연을 추정합니다. 모델: {highlightModels}. GPU: {highlightGpus}. 모델 {models}개, GPU {gpus}개, {updated} 갱신. 프레임워크: vLLM, TensorRT-LLM, llama.cpp, MLX, SGLang, TGI.',
       orgDescription: '오픈소스 GPU/LLM 추론 속도·VRAM 추정 도구.',
       features: {
@@ -26,7 +26,7 @@ export default {
         frameworks: '프레임워크: vLLM, TensorRT-LLM, llama.cpp, MLX, SGLang, TGI',
         quants: '양자화: FP32 / BF16 / FP8 / INT8 / INT4 등',
         gpuCount: 'GPU {gpus}개(RTX 5090/4090, B200, H200, H100, MI300X 포함)',
-        modelCount: '모델 {models}개(Qwen3.8, Kimi K3, GLM-5.2, DeepSeek V4 포함)',
+        modelCount: '모델 {models}개(Qwen3.8, Kimi K3, Hy3, GLM-5.2, DeepSeek V4 포함)',
       },
       faq: {
         tps: {
@@ -35,7 +35,7 @@ export default {
         },
         vram: {
           q: 'DeepSeek V4 / GLM-5.2급 VRAM은 어떻게 보나요?',
-          a: '가중치, KV 캐시, 프레임워크 오버헤드를 합칩니다. 대형 MoE(DeepSeek V4, GLM-5.2, Kimi K3)는 보통 멀티 GPU H100/H200/B200이 필요하고, 중형은 RTX 5090/4090도 후보입니다. 장수와 컨텍스트는 추정 페이지에서 확인하세요.',
+          a: '가중치, KV 캐시, 프레임워크 오버헤드를 합칩니다. 대형 MoE(DeepSeek V4, GLM-5.2, Kimi K3, Hy3)는 보통 멀티 GPU H100/H200/B200이 필요하고, 중형은 RTX 5090/4090도 후보입니다. 장수와 컨텍스트는 추정 페이지에서 확인하세요.',
         },
         gpuSize: {
           q: 'RTX 5090 / 4090에는 어디까지 들어가나요?',

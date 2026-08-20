@@ -7,7 +7,7 @@
 다른 언어: [简体中文](/llms.zh.txt) / [繁體中文](/llms.zh-TW.txt) / [English](/llms.txt) / [Русский](/llms.ru.txt) / [Español](/llms.es.txt) / [日本語](/llms.ja.txt)
 UI: 간체 중국어 기본(쿼리 없음); `?lang=zh-TW` / `?lang=en` / `?lang=ru` / `?lang=es` / `?lang=ko` / `?lang=ja`
 
-카탈로그(라이브러리 실시간 집계): **모델 403개**, **GPU 251개**. 데이터 갱신 **2026-08-17** (`UPDATED_AT_BEIJING`).
+카탈로그(라이브러리 실시간 집계): **모델 400개**, **GPU 251개**. 데이터 갱신 **2026-08-20** (`UPDATED_AT_BEIJING`).
 
 ## 카탈로그의 인기 모델
 
@@ -16,6 +16,7 @@ UI: 간체 중국어 기본(쿼리 없음); `?lang=zh-TW` / `?lang=en` / `?lang=
 | **Qwen3.8-Max** | 오픈웨이트 2.4T-A95B (HF / ModelScope, 2026-08-12) |
 | **Qwen3.8-27B** | 오픈웨이트 밀집 VLM (HF / ModelScope, 2026-08-14) |
 | **Kimi K3** | 대형 MoE, 2026-07 |
+| **Hy3** | Tencent MoE 295B-A21B (HF / ModelScope, 2026-07) |
 | **GLM-5.2** | GLM-5 최신 라인 (2026-06) |
 | **DeepSeek V4** (Pro / Flash) | 현재 DeepSeek 세대 (2026-04) |
 | **MiniMax M3** | 2026-06 출시 |
@@ -33,7 +34,7 @@ UI: 간체 중국어 기본(쿼리 없음); `?lang=zh-TW` / `?lang=en` / `?lang=
 | **B200 SXM / H200 SXM / H100 SXM** | NVIDIA 데이터센터 |
 | **MI300X** | AMD 데이터센터 |
 
-대표 질문: 8×H200에서 DeepSeek V4? B200에서 GLM-5.2 VRAM? RTX 5090에서 Gemma 4 TPS? MI300X에서 Kimi K3?
+대표 질문: 8×H200에서 DeepSeek V4? B200에서 GLM-5.2 VRAM? RTX 5090에서 Gemma 4 TPS? MI300X에서 Kimi K3 / Hy3?
 
 ## 계산 항목
 
@@ -60,3 +61,9 @@ vLLM, TensorRT-LLM, llama.cpp, MLX, SGLang, TGI · FP32–INT2 / GGUF K-quants
 ## 스택
 
 Vue 3 + Vite + Tailwind. 클라이언트 전용.
+
+## Star 추이
+
+시간에 따른 GitHub Star 변화. 차트를 클릭하면 Star History에서 전체 보기를 엽니다.
+
+[![Star History Chart](https://api.star-history.com/svg?repos=adiudiuu/tps&type=Date)](https://star-history.com/#adiudiuu/tps&Date)

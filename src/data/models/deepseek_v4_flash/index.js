@@ -1,7 +1,7 @@
 // DeepSeek-V4-Flash: 284B MoE, 13B active, CSA+HCA hybrid attention, 1M context
 // Preview: 2026-04-24; Official GA build DeepSeek-V4-Flash-0731: 2026-07-31
 // Official changelog: 0731 keeps the same architecture/size as Preview — only re-post-trained
-// Source: https://huggingface.co/deepseek-ai/DeepSeek-V4-Flash
+// Source: https://huggingface.co/deepseek-ai/DeepSeek-V4-Flash-0731
 // Config: num_hidden_layers=43, hidden_size=4096, num_attention_heads=64,
 //         num_key_value_heads=1 (HCA), head_dim=512 (latent KV dim),
 //         n_routed_experts=256, num_experts_per_tok=6, n_shared_experts=1
@@ -25,7 +25,7 @@ export default {
   tags: ['chat', 'multilingual', 'coding', 'reasoning'],
   released: '2026-04',
   links: {
-    hf: 'https://huggingface.co/deepseek-ai/DeepSeek-V4-Flash',
-    ms: 'https://modelscope.cn/models/deepseek-ai/DeepSeek-V4-Flash',
+    hf: 'https://huggingface.co/deepseek-ai/DeepSeek-V4-Flash-0731',
+    ms: 'https://modelscope.cn/models/deepseek-ai/DeepSeek-V4-Flash-0731',
   },
 }

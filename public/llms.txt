@@ -6,7 +6,7 @@ Site: https://tps.bunai.com/
 Source: https://github.com/adiudiuu/tps
 Languages: English (this file) / [简体中文](/llms.zh.txt) / [繁體中文](/llms.zh-TW.txt) / [Русский](/llms.ru.txt) / [Español](/llms.es.txt) / [한국어](/llms.ko.txt) / [日本語](/llms.ja.txt). UI: Simplified Chinese default (no query); `?lang=zh-TW` / `?lang=en` / `?lang=ru` / `?lang=es` / `?lang=ko` / `?lang=ja`.
 
-Catalog (live counts in-app Library): **403 models**, **251 GPUs**. Data updated **2026-08-17** (`UPDATED_AT_BEIJING`).
+Catalog (live counts in-app Library): **400 models**, **251 GPUs**. Data updated **2026-08-20** (`UPDATED_AT_BEIJING`).
 
 ## Popular models you can estimate (in catalog)
 
@@ -15,6 +15,7 @@ Catalog (live counts in-app Library): **403 models**, **251 GPUs**. Data updated
 | **Qwen3.8-Max** | Open-weight 2.4T-A95B (HF / ModelScope, 2026-08-12) |
 | **Qwen3.8-27B** | Open-weight dense VLM (HF / ModelScope, 2026-08-14) |
 | **Kimi K3** | Large MoE, 2026-07 |
+| **Hy3** | Tencent 295B-A21B MoE (HF / ModelScope, 2026-07) |
 | **GLM-5.2** | Latest GLM-5 line (2026-06) |
 | **DeepSeek V4** (Pro / Flash) | Current DeepSeek generation (2026-04) |
 | **MiniMax M3** | 2026-06 release |
@@ -32,7 +33,7 @@ The estimator also covers older Qwen3 / DeepSeek V3 / Llama 3.x entries still in
 | **B200 SXM / H200 SXM / H100 SXM** | NVIDIA datacenter |
 | **MI300X** | AMD datacenter |
 
-Example questions this site answers: “DeepSeek V4 on 8×H200?”, “GLM-5.2 VRAM on B200?”, “Gemma 4 on RTX 5090 TPS?”, “Kimi K3 on MI300X?”.
+Example questions this site answers: “DeepSeek V4 on 8×H200?”, “GLM-5.2 VRAM on B200?”, “Gemma 4 on RTX 5090 TPS?”, “Kimi K3 / Hy3 on MI300X?”.
 
 ## What it computes
 
@@ -59,3 +60,9 @@ vLLM, TensorRT-LLM, llama.cpp, MLX, SGLang, TGI · FP32–INT2 / GGUF K-quants
 ## Stack
 
 Vue 3 + Vite + Tailwind. Client-side only.
+
+## Star history
+
+GitHub stars over time. Click the chart to open the full view on Star History.
+
+[![Star History Chart](https://api.star-history.com/svg?repos=adiudiuu/tps&type=Date)](https://star-history.com/#adiudiuu/tps&Date)

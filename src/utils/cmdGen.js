@@ -61,9 +61,10 @@ function calcNgl(model, cpuOffload, pureCpu, nglCount) {
     return 999
   }
   
-  // Dense + cpuOffload → NGL 分层，使用用户指定的层数
-  if (cpuOffload && model.type !== 'moe' && nglCount != null) {
-    return nglCount
+  // Dense + cpuOffload → NGL 分层；未指定时与 calcAll 一致默认 floor(layers/2)
+  if (cpuOffload && model.type !== 'moe') {
+    if (nglCount != null) return nglCount
+    return Math.floor((model.layers ?? 1) / 2)
   }
   
   // 其他情况：全部在 GPU

@@ -2,9 +2,9 @@
 export default {
   seo: {
     siteName: 'TPS Calculator',
-    keywords: 'GPU推論,LLM TPS,VRAM見積もり,Qwen3.8,Kimi K3,GLM-5.2,DeepSeek V4,MiniMax M3,Gemma 4,Llama 4,Nemotron 3,RTX 5090,RTX 4090,B200,H200,H100,MI300X,vLLM,llama.cpp',
+    keywords: 'GPU推論,LLM TPS,VRAM見積もり,Qwen3.8,Kimi K3,Hy3,GLM-5.2,DeepSeek V4,MiniMax M3,Gemma 4,Llama 4,Nemotron 3,RTX 5090,RTX 4090,B200,H200,H100,MI300X,vLLM,llama.cpp',
     highlights: {
-      models: 'Qwen3.8-Max（オープンウェイト）、Kimi K3、GLM-5.2、DeepSeek V4、MiniMax M3、Gemma 4、Llama 4、Nemotron 3',
+      models: 'Qwen3.8-Max（オープンウェイト）、Kimi K3、Hy3、GLM-5.2、DeepSeek V4、MiniMax M3、Gemma 4、Llama 4、Nemotron 3',
       gpus: 'RTX 5090 / 5080 / 4090、B200、H200、H100、MI300X',
       updated: '2026-08',
     },
@@ -14,7 +14,7 @@ export default {
       description: 'Qwen3.8 / Kimi K3 / GLM-5.2 / DeepSeek V4 などを RTX 5090・H200・B200 等でTPSとVRAM見積もり。モデル{models}、GPU{gpus}（{updated}更新）。',
     },
     jsonLd: {
-      websiteDescription: 'GPU・モデル・量子化・フレームワークからLLMのTPS・VRAM・レイテンシを見積もります。Qwen3.8-Max、Kimi K3、GLM-5.2、DeepSeek V4 と RTX 5090、H200、B200 等に対応。',
+      websiteDescription: 'GPU・モデル・量子化・フレームワークからLLMのTPS・VRAM・レイテンシを見積もります。Qwen3.8-Max、Kimi K3、Hy3、GLM-5.2、DeepSeek V4 と RTX 5090、H200、B200 等に対応。',
       appDescription: '指定GPU上のLLMのTPS・VRAM・レイテンシを見積もります。モデル例：{highlightModels}。GPU例：{highlightGpus}。モデル{models}、GPU{gpus}、{updated}更新。対応：vLLM、TensorRT-LLM、llama.cpp、MLX、SGLang、TGI。',
       orgDescription: 'オープンソースのGPU/LLM推論速度・VRAM見積もりツール。',
       features: {
@@ -26,7 +26,7 @@ export default {
         frameworks: 'フレームワーク：vLLM、TensorRT-LLM、llama.cpp、MLX、SGLang、TGI',
         quants: '量子化：FP32 / BF16 / FP8 / INT8 / INT4 など',
         gpuCount: 'GPU{gpus}（RTX 5090/4090、B200、H200、H100、MI300X など）',
-        modelCount: 'モデル{models}（Qwen3.8、Kimi K3、GLM-5.2、DeepSeek V4 など）',
+        modelCount: 'モデル{models}（Qwen3.8、Kimi K3、Hy3、GLM-5.2、DeepSeek V4 など）',
       },
       faq: {
         tps: {
@@ -35,7 +35,7 @@ export default {
         },
         vram: {
           q: 'DeepSeek V4 / GLM-5.2 級のVRAMは？',
-          a: '重み、KVキャッシュ、フレームワーク開銷の合計。大規模MoE（DeepSeek V4、GLM-5.2、Kimi K3）は多枚のH100/H200/B200が一般的。中規模はRTX 5090/4090も候補。枚数とコンテキストはEstimatorで確認。',
+          a: '重み、KVキャッシュ、フレームワーク開銷の合計。大規模MoE（DeepSeek V4、GLM-5.2、Kimi K3、Hy3）は多枚のH100/H200/B200が一般的。中規模はRTX 5090/4090も候補。枚数とコンテキストはEstimatorで確認。',
         },
         gpuSize: {
           q: 'RTX 5090 / 4090 でどの規模まで？',

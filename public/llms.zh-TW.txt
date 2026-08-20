@@ -7,7 +7,7 @@
 其他語言：[簡體中文](/llms.zh.txt) / [English](/llms.txt) / [Русский](/llms.ru.txt) / [Español](/llms.es.txt) / [한국어](/llms.ko.txt) / [日本語](/llms.ja.txt)
 界面：簡體中文預設（不加 lang）；`?lang=zh-TW`（繁體中文）/ `?lang=en` / `?lang=ru` / `?lang=es` / `?lang=ko` / `?lang=ja`
 
-站內即時數量：**403 個模型**、**251 個 GPU**。資料更新至 **2026-08-17**（`UPDATED_AT_BEIJING`）。
+站內即時數量：**400 個模型**、**251 個 GPU**。資料更新至 **2026-08-20**（`UPDATED_AT_BEIJING`）。
 
 ## 可估計的熱門模型（均已入庫）
 
@@ -16,6 +16,7 @@
 | **Qwen3.8-Max** | 開源權重 2.4T-A95B（HF / ModelScope，2026-08-12） |
 | **Qwen3.8-27B** | 開源稠密多模態（HF / ModelScope，2026-08-14） |
 | **Kimi K3** | 大 MoE，2026-07 |
+| **Hy3** | 騰訊 295B-A21B MoE（HF / ModelScope，2026-07） |
 | **GLM-5.2** | GLM-5 線最新（2026-06） |
 | **DeepSeek V4**（Pro / Flash） | 當前 DeepSeek 代際（2026-04） |
 | **MiniMax M3** | 2026-06 |
@@ -33,7 +34,7 @@
 | **B200 SXM / H200 SXM / H100 SXM** | NVIDIA 資料中心 |
 | **MI300X** | AMD 資料中心 |
 
-典型問題：DeepSeek V4 在 8×H200？GLM-5.2 在 B200 要多少顯存？Gemma 4 在 RTX 5090 的 TPS？Kimi K3 在 MI300X？
+典型問題：DeepSeek V4 在 8×H200？GLM-5.2 在 B200 要多少顯存？Gemma 4 在 RTX 5090 的 TPS？Kimi K3 / Hy3 在 MI300X？
 
 ## 計算內容
 
@@ -60,3 +61,9 @@ vLLM、TensorRT-LLM、llama.cpp、MLX、SGLang、TGI · FP32–INT2 / GGUF K-qua
 ## 技術
 
 Vue 3 + Vite + Tailwind。純前端。
+
+## Star 走勢
+
+GitHub 星標隨時間變化；點擊圖表可在 Star History 查看大圖。
+
+[![Star History Chart](https://api.star-history.com/svg?repos=adiudiuu/tps&type=Date)](https://star-history.com/#adiudiuu/tps&Date)

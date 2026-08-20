@@ -2,9 +2,9 @@
 export default {
   seo: {
     siteName: 'TPS Calculator',
-    keywords: 'GPU inference,LLM TPS,VRAM estimate,Qwen3.8,Kimi K3,GLM-5.2,DeepSeek V4,MiniMax M3,Gemma 4,Llama 4,Nemotron 3,RTX 5090,RTX 4090,B200,H200,H100,MI300X,vLLM,llama.cpp',
+    keywords: 'GPU inference,LLM TPS,VRAM estimate,Qwen3.8,Kimi K3,Hy3,GLM-5.2,DeepSeek V4,MiniMax M3,Gemma 4,Llama 4,Nemotron 3,RTX 5090,RTX 4090,B200,H200,H100,MI300X,vLLM,llama.cpp',
     highlights: {
-      models: 'Qwen3.8-Max (open-weight), Kimi K3, GLM-5.2, DeepSeek V4, MiniMax M3, Gemma 4, Llama 4, Nemotron 3',
+      models: 'Qwen3.8-Max (open-weight), Kimi K3, Hy3, GLM-5.2, DeepSeek V4, MiniMax M3, Gemma 4, Llama 4, Nemotron 3',
       gpus: 'RTX 5090 / 5080 / 4090, B200, H200, H100, MI300X',
       updated: '2026-08',
     },
@@ -14,7 +14,7 @@ export default {
       description: 'Estimate TPS & VRAM for Qwen3.8 / Kimi K3 / GLM-5.2 / DeepSeek V4 on RTX 5090, H200, B200, and more. {models} models, {gpus} GPUs (updated {updated}).',
     },
     jsonLd: {
-      websiteDescription: 'Estimate LLM TPS, VRAM, and latency for GPU + model + quant + framework. Covers Qwen3.8-Max, Kimi K3, GLM-5.2, DeepSeek V4 with RTX 5090, H200, B200, and more.',
+      websiteDescription: 'Estimate LLM TPS, VRAM, and latency for GPU + model + quant + framework. Covers Qwen3.8-Max, Kimi K3, Hy3, GLM-5.2, DeepSeek V4 with RTX 5090, H200, B200, and more.',
       appDescription: 'Estimate LLM TPS, VRAM, and latency on a chosen GPU. Models include {highlightModels}; GPUs include {highlightGpus}. {models} models, {gpus} GPUs, updated {updated}. Frameworks: vLLM, TensorRT-LLM, llama.cpp, MLX, SGLang, TGI.',
       orgDescription: 'Open-source GPU/LLM inference speed and VRAM estimator.',
       features: {
@@ -26,7 +26,7 @@ export default {
         frameworks: 'Frameworks: vLLM, TensorRT-LLM, llama.cpp, MLX, SGLang, TGI',
         quants: 'Quants: FP32 / BF16 / FP8 / INT8 / INT4, etc.',
         gpuCount: '{gpus} GPUs (incl. RTX 5090/4090, B200, H200, H100, MI300X)',
-        modelCount: '{models} models (incl. Qwen3.8, Kimi K3, GLM-5.2, DeepSeek V4)',
+        modelCount: '{models} models (incl. Qwen3.8, Kimi K3, Hy3, GLM-5.2, DeepSeek V4)',
       },
       faq: {
         tps: {
@@ -35,7 +35,7 @@ export default {
         },
         vram: {
           q: 'How to estimate VRAM for DeepSeek V4 / GLM-5.2-class models?',
-          a: 'Sum weights, KV cache, and framework overhead. Large MoEs (DeepSeek V4, GLM-5.2, Kimi K3) usually need multi-GPU H100/H200/B200; mid-size models may fit RTX 5090/4090. Use the estimator for card count and context length.',
+          a: 'Sum weights, KV cache, and framework overhead. Large MoEs (DeepSeek V4, GLM-5.2, Kimi K3, Hy3) usually need multi-GPU H100/H200/B200; mid-size models may fit RTX 5090/4090. Use the estimator for card count and context length.',
         },
         gpuSize: {
           q: 'What fits on RTX 5090 / 4090?',
