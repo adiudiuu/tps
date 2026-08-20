@@ -294,12 +294,6 @@ graph TD
 
 </div>
 
-## Star 走势
-
-GitHub 星标随时间变化；点击图表可在 Star History 查看大图。
-
-[![Star History Chart](https://api.star-history.com/svg?repos=adiudiuu/tps&type=Date)](https://star-history.com/#adiudiuu/tps&Date)
-
 ## 文档
 
 - **[English README](README.en.md)** — English version of this document

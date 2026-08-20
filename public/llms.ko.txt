@@ -61,9 +61,3 @@ vLLM, TensorRT-LLM, llama.cpp, MLX, SGLang, TGI · FP32–INT2 / GGUF K-quants
 ## 스택
 
 Vue 3 + Vite + Tailwind. 클라이언트 전용.
-
-## Star 추이
-
-시간에 따른 GitHub Star 변화. 차트를 클릭하면 Star History에서 전체 보기를 엽니다.
-
-[![Star History Chart](https://api.star-history.com/svg?repos=adiudiuu/tps&type=Date)](https://star-history.com/#adiudiuu/tps&Date)

@@ -61,9 +61,3 @@ vLLM、TensorRT-LLM、llama.cpp、MLX、SGLang、TGI · FP32–INT2 / GGUF K-qua
 ## 技術
 
 Vue 3 + Vite + Tailwind。純前端。
-
-## Star 走勢
-
-GitHub 星標隨時間變化；點擊圖表可在 Star History 查看大圖。
-
-[![Star History Chart](https://api.star-history.com/svg?repos=adiudiuu/tps&type=Date)](https://star-history.com/#adiudiuu/tps&Date)

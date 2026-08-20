@@ -61,9 +61,3 @@ vLLM, TensorRT-LLM, llama.cpp, MLX, SGLang, TGI · FP32–INT2 / GGUF K-quants
 ## Стек
 
 Vue 3 + Vite + Tailwind. Только клиент.
-
-## История звёзд
-
-Число звёзд на GitHub по времени. Нажмите на график, чтобы открыть полную версию на Star History.
-
-[![Star History Chart](https://api.star-history.com/svg?repos=adiudiuu/tps&type=Date)](https://star-history.com/#adiudiuu/tps&Date)

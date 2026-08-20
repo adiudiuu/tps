@@ -61,9 +61,3 @@ vLLM、TensorRT-LLM、llama.cpp、MLX、SGLang、TGI · FP32–INT2 / GGUF K-qua
 ## スタック
 
 Vue 3 + Vite + Tailwind。クライアントのみ。
-
-## Star の推移
-
-GitHub の Star 数の推移。グラフをクリックすると Star History で全体表示を開きます。
-
-[![Star History Chart](https://api.star-history.com/svg?repos=adiudiuu/tps&type=Date)](https://star-history.com/#adiudiuu/tps&Date)
