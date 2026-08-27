@@ -7,6 +7,8 @@ export const SEO_UPDATED_MONTH = UPDATED_AT_BEIJING.slice(0, 7).replace('/', '-'
 
 /** Newest / high-demand models present in src/data/models */
 export const SEO_MODEL_IDS = [
+  'glm5_3_flash',              // GLM-5.3-Flash / 320B-A18B VLM — 2026-08
+  'qwen38_flash_next',         // Qwen3.8-Flash-Next / 125B-A6B VLM — 2026-08
   'qwen38_max',                // Qwen3.8-Max / 2.4T-A95B — 2026-08
   'qwen38_27b',                // Qwen3.8-27B — 2026-08
   'hy3',                       // Tencent Hy3 — 2026-07

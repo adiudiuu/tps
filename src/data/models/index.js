@@ -1,6 +1,8 @@
 // src/data/models/index.js
 // Models sorted by release date, newest first
 
+import glm5_3_flash from './glm5_3_flash/index.js'
+import qwen38_flash_next from './qwen38_flash_next/index.js'
 import nemotron_3_5_lightning from './nemotron_3_5_lightning/index.js'
 import hy3 from './hy3/index.js'
 import minimax_m3 from './minimax_m3/index.js'
@@ -403,7 +405,7 @@ import llama_pro_8b from './llama_pro_8b/index.js'
 import llama2_chinese_13b from './llama2_chinese_13b/index.js'
 import linly_7b from './linly_7b/index.js'
 
-// Registered model counts: 400 unique (Dense 311 + MoE 89 by type)
+// Registered model counts: 402 unique (Dense 311 + MoE 91 by type)
 export const DENSE_MODELS = [
   // 2026
   mistral_medium_3_5_128b,
@@ -721,6 +723,8 @@ export const DENSE_MODELS = [
 
 export const MOE_MODELS = [
   // 2026
+  glm5_3_flash,
+  qwen38_flash_next,
   nemotron_3_5_lightning,
   hy3,
   minimax_m3,

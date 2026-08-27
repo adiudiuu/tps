@@ -52,7 +52,7 @@
 - 🎯 **Accurate Modeling** — Weights, KV Cache, system overhead fully covered with OOM risk warnings
 - ⚡ **Performance Analysis** — Precise Decode/Prefill token/s calculation, comprehensive TTFT/TPOT/total latency evaluation
 - 📊 **Roofline Model** — Scientific bandwidth/compute bottleneck identification
-- 🌍 **Wide Coverage** — 250+ GPU models, 400+ mainstream models (Dense 311 + MoE 89)
+- 🌍 **Wide Coverage** — 250+ GPU models, 400+ mainstream models (Dense 311 + MoE 91)
 - 🔗 **Advanced Features** — Tensor Parallel, Flash Attention, KV Cache quantization, Prefix Cache
 - 🎨 **Multi-Framework** — vLLM, TensorRT-LLM, SGLang, LMDeploy, TGI, llama.cpp, ExLlamaV2, MLX
 
@@ -60,7 +60,7 @@
 
 | Category | Details |
 | --- | --- |
-| **Models** | 400+ mainstream models (Dense 311 + MoE 89) · 0.5B - 2.8T parameters · 2022-2026 releases |
+| **Models** | 400+ mainstream models (Dense 311 + MoE 91) · 0.5B - 2.8T parameters · 2022-2026 releases |
 | **Architectures** | Dense · MoE · MLA (DeepSeek) · Hybrid Attention (Gemma) · Mamba (SSM) |
 | **GPUs** | 250+ models · NVIDIA (RTX/Tesla/H100/B200/B300) · AMD (RX/MI) · Intel Arc · Apple Silicon · Domestic chips |
 | **Quantization** | FP32 · BF16 · FP8 · INT8 · INT4 · Q6_K · Q5_K · Q3_K · INT2 |

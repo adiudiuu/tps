@@ -7,17 +7,18 @@
 他言語: [简体中文](/llms.zh.txt) / [繁體中文](/llms.zh-TW.txt) / [English](/llms.txt) / [Русский](/llms.ru.txt) / [Español](/llms.es.txt) / [한국어](/llms.ko.txt)
 UI: 簡体中国語がデフォルト（クエリなし）；`?lang=zh-TW` / `?lang=en` / `?lang=ru` / `?lang=es` / `?lang=ko` / `?lang=ja`
 
-カタログ（Libraryのライブ件数）: **モデル400**、**GPU251**。データ更新 **2026-08-20**（`UPDATED_AT_BEIJING`）。
+カタログ（Libraryのライブ件数）: **モデル402**、**GPU251**。データ更新 **2026-08-27**（`UPDATED_AT_BEIJING`）。
 
 ## カタログの主要モデル
 
 | モデル | 掲載理由 |
 |--------|----------|
 | **Qwen3.8-Max** | オープンウェイト 2.4T-A95B（HF / ModelScope、2026-08-12） |
+| **Qwen3.8-Flash-Next** | オープンウェイト 125B-A6B VLM + n-gram（HF / ModelScope、2026-08） |
 | **Qwen3.8-27B** | オープンウェイト密なVLM（HF / ModelScope、2026-08-14） |
 | **Kimi K3** | 大規模MoE、2026-07 |
 | **Hy3** | Tencent MoE 295B-A21B（HF / ModelScope、2026-07） |
-| **GLM-5.2** | GLM-5系の最新（2026-06） |
+| **GLM-5.3-Flash** | GLM-5系最新マルチモーダルMoE（320B-A18B、2026-08） |
 | **DeepSeek V4**（Pro / Flash） | 現行DeepSeek世代（2026-04） |
 | **MiniMax M3** | 2026-06リリース |
 | **Gemma 4** | Google Gemma 4ファミリー（2026-06） |
@@ -34,7 +35,7 @@ Libraryには従来のQwen3 / DeepSeek V3 / Llama 3.xも残っています。
 | **B200 SXM / H200 SXM / H100 SXM** | NVIDIAデータセンター |
 | **MI300X** | AMDデータセンター |
 
-典型例: 8×H200のDeepSeek V4？B200のGLM-5.2 VRAM？RTX 5090のGemma 4 TPS？MI300XのKimi K3 / Hy3？
+典型例: 8×H200のDeepSeek V4？B200のGLM-5.3-Flash VRAM？RTX 5090のQwen3.8-Flash-Next TPS？MI300XのKimi K3 / Hy3？
 
 ## 計算内容
 

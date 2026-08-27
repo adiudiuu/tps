@@ -2,19 +2,19 @@
 export default {
   seo: {
     siteName: 'TPS Calculator',
-    keywords: 'inferencia GPU,TPS LLM,VRAM,Qwen3.8,Kimi K3,Hy3,GLM-5.2,DeepSeek V4,MiniMax M3,Gemma 4,Llama 4,Nemotron 3,RTX 5090,RTX 4090,B200,H200,H100,MI300X,vLLM,llama.cpp',
+    keywords: 'inferencia GPU,TPS LLM,VRAM,Qwen3.8,Qwen3.8-Flash-Next,Kimi K3,Hy3,GLM-5.3-Flash,DeepSeek V4,MiniMax M3,Gemma 4,Llama 4,Nemotron 3,RTX 5090,RTX 4090,B200,H200,H100,MI300X,vLLM,llama.cpp',
     highlights: {
-      models: 'Qwen3.8-Max (pesos abiertos), Kimi K3, Hy3, GLM-5.2, DeepSeek V4, MiniMax M3, Gemma 4, Llama 4, Nemotron 3',
+      models: 'Qwen3.8-Max (pesos abiertos), Qwen3.8-Flash-Next, Kimi K3, Hy3, GLM-5.3-Flash, DeepSeek V4, MiniMax M3, Gemma 4, Llama 4, Nemotron 3',
       gpus: 'RTX 5090 / 5080 / 4090, B200, H200, H100, MI300X',
       updated: '2026-08',
     },
     pwa: {
       name: 'Estimación de velocidad y VRAM GPU/LLM',
       shortName: 'TPS Calculator',
-      description: 'Estima TPS y VRAM de Qwen3.8 / Kimi K3 / GLM-5.2 / DeepSeek V4 en RTX 5090, H200, B200 y más. {models} modelos, {gpus} GPUs (act. {updated}).',
+      description: 'Estima TPS y VRAM de Qwen3.8 / Kimi K3 / GLM-5.3-Flash / DeepSeek V4 en RTX 5090, H200, B200 y más. {models} modelos, {gpus} GPUs (act. {updated}).',
     },
     jsonLd: {
-      websiteDescription: 'Estima TPS, VRAM y latencia LLM para GPU + modelo + cuantización + framework. Incluye Qwen3.8-Max, Kimi K3, Hy3, GLM-5.2, DeepSeek V4 con RTX 5090, H200, B200, etc.',
+      websiteDescription: 'Estima TPS, VRAM y latencia LLM para GPU + modelo + cuantización + framework. Incluye Qwen3.8-Max, Kimi K3, Hy3, GLM-5.3-Flash, DeepSeek V4 con RTX 5090, H200, B200, etc.',
       appDescription: 'Estima TPS, VRAM y latencia en una GPU elegida. Modelos: {highlightModels}; GPUs: {highlightGpus}. {models} modelos, {gpus} GPUs, actualizado {updated}. Frameworks: vLLM, TensorRT-LLM, llama.cpp, MLX, SGLang, TGI.',
       orgDescription: 'Herramienta open source para estimar velocidad de inferencia GPU/LLM y VRAM.',
       features: {
@@ -26,7 +26,7 @@ export default {
         frameworks: 'Frameworks: vLLM, TensorRT-LLM, llama.cpp, MLX, SGLang, TGI',
         quants: 'Cuantización: FP32 / BF16 / FP8 / INT8 / INT4, etc.',
         gpuCount: '{gpus} GPUs (incl. RTX 5090/4090, B200, H200, H100, MI300X)',
-        modelCount: '{models} modelos (incl. Qwen3.8, Kimi K3, Hy3, GLM-5.2, DeepSeek V4)',
+        modelCount: '{models} modelos (incl. Qwen3.8, Qwen3.8-Flash-Next, Kimi K3, Hy3, GLM-5.3-Flash, DeepSeek V4)',
       },
       faq: {
         tps: {
@@ -34,8 +34,8 @@ export default {
           a: 'Tokens por segundo en decode. Relacionados: TTFT y TPOT. Este sitio estima un límite superior teórico para GPU + modelo + cuantización + framework.',
         },
         vram: {
-          q: '¿Cómo estimar VRAM para DeepSeek V4 / GLM-5.2?',
-          a: 'Suma pesos, KV cache y overhead. MoE grandes (DeepSeek V4, GLM-5.2, Kimi K3, Hy3) suelen necesitar multi-GPU H100/H200/B200; modelos medianos pueden caber en RTX 5090/4090. Usa el estimador con el número de GPUs y el contexto.',
+          q: '¿Cómo estimar VRAM para DeepSeek V4 / GLM-5.3-Flash?',
+          a: 'Suma pesos, KV cache y overhead. MoE grandes (DeepSeek V4, GLM-5.3-Flash, Kimi K3, Hy3) suelen necesitar multi-GPU H100/H200/B200; modelos medianos pueden caber en RTX 5090/4090. Usa el estimador con el número de GPUs y el contexto.',
         },
         gpuSize: {
           q: '¿Qué cabe en RTX 5090 / 4090?',
@@ -54,19 +54,19 @@ export default {
     pages: {
       estimator: {
         title: 'Estimación de velocidad y VRAM GPU/LLM · TPS Calculator',
-        description: 'Estima TPS y VRAM de Qwen3.8-Max, Kimi K3, GLM-5.2, DeepSeek V4, MiniMax M3, Gemma 4, Llama 4, Nemotron 3 en RTX 5090/4090, B200, H200, H100, MI300X. {models} modelos, {gpus} GPUs, act. {updated}.',
+        description: 'Estima TPS y VRAM de Qwen3.8-Max, Kimi K3, GLM-5.3-Flash, DeepSeek V4, MiniMax M3, Gemma 4, Llama 4, Nemotron 3 en RTX 5090/4090, B200, H200, H100, MI300X. {models} modelos, {gpus} GPUs, act. {updated}.',
       },
       ranking: {
         title: 'Ranking de velocidad de inferencia · TPS Calculator',
-        description: 'Elige RTX 5090, H200 o B200 y ordena Qwen3.8, Kimi K3, GLM-5.2, DeepSeek V4 y otros por TPS estimado. {models} modelos, act. {updated}.',
+        description: 'Elige RTX 5090, H200 o B200 y ordena Qwen3.8, Kimi K3, GLM-5.3-Flash, DeepSeek V4 y otros por TPS estimado. {models} modelos, act. {updated}.',
       },
       library: {
         title: 'Biblioteca de modelos y GPUs · TPS Calculator',
-        description: 'Specs de Qwen3.8, Kimi K3, GLM-5.2, DeepSeek V4, Gemma 4, Llama 4 y GPUs como RTX 5090, B200, H200, H100, MI300X. {models} modelos, {gpus} GPUs, act. {updated}.',
+        description: 'Specs de Qwen3.8, Kimi K3, GLM-5.3-Flash, DeepSeek V4, Gemma 4, Llama 4 y GPUs como RTX 5090, B200, H200, H100, MI300X. {models} modelos, {gpus} GPUs, act. {updated}.',
       },
       solver: {
         title: 'Recomendación de configuración GPU · TPS Calculator',
-        description: 'Para DeepSeek V4, GLM-5.2, Kimi K3 y similares, enumera RTX 5090 / H100 / H200 / B200 / MI300X × cuantización × framework viables. Act. {updated}.',
+        description: 'Para DeepSeek V4, GLM-5.3-Flash, Kimi K3 y similares, enumera RTX 5090 / H100 / H200 / B200 / MI300X × cuantización × framework viables. Act. {updated}.',
       },
       about: {
         title: 'Notas · TPS Calculator',

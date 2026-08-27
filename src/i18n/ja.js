@@ -2,19 +2,19 @@
 export default {
   seo: {
     siteName: 'TPS Calculator',
-    keywords: 'GPU推論,LLM TPS,VRAM見積もり,Qwen3.8,Kimi K3,Hy3,GLM-5.2,DeepSeek V4,MiniMax M3,Gemma 4,Llama 4,Nemotron 3,RTX 5090,RTX 4090,B200,H200,H100,MI300X,vLLM,llama.cpp',
+    keywords: 'GPU推論,LLM TPS,VRAM見積もり,Qwen3.8,Qwen3.8-Flash-Next,Kimi K3,Hy3,GLM-5.3-Flash,DeepSeek V4,MiniMax M3,Gemma 4,Llama 4,Nemotron 3,RTX 5090,RTX 4090,B200,H200,H100,MI300X,vLLM,llama.cpp',
     highlights: {
-      models: 'Qwen3.8-Max（オープンウェイト）、Kimi K3、Hy3、GLM-5.2、DeepSeek V4、MiniMax M3、Gemma 4、Llama 4、Nemotron 3',
+      models: 'Qwen3.8-Max（オープンウェイト）、Qwen3.8-Flash-Next、Kimi K3、Hy3、GLM-5.3-Flash、DeepSeek V4、MiniMax M3、Gemma 4、Llama 4、Nemotron 3',
       gpus: 'RTX 5090 / 5080 / 4090、B200、H200、H100、MI300X',
       updated: '2026-08',
     },
     pwa: {
       name: 'GPU/LLM推論速度・VRAM見積もり',
       shortName: 'TPS Calculator',
-      description: 'Qwen3.8 / Kimi K3 / GLM-5.2 / DeepSeek V4 などを RTX 5090・H200・B200 等でTPSとVRAM見積もり。モデル{models}、GPU{gpus}（{updated}更新）。',
+      description: 'Qwen3.8 / Kimi K3 / GLM-5.3-Flash / DeepSeek V4 などを RTX 5090・H200・B200 等でTPSとVRAM見積もり。モデル{models}、GPU{gpus}（{updated}更新）。',
     },
     jsonLd: {
-      websiteDescription: 'GPU・モデル・量子化・フレームワークからLLMのTPS・VRAM・レイテンシを見積もります。Qwen3.8-Max、Kimi K3、Hy3、GLM-5.2、DeepSeek V4 と RTX 5090、H200、B200 等に対応。',
+      websiteDescription: 'GPU・モデル・量子化・フレームワークからLLMのTPS・VRAM・レイテンシを見積もります。Qwen3.8-Max、Kimi K3、Hy3、GLM-5.3-Flash、DeepSeek V4 と RTX 5090、H200、B200 等に対応。',
       appDescription: '指定GPU上のLLMのTPS・VRAM・レイテンシを見積もります。モデル例：{highlightModels}。GPU例：{highlightGpus}。モデル{models}、GPU{gpus}、{updated}更新。対応：vLLM、TensorRT-LLM、llama.cpp、MLX、SGLang、TGI。',
       orgDescription: 'オープンソースのGPU/LLM推論速度・VRAM見積もりツール。',
       features: {
@@ -26,7 +26,7 @@ export default {
         frameworks: 'フレームワーク：vLLM、TensorRT-LLM、llama.cpp、MLX、SGLang、TGI',
         quants: '量子化：FP32 / BF16 / FP8 / INT8 / INT4 など',
         gpuCount: 'GPU{gpus}（RTX 5090/4090、B200、H200、H100、MI300X など）',
-        modelCount: 'モデル{models}（Qwen3.8、Kimi K3、Hy3、GLM-5.2、DeepSeek V4 など）',
+        modelCount: 'モデル{models}（Qwen3.8、Qwen3.8-Flash-Next、Kimi K3、Hy3、GLM-5.3-Flash、DeepSeek V4 など）',
       },
       faq: {
         tps: {
@@ -34,8 +34,8 @@ export default {
           a: 'Decode時の毎秒トークン数。関連はTTFTとTPOT。本サイトはGPU + モデル + 量子化 + フレームワークの理論上界を見積もります。',
         },
         vram: {
-          q: 'DeepSeek V4 / GLM-5.2 級のVRAMは？',
-          a: '重み、KVキャッシュ、フレームワーク開銷の合計。大規模MoE（DeepSeek V4、GLM-5.2、Kimi K3、Hy3）は多枚のH100/H200/B200が一般的。中規模はRTX 5090/4090も候補。枚数とコンテキストはEstimatorで確認。',
+          q: 'DeepSeek V4 / GLM-5.3-Flash 級のVRAMは？',
+          a: '重み、KVキャッシュ、フレームワーク開銷の合計。大規模MoE（DeepSeek V4、GLM-5.3-Flash、Kimi K3、Hy3）は多枚のH100/H200/B200が一般的。中規模はRTX 5090/4090も候補。枚数とコンテキストはEstimatorで確認。',
         },
         gpuSize: {
           q: 'RTX 5090 / 4090 でどの規模まで？',
@@ -54,19 +54,19 @@ export default {
     pages: {
       estimator: {
         title: 'GPU/LLM推論速度・VRAM見積もり · TPS Calculator',
-        description: 'Qwen3.8-Max、Kimi K3、GLM-5.2、DeepSeek V4、MiniMax M3、Gemma 4、Llama 4、Nemotron 3 を RTX 5090/4090、B200、H200、H100、MI300X でTPS・VRAM見積もり。モデル{models}、GPU{gpus}、{updated}更新。',
+        description: 'Qwen3.8-Max、Kimi K3、GLM-5.3-Flash、DeepSeek V4、MiniMax M3、Gemma 4、Llama 4、Nemotron 3 を RTX 5090/4090、B200、H200、H100、MI300X でTPS・VRAM見積もり。モデル{models}、GPU{gpus}、{updated}更新。',
       },
       ranking: {
         title: 'モデル推論速度ランキング · TPS Calculator',
-        description: 'RTX 5090・H200・B200 などを選び、Qwen3.8、Kimi K3、GLM-5.2、DeepSeek V4 等を推定TPSで比較。モデル{models}、{updated}更新。',
+        description: 'RTX 5090・H200・B200 などを選び、Qwen3.8、Kimi K3、GLM-5.3-Flash、DeepSeek V4 等を推定TPSで比較。モデル{models}、{updated}更新。',
       },
       library: {
         title: 'モデルとGPU一覧 · TPS Calculator',
-        description: 'Qwen3.8、Kimi K3、GLM-5.2、DeepSeek V4、Gemma 4、Llama 4 と RTX 5090、B200、H200、H100、MI300X 等の仕様。モデル{models}、GPU{gpus}、{updated}更新。',
+        description: 'Qwen3.8、Kimi K3、GLM-5.3-Flash、DeepSeek V4、Gemma 4、Llama 4 と RTX 5090、B200、H200、H100、MI300X 等の仕様。モデル{models}、GPU{gpus}、{updated}更新。',
       },
       solver: {
         title: 'GPU構成ソルバー · TPS Calculator',
-        description: 'DeepSeek V4、GLM-5.2、Kimi K3 等に対し、RTX 5090 / H100 / H200 / B200 / MI300X × 量子化 × フレームワークの候補を列挙。{updated}更新。',
+        description: 'DeepSeek V4、GLM-5.3-Flash、Kimi K3 等に対し、RTX 5090 / H100 / H200 / B200 / MI300X × 量子化 × フレームワークの候補を列挙。{updated}更新。',
       },
       about: {
         title: '説明 · TPS Calculator',

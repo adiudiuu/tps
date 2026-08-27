@@ -7,17 +7,18 @@
 다른 언어: [简体中文](/llms.zh.txt) / [繁體中文](/llms.zh-TW.txt) / [English](/llms.txt) / [Русский](/llms.ru.txt) / [Español](/llms.es.txt) / [日本語](/llms.ja.txt)
 UI: 간체 중국어 기본(쿼리 없음); `?lang=zh-TW` / `?lang=en` / `?lang=ru` / `?lang=es` / `?lang=ko` / `?lang=ja`
 
-카탈로그(라이브러리 실시간 집계): **모델 400개**, **GPU 251개**. 데이터 갱신 **2026-08-20** (`UPDATED_AT_BEIJING`).
+카탈로그(라이브러리 실시간 집계): **모델 402개**, **GPU 251개**. 데이터 갱신 **2026-08-27** (`UPDATED_AT_BEIJING`).
 
 ## 카탈로그의 인기 모델
 
 | 모델 | 선정 이유 |
 |------|-----------|
 | **Qwen3.8-Max** | 오픈웨이트 2.4T-A95B (HF / ModelScope, 2026-08-12) |
+| **Qwen3.8-Flash-Next** | 오픈웨이트 125B-A6B VLM + n-gram (HF / ModelScope, 2026-08) |
 | **Qwen3.8-27B** | 오픈웨이트 밀집 VLM (HF / ModelScope, 2026-08-14) |
 | **Kimi K3** | 대형 MoE, 2026-07 |
 | **Hy3** | Tencent MoE 295B-A21B (HF / ModelScope, 2026-07) |
-| **GLM-5.2** | GLM-5 최신 라인 (2026-06) |
+| **GLM-5.3-Flash** | GLM-5 최신 멀티모달 MoE (320B-A18B, 2026-08) |
 | **DeepSeek V4** (Pro / Flash) | 현재 DeepSeek 세대 (2026-04) |
 | **MiniMax M3** | 2026-06 출시 |
 | **Gemma 4** | Google Gemma 4 계열 (2026-06) |
@@ -34,7 +35,7 @@ UI: 간체 중국어 기본(쿼리 없음); `?lang=zh-TW` / `?lang=en` / `?lang=
 | **B200 SXM / H200 SXM / H100 SXM** | NVIDIA 데이터센터 |
 | **MI300X** | AMD 데이터센터 |
 
-대표 질문: 8×H200에서 DeepSeek V4? B200에서 GLM-5.2 VRAM? RTX 5090에서 Gemma 4 TPS? MI300X에서 Kimi K3 / Hy3?
+대표 질문: 8×H200에서 DeepSeek V4? B200에서 GLM-5.3-Flash VRAM? RTX 5090에서 Qwen3.8-Flash-Next TPS? MI300X에서 Kimi K3 / Hy3?
 
 ## 계산 항목
 
