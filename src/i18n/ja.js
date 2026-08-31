@@ -2,9 +2,9 @@
 export default {
   seo: {
     siteName: 'TPS Calculator',
-    keywords: 'GPU推論,LLM TPS,VRAM見積もり,Qwen3.8,Qwen3.8-Flash-Next,Kimi K3,Hy3,GLM-5.3-Flash,DeepSeek V4,MiniMax M3,Gemma 4,Llama 4,Nemotron 3,RTX 5090,RTX 4090,B200,H200,H100,MI300X,vLLM,llama.cpp',
+    keywords: 'GPU推論,LLM TPS,VRAM見積もり,Qwen3.8,Qwen3.8-Flash-Next,Kimi K3,Hy3,GLM-5.3,GLM-5.3-Flash,Muse Glimmer,DeepSeek V4,MiniMax M3,Gemma 4,Llama 4,Nemotron 3,RTX 5090,RTX 4090,B200,H200,H100,MI300X,vLLM,llama.cpp',
     highlights: {
-      models: 'Qwen3.8-Max（オープンウェイト）、Qwen3.8-Flash-Next、Kimi K3、Hy3、GLM-5.3-Flash、DeepSeek V4、MiniMax M3、Gemma 4、Llama 4、Nemotron 3',
+      models: 'Qwen3.8-Max（オープンウェイト）、Qwen3.8-Flash-Next、Kimi K3、Hy3、GLM-5.3、GLM-5.3-Flash、Muse Glimmer、DeepSeek V4、MiniMax M3、Gemma 4、Llama 4、Nemotron 3',
       gpus: 'RTX 5090 / 5080 / 4090、B200、H200、H100、MI300X',
       updated: '2026-08',
     },
@@ -26,7 +26,7 @@ export default {
         frameworks: 'フレームワーク：vLLM、TensorRT-LLM、llama.cpp、MLX、SGLang、TGI',
         quants: '量子化：FP32 / BF16 / FP8 / INT8 / INT4 など',
         gpuCount: 'GPU{gpus}（RTX 5090/4090、B200、H200、H100、MI300X など）',
-        modelCount: 'モデル{models}（Qwen3.8、Qwen3.8-Flash-Next、Kimi K3、Hy3、GLM-5.3-Flash、DeepSeek V4 など）',
+        modelCount: 'モデル{models}（Qwen3.8、Qwen3.8-Flash-Next、Kimi K3、Hy3、GLM-5.3、GLM-5.3-Flash、Muse Glimmer、DeepSeek V4 など）',
       },
       faq: {
         tps: {

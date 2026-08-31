@@ -6,7 +6,7 @@ Site: https://tps.bunai.com/
 Source: https://github.com/adiudiuu/tps
 Languages: English (this file) / [简体中文](/llms.zh.txt) / [繁體中文](/llms.zh-TW.txt) / [Русский](/llms.ru.txt) / [Español](/llms.es.txt) / [한국어](/llms.ko.txt) / [日本語](/llms.ja.txt). UI: Simplified Chinese default (no query); `?lang=zh-TW` / `?lang=en` / `?lang=ru` / `?lang=es` / `?lang=ko` / `?lang=ja`.
 
-Catalog (live counts in-app Library): **402 models**, **251 GPUs**. Data updated **2026-08-27** (`UPDATED_AT_BEIJING`).
+Catalog (live counts in-app Library): **404 models**, **251 GPUs**. Data updated **2026-08-31** (`UPDATED_AT_BEIJING`).
 
 ## Popular models you can estimate (in catalog)
 
@@ -17,6 +17,8 @@ Catalog (live counts in-app Library): **402 models**, **251 GPUs**. Data updated
 | **Qwen3.8-27B** | Open-weight dense VLM (HF / ModelScope, 2026-08-14) |
 | **Kimi K3** | Large MoE, 2026-07 |
 | **Hy3** | Tencent 295B-A21B MoE (HF / ModelScope, 2026-07) |
+| **GLM-5.3** | Latest GLM-5 MoE flagship (753B-A40B, post-train upgrade, 2026-08) |
+| **Muse Glimmer 30B** | Meta dense VLM for local agentic tasks (Apache 2.0, 2026-08) |
 | **GLM-5.3-Flash** | Latest GLM-5 multimodal MoE (320B-A18B, 2026-08) |
 | **DeepSeek V4** (Pro / Flash) | Current DeepSeek generation (2026-04) |
 | **MiniMax M3** | 2026-06 release |

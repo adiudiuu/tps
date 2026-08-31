@@ -2,9 +2,9 @@
 export default {
   seo: {
     siteName: 'TPS Calculator',
-    keywords: 'GPU инференс,LLM TPS,оценка VRAM,Qwen3.8,Qwen3.8-Flash-Next,Kimi K3,Hy3,GLM-5.3-Flash,DeepSeek V4,MiniMax M3,Gemma 4,Llama 4,Nemotron 3,RTX 5090,RTX 4090,B200,H200,H100,MI300X,vLLM,llama.cpp',
+    keywords: 'GPU инференс,LLM TPS,оценка VRAM,Qwen3.8,Qwen3.8-Flash-Next,Kimi K3,Hy3,GLM-5.3,GLM-5.3-Flash,Muse Glimmer,DeepSeek V4,MiniMax M3,Gemma 4,Llama 4,Nemotron 3,RTX 5090,RTX 4090,B200,H200,H100,MI300X,vLLM,llama.cpp',
     highlights: {
-      models: 'Qwen3.8-Max (открытые веса), Qwen3.8-Flash-Next, Kimi K3, Hy3, GLM-5.3-Flash, DeepSeek V4, MiniMax M3, Gemma 4, Llama 4, Nemotron 3',
+      models: 'Qwen3.8-Max (открытые веса), Qwen3.8-Flash-Next, Kimi K3, Hy3, GLM-5.3, GLM-5.3-Flash, Muse Glimmer, DeepSeek V4, MiniMax M3, Gemma 4, Llama 4, Nemotron 3',
       gpus: 'RTX 5090 / 5080 / 4090, B200, H200, H100, MI300X',
       updated: '2026-08',
     },
@@ -26,7 +26,7 @@ export default {
         frameworks: 'Фреймворки: vLLM, TensorRT-LLM, llama.cpp, MLX, SGLang, TGI',
         quants: 'Квантизация: FP32 / BF16 / FP8 / INT8 / INT4 и др.',
         gpuCount: '{gpus} GPU (в т.ч. RTX 5090/4090, B200, H200, H100, MI300X)',
-        modelCount: '{models} моделей (в т.ч. Qwen3.8, Qwen3.8-Flash-Next, Kimi K3, Hy3, GLM-5.3-Flash, DeepSeek V4)',
+        modelCount: '{models} моделей (в т.ч. Qwen3.8, Qwen3.8-Flash-Next, Kimi K3, Hy3, GLM-5.3, GLM-5.3-Flash, Muse Glimmer, DeepSeek V4)',
       },
       faq: {
         tps: {

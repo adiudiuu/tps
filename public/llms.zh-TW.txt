@@ -7,7 +7,7 @@
 其他語言：[簡體中文](/llms.zh.txt) / [English](/llms.txt) / [Русский](/llms.ru.txt) / [Español](/llms.es.txt) / [한국어](/llms.ko.txt) / [日本語](/llms.ja.txt)
 界面：簡體中文預設（不加 lang）；`?lang=zh-TW`（繁體中文）/ `?lang=en` / `?lang=ru` / `?lang=es` / `?lang=ko` / `?lang=ja`
 
-站內即時數量：**402 個模型**、**251 個 GPU**。資料更新至 **2026-08-27**（`UPDATED_AT_BEIJING`）。
+站內即時數量：**404 個模型**、**251 個 GPU**。資料更新至 **2026-08-31**（`UPDATED_AT_BEIJING`）。
 
 ## 可估計的熱門模型（均已入庫）
 
@@ -18,6 +18,8 @@
 | **Qwen3.8-27B** | 開源稠密多模態（HF / ModelScope，2026-08-14） |
 | **Kimi K3** | 大 MoE，2026-07 |
 | **Hy3** | 騰訊 295B-A21B MoE（HF / ModelScope，2026-07） |
+| **GLM-5.3** | GLM-5 線旗艦 MoE（753B-A40B，後訓練升級，2026-08） |
+| **Muse Glimmer 30B** | Meta 稠密 VLM，本地 agent 部署（Apache 2.0，2026-08） |
 | **GLM-5.3-Flash** | GLM-5 線最新多模態 MoE（320B-A18B，2026-08） |
 | **DeepSeek V4**（Pro / Flash） | 當前 DeepSeek 代際（2026-04） |
 | **MiniMax M3** | 2026-06 |

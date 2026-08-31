@@ -7,7 +7,7 @@ Código: https://github.com/adiudiuu/tps
 Otros idiomas: [简体中文](/llms.zh.txt) / [繁體中文](/llms.zh-TW.txt) / [English](/llms.txt) / [Русский](/llms.ru.txt) / [한국어](/llms.ko.txt) / [日本語](/llms.ja.txt)
 Interfaz: chino simplificado por defecto (sin query); `?lang=zh-TW` / `?lang=en` / `?lang=ru` / `?lang=es` / `?lang=ko` / `?lang=ja`
 
-Catálogo (conteos en vivo en Library): **402 modelos**, **251 GPUs**. Datos actualizados el **2026-08-27** (`UPDATED_AT_BEIJING`).
+Catálogo (conteos en vivo en Library): **404 modelos**, **251 GPUs**. Datos actualizados el **2026-08-31** (`UPDATED_AT_BEIJING`).
 
 ## Modelos populares en el catálogo
 
@@ -18,6 +18,8 @@ Catálogo (conteos en vivo en Library): **402 modelos**, **251 GPUs**. Datos act
 | **Qwen3.8-27B** | VLM denso de pesos abiertos (HF / ModelScope, 2026-08-14) |
 | **Kimi K3** | MoE grande, 2026-07 |
 | **Hy3** | Tencent MoE 295B-A21B (HF / ModelScope, 2026-07) |
+| **GLM-5.3** | MoE insignia GLM-5 (753B-A40B, mejora post-entrenamiento, 2026-08) |
+| **Muse Glimmer 30B** | VLM denso Meta para agentes locales (Apache 2.0, 2026-08) |
 | **GLM-5.3-Flash** | MoE multimodal GLM-5 más reciente (320B-A18B, 2026-08) |
 | **DeepSeek V4** (Pro / Flash) | Generación actual de DeepSeek (2026-04) |
 | **MiniMax M3** | Lanzamiento 2026-06 |
