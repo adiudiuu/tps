@@ -52,7 +52,7 @@
 - 🎯 **精准建模** — 权重、KV Cache、系统开销全覆盖，OOM 风险预警
 - ⚡ **性能分析** — Decode/Prefill token/s 精确计算，TTFT/TPOT/总延迟全面评估
 - 📊 **Roofline 模型** — 科学识别带宽/算力瓶颈
-- 🌍 **广泛覆盖** — 250+ GPU 型号，400+ 主流模型（Dense 312 + MoE 92）
+- 🌍 **广泛覆盖** — 250+ GPU 型号，400+ 主流模型（Dense 312 + MoE 93）
 - 🔗 **高级特性** — Tensor Parallel、Flash Attention、KV Cache 量化、Prefix Cache
 - 🎨 **多框架支持** — vLLM、TensorRT-LLM、SGLang、LMDeploy、TGI、llama.cpp、ExLlamaV2、MLX
 
@@ -60,7 +60,7 @@
 
 | 类别 | 详细信息 |
 | --- | --- |
-| **模型** | 400+ 主流模型（Dense 312 + MoE 92）· 0.5B - 2.8T 参数 · 2022-2026 年发布 |
+| **模型** | 400+ 主流模型（Dense 312 + MoE 93）· 0.5B - 2.8T 参数 · 2022-2026 年发布 |
 | **架构** | Dense · MoE · MLA (DeepSeek) · 混合注意力 (Gemma) · Mamba (SSM) |
 | **GPU** | 250+ 型号 · NVIDIA (RTX/Tesla/H100/B200/B300) · AMD (RX/MI) · Intel Arc · Apple Silicon · 国产芯片 |
 | **量化** | FP32 · BF16 · FP8 · INT8 · INT4 · Q6_K · Q5_K · Q3_K · INT2 |

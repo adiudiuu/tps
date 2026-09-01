@@ -6,7 +6,7 @@ export default {
     highlights: {
       models: 'Qwen3.8-Max(오픈웨이트), Qwen3.8-Flash-Next, Kimi K3, Hy3, GLM-5.3, GLM-5.3-Flash, Muse Glimmer, DeepSeek V4, MiniMax M3, Gemma 4, Llama 4, Nemotron 3',
       gpus: 'RTX 5090 / 5080 / 4090, B200, H200, H100, MI300X',
-      updated: '2026-08',
+      updated: '2026-09',
     },
     pwa: {
       name: 'GPU/LLM 추론 속도·VRAM 추정',

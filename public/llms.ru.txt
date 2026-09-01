@@ -7,7 +7,7 @@
 Другие языки: [简体中文](/llms.zh.txt) / [繁體中文](/llms.zh-TW.txt) / [English](/llms.txt) / [Español](/llms.es.txt) / [한국어](/llms.ko.txt) / [日本語](/llms.ja.txt)
 Интерфейс: упрощённый китайский по умолчанию (без query); `?lang=zh-TW` / `?lang=en` / `?lang=ru` / `?lang=es` / `?lang=ko` / `?lang=ja`
 
-Каталог (живые счётчики в Library): **404 модели**, **251 GPU**. Данные обновлены **2026-08-31** (`UPDATED_AT_BEIJING`).
+Каталог (живые счётчики в Library): **405 модели**, **251 GPU**. Данные обновлены **2026-09-01** (`UPDATED_AT_BEIJING`).
 
 ## Популярные модели в каталоге
 
@@ -21,6 +21,7 @@
 | **GLM-5.3** | Флагманский MoE GLM-5 (753B-A40B, пост-обучение, 2026-08) |
 | **Muse Glimmer 30B** | Плотная VLM Meta для локальных агентов (Apache 2.0, 2026-08) |
 | **GLM-5.3-Flash** | Новейший мультимодальный MoE GLM-5 (320B-A18B, 2026-08) |
+| **DeepSeek V4 Flash Vision Exp** | Экспериментальный VLM на базе V4-Flash-0731 (305B / 13B active, HF MIT, 2026-08-31) |
 | **DeepSeek V4** (Pro / Flash) | Текущее поколение DeepSeek (2026-04) |
 | **MiniMax M3** | Релиз 2026-06 |
 | **Gemma 4** | Семейство Google Gemma 4 (2026-06) |

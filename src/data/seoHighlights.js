@@ -17,6 +17,7 @@ export const SEO_MODEL_IDS = [
   'nemotron_3_5_lightning',    // Nemotron 3.5 Lightning — 2026-08
   'deepseek_v4_pro',           // DeepSeek V4 Pro — 2026-04
   'deepseek_v4_flash',         // DeepSeek V4 Flash (0731 GA) — 2026-07
+  'deepseek_v4_flash_vision_exp', // DeepSeek V4 Flash Vision Exp — 2026-08
   'kimi_k3',                   // Kimi K3 — 2026-07
 ]
 

@@ -7,7 +7,7 @@
 다른 언어: [简体中文](/llms.zh.txt) / [繁體中文](/llms.zh-TW.txt) / [English](/llms.txt) / [Русский](/llms.ru.txt) / [Español](/llms.es.txt) / [日本語](/llms.ja.txt)
 UI: 간체 중국어 기본(쿼리 없음); `?lang=zh-TW` / `?lang=en` / `?lang=ru` / `?lang=es` / `?lang=ko` / `?lang=ja`
 
-카탈로그(라이브러리 실시간 집계): **모델 404개**, **GPU 251개**. 데이터 갱신 **2026-08-31** (`UPDATED_AT_BEIJING`).
+카탈로그(라이브러리 실시간 집계): **모델 405개**, **GPU 251개**. 데이터 갱신 **2026-09-01** (`UPDATED_AT_BEIJING`).
 
 ## 카탈로그의 인기 모델
 
@@ -21,6 +21,7 @@ UI: 간체 중국어 기본(쿼리 없음); `?lang=zh-TW` / `?lang=en` / `?lang=
 | **GLM-5.3** | GLM-5 플래그십 MoE (753B-A40B, 후학습 업그레이드, 2026-08) |
 | **Muse Glimmer 30B** | Meta 밀집 VLM, 로컬 에이전트용 (Apache 2.0, 2026-08) |
 | **GLM-5.3-Flash** | GLM-5 최신 멀티모달 MoE (320B-A18B, 2026-08) |
+| **DeepSeek V4 Flash Vision Exp** | V4-Flash-0731 기반 실험 VLM (305B / 13B active, HF MIT, 2026-08-31) |
 | **DeepSeek V4** (Pro / Flash) | 현재 DeepSeek 세대 (2026-04) |
 | **MiniMax M3** | 2026-06 출시 |
 | **Gemma 4** | Google Gemma 4 계열 (2026-06) |

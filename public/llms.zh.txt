@@ -7,7 +7,7 @@
 其他语言：[繁體中文](/llms.zh-TW.txt) / [English](/llms.txt) / [Русский](/llms.ru.txt) / [Español](/llms.es.txt) / [한국어](/llms.ko.txt) / [日本語](/llms.ja.txt)
 界面：简体中文默认（不加 lang）；`?lang=zh-TW`（繁體中文）/ `?lang=en` / `?lang=ru` / `?lang=es` / `?lang=ko` / `?lang=ja`
 
-站内实时数量：**404 个模型**、**251 个 GPU**。数据更新至 **2026-08-31**（`UPDATED_AT_BEIJING`）。
+站内实时数量：**405 个模型**、**251 个 GPU**。数据更新至 **2026-09-01**（`UPDATED_AT_BEIJING`）。
 
 ## 可估算的热门模型（均已入库）
 
@@ -21,6 +21,7 @@
 | **GLM-5.3** | GLM-5 线旗舰 MoE（753B-A40B，后训练升级，2026-08） |
 | **Muse Glimmer 30B** | Meta 稠密 VLM，本地 agent 部署（Apache 2.0，2026-08） |
 | **GLM-5.3-Flash** | GLM-5 线最新多模态 MoE（320B-A18B，2026-08） |
+| **DeepSeek V4 Flash Vision Exp** | V4-Flash-0731 实验视觉版（305B / 13B active，HF MIT，2026-08-31） |
 | **DeepSeek V4**（Pro / Flash） | 当前 DeepSeek 代际（2026-04） |
 | **MiniMax M3** | 2026-06 |
 | **Gemma 4** | Google Gemma 4 系列（2026-06） |

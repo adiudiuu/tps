@@ -7,7 +7,7 @@
 他言語: [简体中文](/llms.zh.txt) / [繁體中文](/llms.zh-TW.txt) / [English](/llms.txt) / [Русский](/llms.ru.txt) / [Español](/llms.es.txt) / [한국어](/llms.ko.txt)
 UI: 簡体中国語がデフォルト（クエリなし）；`?lang=zh-TW` / `?lang=en` / `?lang=ru` / `?lang=es` / `?lang=ko` / `?lang=ja`
 
-カタログ（Libraryのライブ件数）: **モデル404**、**GPU251**。データ更新 **2026-08-31**（`UPDATED_AT_BEIJING`）。
+カタログ（Libraryのライブ件数）: **モデル405**、**GPU251**。データ更新 **2026-09-01**（`UPDATED_AT_BEIJING`）。
 
 ## カタログの主要モデル
 
@@ -21,6 +21,7 @@ UI: 簡体中国語がデフォルト（クエリなし）；`?lang=zh-TW` / `?l
 | **GLM-5.3** | GLM-5系フラッグシップMoE（753B-A40B、後学習アップグレード、2026-08） |
 | **Muse Glimmer 30B** | Meta密なVLM、ローカルエージェント向け（Apache 2.0、2026-08） |
 | **GLM-5.3-Flash** | GLM-5系最新マルチモーダルMoE（320B-A18B、2026-08） |
+| **DeepSeek V4 Flash Vision Exp** | V4-Flash-0731 実験 VLM（305B / 13B active、HF MIT、2026-08-31） |
 | **DeepSeek V4**（Pro / Flash） | 現行DeepSeek世代（2026-04） |
 | **MiniMax M3** | 2026-06リリース |
 | **Gemma 4** | Google Gemma 4ファミリー（2026-06） |

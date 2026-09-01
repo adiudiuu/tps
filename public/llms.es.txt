@@ -7,7 +7,7 @@ Código: https://github.com/adiudiuu/tps
 Otros idiomas: [简体中文](/llms.zh.txt) / [繁體中文](/llms.zh-TW.txt) / [English](/llms.txt) / [Русский](/llms.ru.txt) / [한국어](/llms.ko.txt) / [日本語](/llms.ja.txt)
 Interfaz: chino simplificado por defecto (sin query); `?lang=zh-TW` / `?lang=en` / `?lang=ru` / `?lang=es` / `?lang=ko` / `?lang=ja`
 
-Catálogo (conteos en vivo en Library): **404 modelos**, **251 GPUs**. Datos actualizados el **2026-08-31** (`UPDATED_AT_BEIJING`).
+Catálogo (conteos en vivo en Library): **405 modelos**, **251 GPUs**. Datos actualizados el **2026-09-01** (`UPDATED_AT_BEIJING`).
 
 ## Modelos populares en el catálogo
 
@@ -21,6 +21,7 @@ Catálogo (conteos en vivo en Library): **404 modelos**, **251 GPUs**. Datos act
 | **GLM-5.3** | MoE insignia GLM-5 (753B-A40B, mejora post-entrenamiento, 2026-08) |
 | **Muse Glimmer 30B** | VLM denso Meta para agentes locales (Apache 2.0, 2026-08) |
 | **GLM-5.3-Flash** | MoE multimodal GLM-5 más reciente (320B-A18B, 2026-08) |
+| **DeepSeek V4 Flash Vision Exp** | VLM experimental sobre V4-Flash-0731 (305B / 13B active, HF MIT, 2026-08-31) |
 | **DeepSeek V4** (Pro / Flash) | Generación actual de DeepSeek (2026-04) |
 | **MiniMax M3** | Lanzamiento 2026-06 |
 | **Gemma 4** | Familia Google Gemma 4 (2026-06) |
