@@ -88,7 +88,7 @@ export default {
     copy_image: 'Copy image',
     image_copied: 'Image copied',
     image_error: 'Generation failed',
-    share_summary: 'Estimated with TPS Calculator: {model} @ {gpu} {runnable} | single-req {toks} | VRAM {vram} | TTFT {ttft}',
+    share_summary: "Estimated with TPS Calculator: {model} {'@'} {gpu} {runnable} {'|'} single-req {toks} {'|'} VRAM {vram} {'|'} TTFT {ttft}",
     share_runnable_yes: '✅ Runnable',
     share_runnable_no: '❌ Not runnable',
     card_single: 'Single',

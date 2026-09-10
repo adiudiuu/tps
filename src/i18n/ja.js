@@ -88,7 +88,7 @@ export default {
     copy_image: '画像をコピー',
     image_copied: '画像をコピーしました',
     image_error: '生成に失敗しました',
-    share_summary: 'TPS Calculator で試算：{model} @ {gpu} {runnable}｜単一リクエスト {toks}｜VRAM {vram}｜TTFT {ttft}',
+    share_summary: "TPS Calculator で試算：{model} {'@'} {gpu} {runnable}｜単一リクエスト {toks}｜VRAM {vram}｜TTFT {ttft}",
     share_runnable_yes: '✅ 実行可',
     share_runnable_no: '❌ 実行不可',
     card_single: '単一',
