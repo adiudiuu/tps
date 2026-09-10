@@ -70,6 +70,26 @@ const props = defineProps({
 const githubUrl = 'https://github.com/adiudiuu/tps'
 const shareState = ref('idle') // 'idle' | 'copied' | 'error'
 
+const gpuLabel = computed(() => {
+  if (!props.gpu) return ''
+  return props.gpuCount > 1 ? `${props.gpu.name} × ${props.gpuCount}` : props.gpu.name
+})
+
+// X 推文文案：有模型/GPU 上下文时带上，否则退回通用文案（注意保持精炼）
+const xShareText = computed(() => {
+  if (props.model && props.gpu) {
+    return t('nav.share_x_text', { model: props.model.name, gpu: gpuLabel.value })
+  }
+  return t('nav.share_x_text_generic')
+})
+
+// 分享到 X：复用当前可分享 URL（与「复制链接」一致），走 X Web Intent
+function shareToX() {
+  const url = window.location.href
+  const intent = `https://x.com/intent/post?text=${encodeURIComponent(xShareText.value)}&url=${encodeURIComponent(url)}`
+  window.open(intent, '_blank', 'noopener,noreferrer')
+}
+
 async function shareUrl() {
   try {
     if (navigator.clipboard) {
@@ -212,6 +232,17 @@ function exportMarkdown() {
         <span class="hidden sm:inline" :class="shareState === 'copied' ? 'text-emerald-600' : shareState === 'error' ? 'text-red-600' : ''">
           {{ shareState === 'copied' ? t('nav.copied') : shareState === 'error' ? t('nav.share_failed') : t('nav.share') }}
         </span>
+      </button>
+      <!-- 分享到 X -->
+      <button
+        @click="shareToX"
+        class="inline-flex items-center text-xs font-medium px-2 py-1.5 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-gray-900 transition-colors border border-gray-300"
+        :title="t('nav.share_x')"
+        :aria-label="t('nav.share_x')"
+      >
+        <svg viewBox="0 0 24 24" class="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" aria-hidden="true">
+          <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24h-6.66l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+        </svg>
       </button>
       <RouterLink
         :to="{ path: '/about', query: langQuery() }"
