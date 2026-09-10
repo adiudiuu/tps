@@ -91,3 +91,13 @@ GatedDeltaNet / KDA 等不占标准 KV 的层，用 `linear_attention_layers` �
 - 任何改动后至少确保 `npm run build` 通过。
 - UI 改动要在浏览器实测（`npm run dev`，`5173`）。
 - 与 `calc.js` / `model.js` 相关的改动做 node 冒烟（见 3.11），确认结果为有限值。
+
+## Cursor Cloud specific instructions
+
+本仓库**无 lint、无自动化测试脚本**，前端 UI 改动一律需做端到端验证：
+
+- 环境：Node 先 `nvm use 22.16.0`；dev server 在 tmux 会话 `vite-dev-server` 跑于 `http://localhost:5173`（Vite HMR）。
+- 首选 **computerUse** 做真机点击 + 录屏 demo（当执行环境可用时）。
+- 当环境**无 computerUse**（如某些子代理）时，用 **headless Chrome + Chrome DevTools Protocol (CDP)** 驱动本地 dev server 的真实渲染页面验证：加载 `useUrlState` 产出的可分享 URL、真实点击按钮、劫持并读取 `window.open` 的目标（如 X intent URL）、读取 `canvas.toBlob` 产物的类型/尺寸、走能力检测分支（如 `navigator.share` / `ClipboardItem`）。
+- 无论哪种方式，都要**截图 / 存样本到 `/opt/cursor/artifacts/`** 作为证据。
+- 分享 / SEO 注意：X/Twitter、OG 等社交爬虫**抓取时不执行 JS**，SPA 运行时改 `<meta>` 对社交预览无效；需要 per-链接专属预览图，必须走构建期静态图或 serverless / 边缘生成。
