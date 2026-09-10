@@ -3,6 +3,8 @@ import { ref, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { generateMarkdown, downloadMarkdown, buildFilename } from '../../utils/exportMd.js'
+import { buildShareSummary } from '../../utils/shareText.js'
+import { renderShareCardBlob, downloadBlob, copyBlobToClipboard, shareImageFilename } from '../../utils/shareImage.js'
 import { UPDATED_AT_BEIJING } from '../../data/appMeta.js'
 import LanguageSelect from './LanguageSelect.vue'
 import { currentLangParam, langQuery } from '../../utils/lang.js'
@@ -68,29 +70,65 @@ const props = defineProps({
 })
 
 const githubUrl = 'https://github.com/adiudiuu/tps'
-const shareState = ref('idle') // 'idle' | 'copied' | 'error'
+const shareMenuOpen = ref(false)
+const linkState = ref('idle') // 'idle' | 'copied' | 'error'
+const imgState = ref('idle')  // 'idle' | 'working' | 'copied' | 'downloaded' | 'error'
 
-const gpuLabel = computed(() => {
-  if (!props.gpu) return ''
-  return props.gpuCount > 1 ? `${props.gpu.name} × ${props.gpuCount}` : props.gpu.name
-})
+// 有模型/GPU/结果上下文时才能生成分享图与成绩单文案
+const hasContext = computed(() => !!(props.result && props.model && props.gpu))
 
-// X 推文文案：有模型/GPU 上下文时带上，否则退回通用文案（注意保持精炼）
-const xShareText = computed(() => {
-  if (props.model && props.gpu) {
-    return t('nav.share_x_text', { model: props.model.name, gpu: gpuLabel.value })
-  }
-  return t('nav.share_x_text_generic')
-})
+// 分享文案：复用导出报告口径（runnable + 单请求 tok/s + 显存 + TTFT），无上下文退回通用文案
+const shareText = computed(() =>
+  buildShareSummary(props.result, props.model, props.gpu, props.quant, t)
+)
 
-// 分享到 X：复用当前可分享 URL（与「复制链接」一致），走 X Web Intent
-function shareToX() {
-  const url = window.location.href
-  const intent = `https://x.com/intent/post?text=${encodeURIComponent(xShareText.value)}&url=${encodeURIComponent(url)}`
-  window.open(intent, '_blank', 'noopener,noreferrer')
+function toggleShareMenu() { shareMenuOpen.value = !shareMenuOpen.value }
+function closeShareMenu() { shareMenuOpen.value = false }
+
+function isCoarsePointer() {
+  return typeof window !== 'undefined'
+    && typeof window.matchMedia === 'function'
+    && window.matchMedia('(pointer: coarse)').matches
 }
 
-async function shareUrl() {
+function makeShareBlob() {
+  return renderShareCardBlob({
+    result: props.result, model: props.model, gpu: props.gpu, quant: props.quant, t, scale: 2,
+  })
+}
+
+// 移动端优先系统分享（可带分享图附件）；无能力/用户取消时回退菜单
+async function tryNativeShare() {
+  const url = window.location.href
+  const text = shareText.value
+  try {
+    if (hasContext.value && navigator.canShare) {
+      const blob = await makeShareBlob()
+      const file = new File([blob], shareImageFilename(props.model, props.gpu), { type: 'image/png' })
+      if (navigator.canShare({ files: [file] })) {
+        await navigator.share({ title: t('nav.title'), text, url, files: [file] })
+        return true
+      }
+    }
+    if (navigator.share) {
+      await navigator.share({ title: t('nav.title'), text, url })
+      return true
+    }
+  } catch {
+    // 用户取消或分享失败：回退到菜单，不视为错误
+  }
+  return false
+}
+
+async function onShareButton() {
+  if (isCoarsePointer()) {
+    const ok = await tryNativeShare()
+    if (ok) return
+  }
+  toggleShareMenu()
+}
+
+async function copyLink() {
   try {
     if (navigator.clipboard) {
       await navigator.clipboard.writeText(window.location.href)
@@ -103,11 +141,51 @@ async function shareUrl() {
       document.execCommand('copy')
       document.body.removeChild(el)
     }
-    shareState.value = 'copied'
+    linkState.value = 'copied'
   } catch {
-    shareState.value = 'error'
+    linkState.value = 'error'
   }
-  setTimeout(() => { shareState.value = 'idle' }, 2000)
+  setTimeout(() => { linkState.value = 'idle' }, 2000)
+}
+
+async function downloadShareImage() {
+  if (!hasContext.value) return
+  imgState.value = 'working'
+  try {
+    const blob = await makeShareBlob()
+    downloadBlob(blob, shareImageFilename(props.model, props.gpu))
+    imgState.value = 'downloaded'
+  } catch {
+    imgState.value = 'error'
+  }
+  setTimeout(() => { imgState.value = 'idle' }, 2000)
+}
+
+async function copyShareImage() {
+  if (!hasContext.value) return
+  imgState.value = 'working'
+  try {
+    const blob = await makeShareBlob()
+    const ok = await copyBlobToClipboard(blob)
+    if (ok) {
+      imgState.value = 'copied'
+    } else {
+      // 剪贴板不支持图片：降级为下载
+      downloadBlob(blob, shareImageFilename(props.model, props.gpu))
+      imgState.value = 'downloaded'
+    }
+  } catch {
+    imgState.value = 'error'
+  }
+  setTimeout(() => { imgState.value = 'idle' }, 2000)
+}
+
+// 分享到 X：复用当前可分享 URL 与成绩单文案，走 X Web Intent
+function shareToX() {
+  const url = window.location.href
+  const intent = `https://x.com/intent/post?text=${encodeURIComponent(shareText.value)}&url=${encodeURIComponent(url)}`
+  window.open(intent, '_blank', 'noopener,noreferrer')
+  closeShareMenu()
 }
 
 function exportMarkdown() {
@@ -212,38 +290,100 @@ function exportMarkdown() {
         </svg>
         <span class="hidden sm:inline">{{ t('nav.export') }}</span>
       </button>
-      <!-- 分享 -->
-      <button
-        @click="shareUrl"
-        class="inline-flex items-center gap-1 text-xs font-medium px-2 py-1.5 sm:px-3 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-gray-900 transition-colors border"
-        :class="shareState === 'error' ? 'border-red-400 text-red-600' : 'border-gray-300'"
-        :title="shareState === 'error' ? t('nav.share_failed') : t('nav.share')"
-        aria-live="polite"
-      >
-        <svg v-if="shareState === 'idle'" viewBox="0 0 16 16" class="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" aria-hidden="true">
-          <path d="M11 2.5a2.5 2.5 0 1 1 .603 1.628l-6.718 3.12a2.499 2.499 0 0 1 0 1.504l6.718 3.12a2.5 2.5 0 1 1-.488.876l-6.718-3.12a2.5 2.5 0 1 1 0-3.256l6.718-3.12A2.5 2.5 0 0 1 11 2.5z"/>
-        </svg>
-        <svg v-else-if="shareState === 'copied'" viewBox="0 0 16 16" class="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" fill="currentColor" aria-hidden="true">
-          <path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/>
-        </svg>
-        <svg v-else viewBox="0 0 16 16" class="w-3.5 h-3.5 text-red-600 flex-shrink-0" fill="currentColor" aria-hidden="true">
-          <path d="M8 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13zM7.5 4h1v5h-1V4zm0 6.5h1v1h-1v-1z"/>
-        </svg>
-        <span class="hidden sm:inline" :class="shareState === 'copied' ? 'text-emerald-600' : shareState === 'error' ? 'text-red-600' : ''">
-          {{ shareState === 'copied' ? t('nav.copied') : shareState === 'error' ? t('nav.share_failed') : t('nav.share') }}
-        </span>
-      </button>
-      <!-- 分享到 X -->
-      <button
-        @click="shareToX"
-        class="inline-flex items-center text-xs font-medium px-2 py-1.5 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-gray-900 transition-colors border border-gray-300"
-        :title="t('nav.share_x')"
-        :aria-label="t('nav.share_x')"
-      >
-        <svg viewBox="0 0 24 24" class="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" aria-hidden="true">
-          <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24h-6.66l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-        </svg>
-      </button>
+      <!-- 分享（聚合菜单）：复制链接 / 下载分享图 / 复制分享图 / 分享到 X；移动端优先系统分享 -->
+      <div class="relative">
+        <button
+          @click="onShareButton"
+          class="inline-flex items-center gap-1 text-xs font-medium px-2 py-1.5 sm:px-3 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-gray-900 transition-colors border border-gray-300"
+          :class="shareMenuOpen ? 'bg-gray-200 text-gray-900' : ''"
+          :title="t('nav.share')"
+          :aria-label="t('nav.share')"
+          aria-haspopup="menu"
+          :aria-expanded="shareMenuOpen"
+        >
+          <svg viewBox="0 0 16 16" class="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" aria-hidden="true">
+            <path d="M11 2.5a2.5 2.5 0 1 1 .603 1.628l-6.718 3.12a2.499 2.499 0 0 1 0 1.504l6.718 3.12a2.5 2.5 0 1 1-.488.876l-6.718-3.12a2.5 2.5 0 1 1 0-3.256l6.718-3.12A2.5 2.5 0 0 1 11 2.5z"/>
+          </svg>
+          <span class="hidden sm:inline">{{ t('nav.share') }}</span>
+        </button>
+
+        <!-- 点击遮罩关闭 -->
+        <div v-if="shareMenuOpen" class="fixed inset-0 z-40" @click="closeShareMenu"></div>
+
+        <!-- 下拉菜单 -->
+        <div
+          v-if="shareMenuOpen"
+          class="absolute right-0 mt-2 w-56 z-50 bg-white rounded-lg border border-gray-200 shadow-lg py-1"
+          role="menu"
+        >
+          <!-- 复制链接 -->
+          <button
+            @click="copyLink"
+            role="menuitem"
+            class="w-full flex items-center gap-2 px-3 py-2 text-xs text-left text-gray-700 hover:bg-gray-100 transition-colors"
+          >
+            <svg v-if="linkState === 'copied'" viewBox="0 0 16 16" class="w-4 h-4 flex-shrink-0 text-emerald-600" fill="currentColor" aria-hidden="true">
+              <path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/>
+            </svg>
+            <svg v-else-if="linkState === 'error'" viewBox="0 0 16 16" class="w-4 h-4 flex-shrink-0 text-red-600" fill="currentColor" aria-hidden="true">
+              <path d="M8 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13zM7.5 4h1v5h-1V4zm0 6.5h1v1h-1v-1z"/>
+            </svg>
+            <svg v-else viewBox="0 0 16 16" class="w-4 h-4 flex-shrink-0 text-gray-500" fill="currentColor" aria-hidden="true">
+              <path d="M4.715 6.542 3.343 7.914a3 3 0 1 0 4.243 4.243l1.828-1.829A3 3 0 0 0 8.586 5.5L8 6.086a1 1 0 0 0-.154.199 2 2 0 0 1 .861 3.337L6.88 11.45a2 2 0 1 1-2.83-2.83l.793-.792a4 4 0 0 1-.128-1.287z"/>
+              <path d="M6.586 4.672A3 3 0 0 0 7.414 9.5l.775-.776a2 2 0 0 1-.896-3.346L9.12 3.55a2 2 0 1 1 2.83 2.83l-.793.792c.112.42.155.855.128 1.287l1.372-1.372a3 3 0 1 0-4.243-4.243z"/>
+            </svg>
+            <span :class="linkState === 'copied' ? 'text-emerald-600' : linkState === 'error' ? 'text-red-600' : ''">
+              {{ linkState === 'copied' ? t('nav.copied') : linkState === 'error' ? t('nav.share_failed') : t('nav.copy_link') }}
+            </span>
+          </button>
+
+          <!-- 下载分享图 -->
+          <button
+            @click="downloadShareImage"
+            :disabled="!hasContext"
+            role="menuitem"
+            class="w-full flex items-center gap-2 px-3 py-2 text-xs text-left text-gray-700 hover:bg-gray-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <svg viewBox="0 0 16 16" class="w-4 h-4 flex-shrink-0 text-gray-500" fill="currentColor" aria-hidden="true">
+              <path d="M8 1a.5.5 0 0 1 .5.5v7.793l2.146-2.147a.5.5 0 0 1 .708.708l-3 3a.5.5 0 0 1-.708 0l-3-3a.5.5 0 0 1 .708-.708L7.5 9.293V1.5A.5.5 0 0 1 8 1zM2 13.5a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5z"/>
+            </svg>
+            <span>{{ t('nav.download_image') }}</span>
+          </button>
+
+          <!-- 复制分享图 -->
+          <button
+            @click="copyShareImage"
+            :disabled="!hasContext"
+            role="menuitem"
+            class="w-full flex items-center gap-2 px-3 py-2 text-xs text-left text-gray-700 hover:bg-gray-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <svg v-if="imgState === 'copied'" viewBox="0 0 16 16" class="w-4 h-4 flex-shrink-0 text-emerald-600" fill="currentColor" aria-hidden="true">
+              <path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/>
+            </svg>
+            <svg v-else viewBox="0 0 16 16" class="w-4 h-4 flex-shrink-0 text-gray-500" fill="currentColor" aria-hidden="true">
+              <path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"/>
+              <path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z"/>
+            </svg>
+            <span :class="imgState === 'copied' ? 'text-emerald-600' : imgState === 'error' ? 'text-red-600' : ''">
+              {{ imgState === 'copied' ? t('nav.image_copied') : imgState === 'error' ? t('nav.image_error') : t('nav.copy_image') }}
+            </span>
+          </button>
+
+          <div class="my-1 border-t border-gray-100"></div>
+
+          <!-- 分享到 X -->
+          <button
+            @click="shareToX"
+            role="menuitem"
+            class="w-full flex items-center gap-2 px-3 py-2 text-xs text-left text-gray-700 hover:bg-gray-100 transition-colors"
+          >
+            <svg viewBox="0 0 24 24" class="w-4 h-4 flex-shrink-0 text-gray-700" fill="currentColor" aria-hidden="true">
+              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24h-6.66l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+            </svg>
+            <span>{{ t('nav.share_x') }}</span>
+          </button>
+        </div>
+      </div>
       <RouterLink
         :to="{ path: '/about', query: langQuery() }"
         class="sm:hidden inline-flex items-center text-xs font-medium px-2 py-1.5 text-gray-500 hover:text-gray-900 transition-colors"
