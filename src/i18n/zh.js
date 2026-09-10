@@ -88,7 +88,7 @@ export default {
     copy_image: '复制分享图',
     image_copied: '图片已复制',
     image_error: '生成失败',
-    share_summary: '用 TPS Calculator 估算：{model} @ {gpu} {runnable}｜单请求 {toks}｜显存 {vram}｜TTFT {ttft}',
+    share_summary: "用 TPS Calculator 估算：{model} {'@'} {gpu} {runnable}｜单请求 {toks}｜显存 {vram}｜TTFT {ttft}",
     share_runnable_yes: '✅ 跑得动',
     share_runnable_no: '❌ 跑不动',
     card_single: '单请求',

@@ -88,7 +88,7 @@ export default {
     copy_image: '이미지 복사',
     image_copied: '이미지 복사됨',
     image_error: '생성 실패',
-    share_summary: 'TPS Calculator로 추정: {model} @ {gpu} {runnable} | 단일 요청 {toks} | VRAM {vram} | TTFT {ttft}',
+    share_summary: "TPS Calculator로 추정: {model} {'@'} {gpu} {runnable} {'|'} 단일 요청 {toks} {'|'} VRAM {vram} {'|'} TTFT {ttft}",
     share_runnable_yes: '✅ 실행 가능',
     share_runnable_no: '❌ 실행 불가',
     card_single: '단일',

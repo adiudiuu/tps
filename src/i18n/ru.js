@@ -88,7 +88,7 @@ export default {
     copy_image: 'Копировать изображение',
     image_copied: 'Изображение скопировано',
     image_error: 'Ошибка генерации',
-    share_summary: 'Оценка в TPS Calculator: {model} @ {gpu} {runnable} | один запрос {toks} | VRAM {vram} | TTFT {ttft}',
+    share_summary: "Оценка в TPS Calculator: {model} {'@'} {gpu} {runnable} {'|'} один запрос {toks} {'|'} VRAM {vram} {'|'} TTFT {ttft}",
     share_runnable_yes: '✅ Запускается',
     share_runnable_no: '❌ Не запускается',
     card_single: 'Запрос',
