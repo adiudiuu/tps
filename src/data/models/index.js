@@ -1,6 +1,8 @@
 // src/data/models/index.js
 // Models sorted by release date, newest first
 
+import longcat_flash_omni from './longcat_flash_omni/index.js'
+import ling3_flash_vl from './ling3_flash_vl/index.js'
 import glm5_3 from './glm5_3/index.js'
 import glm5_3_flash from './glm5_3_flash/index.js'
 import muse_glimmer_30b from './muse_glimmer_30b/index.js'
@@ -727,6 +729,8 @@ export const DENSE_MODELS = [
 
 export const MOE_MODELS = [
   // 2026
+  longcat_flash_omni,
+  ling3_flash_vl,
   glm5_3,
   glm5_3_flash,
   deepseek_v4_flash_vision_exp,
