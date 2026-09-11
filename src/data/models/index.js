@@ -122,6 +122,7 @@ import deepseek_v3_1 from './deepseek_v3_1/index.js'
 import deepseek_v3_2 from './deepseek_v3_2/index.js'
 import deepseek_v4_flash from './deepseek_v4_flash/index.js'
 import deepseek_v4_flash_vision_exp from './deepseek_v4_flash_vision_exp/index.js'
+import deepseek_v4_1_flash from './deepseek_v4_1_flash/index.js'
 import deepseek_v4_pro from './deepseek_v4_pro/index.js'
 import deepseek_janus_1_3b from './deepseek_janus_1_3b/index.js'
 import deepseek_janus_7b from './deepseek_janus_7b/index.js'
@@ -411,7 +412,7 @@ import llama_pro_8b from './llama_pro_8b/index.js'
 import llama2_chinese_13b from './llama2_chinese_13b/index.js'
 import linly_7b from './linly_7b/index.js'
 
-// Registered model counts: 405 unique (Dense 312 + MoE 93 by type)
+// Registered model counts: 406 unique (Dense 312 + MoE 94 by type)
 export const DENSE_MODELS = [
   // 2026
   muse_glimmer_30b,
@@ -730,6 +731,7 @@ export const DENSE_MODELS = [
 
 export const MOE_MODELS = [
   // 2026
+  deepseek_v4_1_flash,
   longcat_flash_omni,
   ling3_flash_vl,
   hy4,
