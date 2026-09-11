@@ -2,7 +2,7 @@
 
 > GPU, 모델, 양자화, 추론 프레임워크로 LLM의 추론 속도(token/s), VRAM, 지연을 추정합니다.
 
-사이트: https://tps.bunai.com/
+사이트: https://tps.bunai.cc/
 소스: https://github.com/adiudiuu/tps
 다른 언어: [简体中文](/llms.zh.txt) / [繁體中文](/llms.zh-TW.txt) / [English](/llms.txt) / [Русский](/llms.ru.txt) / [Español](/llms.es.txt) / [日本語](/llms.ja.txt)
 UI: 간체 중국어 기본(쿼리 없음); `?lang=zh-TW` / `?lang=en` / `?lang=ru` / `?lang=es` / `?lang=ko` / `?lang=ja`
@@ -52,11 +52,11 @@ UI: 간체 중국어 기본(쿼리 없음); `?lang=zh-TW` / `?lang=en` / `?lang=
 
 ## 페이지
 
-- [추정](https://tps.bunai.com/?lang=ko)
-- [속도 순위](https://tps.bunai.com/ranking?lang=ko)
-- [라이브러리](https://tps.bunai.com/library?lang=ko)
-- [구성 추천](https://tps.bunai.com/solver?lang=ko)
-- [설명](https://tps.bunai.com/about?lang=ko)
+- [추정](https://tps.bunai.cc/?lang=ko)
+- [속도 순위](https://tps.bunai.cc/ranking?lang=ko)
+- [라이브러리](https://tps.bunai.cc/library?lang=ko)
+- [구성 추천](https://tps.bunai.cc/solver?lang=ko)
+- [설명](https://tps.bunai.cc/about?lang=ko)
 
 ## 프레임워크 / 양자화
 

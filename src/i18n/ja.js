@@ -73,6 +73,16 @@ export default {
         description: '広告なし。モデルとGPUの仕様は公開資料から。古い・誤りがあり得ます。TPSとVRAMは理論見積もりで、実測ではありません。役に立ったら GitHub で star を。',
       },
     },
+    ogCover: {
+      kicker: 'GPU / LLM 推論見積もり',
+      headlineBefore: '',
+      headlineMid: ' と ',
+      headlineAfter: ' をワンクリックで見積もり',
+      sub: 'GPU とモデルを選んで、VRAM と token/s を確認',
+      statModels: 'モデル',
+      statGpus: 'GPU',
+      statLangs: '言語',
+    },
   },
   nav: {
     title: 'GPU/LLM推論見積もり',

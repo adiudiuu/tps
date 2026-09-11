@@ -73,6 +73,16 @@ export default {
         description: '광고 없음. 모델·GPU 스펙은 공개 자료에서 가져오며 늦거나 틀릴 수 있습니다. TPS와 VRAM은 이론 추정치이지 실측이 아닙니다. 도움이 됐다면 GitHub 스타면 충분합니다.',
       },
     },
+    ogCover: {
+      kicker: 'GPU / LLM 추론 추정기',
+      headlineBefore: '',
+      headlineMid: '과 ',
+      headlineAfter: '를 한 번에 추정',
+      sub: 'GPU·모델을 고르고 VRAM과 token/s를 확인하세요',
+      statModels: '모델',
+      statGpus: 'GPU',
+      statLangs: '언어',
+    },
   },
   nav: {
     title: 'GPU/LLM 추론 추정',

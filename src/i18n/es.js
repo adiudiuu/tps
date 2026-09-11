@@ -73,6 +73,16 @@ export default {
         description: 'Sin anuncios. Specs de modelos y GPUs de fuentes públicas; pueden estar desactualizadas o mal. TPS y VRAM son estimaciones teóricas, no benches medidos. Si sirve, un star en GitHub está bien.',
       },
     },
+    ogCover: {
+      kicker: 'Estimador de inferencia GPU / LLM',
+      headlineBefore: 'Estima ',
+      headlineMid: ' y ',
+      headlineAfter: ' en un clic',
+      sub: 'Elige GPU · elige modelo · mira si cabe la VRAM y cuántos token/s',
+      statModels: 'Modelos',
+      statGpus: 'GPUs',
+      statLangs: 'Idiomas',
+    },
   },
   nav: {
     title: 'Estimador GPU/LLM',

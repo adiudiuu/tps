@@ -2,7 +2,7 @@
 
 > GPU・モデル・量子化・推論フレームワークから、LLMの推論速度（token/s）、VRAM、レイテンシを見積もります。
 
-サイト: https://tps.bunai.com/
+サイト: https://tps.bunai.cc/
 ソース: https://github.com/adiudiuu/tps
 他言語: [简体中文](/llms.zh.txt) / [繁體中文](/llms.zh-TW.txt) / [English](/llms.txt) / [Русский](/llms.ru.txt) / [Español](/llms.es.txt) / [한국어](/llms.ko.txt)
 UI: 簡体中国語がデフォルト（クエリなし）；`?lang=zh-TW` / `?lang=en` / `?lang=ru` / `?lang=es` / `?lang=ko` / `?lang=ja`
@@ -52,11 +52,11 @@ Libraryには従来のQwen3 / DeepSeek V3 / Llama 3.xも残っています。
 
 ## ページ
 
-- [見積もり](https://tps.bunai.com/?lang=ja)
-- [速度ランキング](https://tps.bunai.com/ranking?lang=ja)
-- [ライブラリ](https://tps.bunai.com/library?lang=ja)
-- [構成提案](https://tps.bunai.com/solver?lang=ja)
-- [説明](https://tps.bunai.com/about?lang=ja)
+- [見積もり](https://tps.bunai.cc/?lang=ja)
+- [速度ランキング](https://tps.bunai.cc/ranking?lang=ja)
+- [ライブラリ](https://tps.bunai.cc/library?lang=ja)
+- [構成提案](https://tps.bunai.cc/solver?lang=ja)
+- [説明](https://tps.bunai.cc/about?lang=ja)
 
 ## フレームワーク / 量子化
 

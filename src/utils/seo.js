@@ -3,37 +3,18 @@
 import { ALL_MODELS } from '../data/models/index.js'
 import { GPU_LIST } from '../data/gpus/index.js'
 import { SUPPORTED } from '../i18n/locales.js'
+import {
+  SITE_ORIGIN,
+  HTML_LANG,
+  OG_LOCALE,
+  HREFLANG,
+  localeUrl,
+  ogCoverUrl,
+} from '../data/site.js'
 
-export const SITE_ORIGIN = 'https://tps.bunai.com'
+export { SITE_ORIGIN, localeUrl } from '../data/site.js'
 export const SEO_LOCALES = SUPPORTED
 
-const HTML_LANG = {
-  zh: 'zh-CN',
-  'zh-TW': 'zh-TW',
-  en: 'en',
-  ru: 'ru',
-  es: 'es',
-  ko: 'ko',
-  ja: 'ja',
-}
-const OG_LOCALE = {
-  zh: 'zh_CN',
-  'zh-TW': 'zh_TW',
-  en: 'en_US',
-  ru: 'ru_RU',
-  es: 'es_ES',
-  ko: 'ko_KR',
-  ja: 'ja_JP',
-}
-const HREFLANG = {
-  zh: 'zh-CN',
-  'zh-TW': 'zh-Hant',
-  en: 'en',
-  ru: 'ru',
-  es: 'es',
-  ko: 'ko',
-  ja: 'ja',
-}
 const PRICE_CURRENCY = {
   zh: 'CNY',
   'zh-TW': 'TWD',
@@ -63,15 +44,6 @@ function setLink(rel, href, extra = {}) {
     document.head.appendChild(el)
   }
   el.setAttribute('href', href)
-}
-
-/** Build absolute URL for a locale (zh omits ?lang= to match LanguageSelect). */
-export function localeUrl(path, locale) {
-  const cleanPath = !path || path === '/' ? '/' : path
-  const url = new URL(cleanPath, SITE_ORIGIN)
-  url.search = ''
-  if (locale && locale !== 'zh') url.searchParams.set('lang', locale)
-  return url.toString()
 }
 
 function syncHreflang(path) {
@@ -233,6 +205,10 @@ export function applyPageSeo(pageKey, t, locale = 'zh', path = '/') {
   setMeta('property', 'og:title', title)
   setMeta('property', 'og:description', description)
   setMeta('property', 'og:url', pageUrl)
+  setMeta('property', 'og:image', ogCoverUrl(locale))
+  setMeta('property', 'og:image:width', '1200')
+  setMeta('property', 'og:image:height', '630')
+  setMeta('property', 'og:image:alt', title)
   setMeta('property', 'og:locale', OG_LOCALE[locale] || 'en_US')
   document.head.querySelectorAll('meta[data-seo-og-alt]').forEach(el => el.remove())
   for (const loc of SEO_LOCALES) {
@@ -243,9 +219,10 @@ export function applyPageSeo(pageKey, t, locale = 'zh', path = '/') {
     el.setAttribute('data-seo-og-alt', '1')
     document.head.appendChild(el)
   }
-  setMeta('name', 'twitter:card', 'summary')
+  setMeta('name', 'twitter:card', 'summary_large_image')
   setMeta('name', 'twitter:title', title)
   setMeta('name', 'twitter:description', description)
+  setMeta('name', 'twitter:image', ogCoverUrl(locale))
   setMeta('name', 'apple-mobile-web-app-title', t('seo.pwa.shortName'))
 
   setLink('canonical', pageUrl)

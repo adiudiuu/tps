@@ -73,6 +73,16 @@ export default {
         description: 'Без рекламы. Спеки моделей и GPU из открытых источников — могут устареть или ошибаться. TPS и VRAM — теоретические оценки, не замеры. Если помогло — звезда на GitHub.',
       },
     },
+    ogCover: {
+      kicker: 'Оценка инференса GPU / LLM',
+      headlineBefore: '',
+      headlineMid: ' и ',
+      headlineAfter: ' за один клик',
+      sub: 'Выберите GPU и модель — хватит ли VRAM и сколько token/s',
+      statModels: 'Модели',
+      statGpus: 'GPU',
+      statLangs: 'Языки',
+    },
   },
   nav: {
     title: 'Оценка инференса GPU/LLM',
