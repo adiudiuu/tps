@@ -7,7 +7,7 @@
 其他語言：[簡體中文](/llms.zh.txt) / [English](/llms.txt) / [Русский](/llms.ru.txt) / [Español](/llms.es.txt) / [한국어](/llms.ko.txt) / [日本語](/llms.ja.txt)
 界面：簡體中文預設（不加 lang）；`?lang=zh-TW`（繁體中文）/ `?lang=en` / `?lang=ru` / `?lang=es` / `?lang=ko` / `?lang=ja`
 
-站內即時數量：**405 個模型**、**251 個 GPU**。資料更新至 **2026-09-10**（`UPDATED_AT_BEIJING`）。
+站內即時數量：**405 個模型**、**251 個 GPU**。資料更新至 **2026-09-11**（`UPDATED_AT_BEIJING`）。
 
 ## 可估計的熱門模型（均已入庫）
 

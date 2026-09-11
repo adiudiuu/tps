@@ -7,7 +7,7 @@
 Другие языки: [简体中文](/llms.zh.txt) / [繁體中文](/llms.zh-TW.txt) / [English](/llms.txt) / [Español](/llms.es.txt) / [한국어](/llms.ko.txt) / [日本語](/llms.ja.txt)
 Интерфейс: упрощённый китайский по умолчанию (без query); `?lang=zh-TW` / `?lang=en` / `?lang=ru` / `?lang=es` / `?lang=ko` / `?lang=ja`
 
-Каталог (живые счётчики в Library): **405 модели**, **251 GPU**. Данные обновлены **2026-09-10** (`UPDATED_AT_BEIJING`).
+Каталог (живые счётчики в Library): **405 модели**, **251 GPU**. Данные обновлены **2026-09-11** (`UPDATED_AT_BEIJING`).
 
 ## Популярные модели в каталоге
 

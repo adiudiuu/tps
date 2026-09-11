@@ -7,7 +7,7 @@ Código: https://github.com/adiudiuu/tps
 Otros idiomas: [简体中文](/llms.zh.txt) / [繁體中文](/llms.zh-TW.txt) / [English](/llms.txt) / [Русский](/llms.ru.txt) / [한국어](/llms.ko.txt) / [日本語](/llms.ja.txt)
 Interfaz: chino simplificado por defecto (sin query); `?lang=zh-TW` / `?lang=en` / `?lang=ru` / `?lang=es` / `?lang=ko` / `?lang=ja`
 
-Catálogo (conteos en vivo en Library): **405 modelos**, **251 GPUs**. Datos actualizados el **2026-09-10** (`UPDATED_AT_BEIJING`).
+Catálogo (conteos en vivo en Library): **405 modelos**, **251 GPUs**. Datos actualizados el **2026-09-11** (`UPDATED_AT_BEIJING`).
 
 ## Modelos populares en el catálogo
 
