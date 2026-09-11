@@ -2,7 +2,7 @@
 
 > 按 GPU、模型、量化与推理框架，估算 LLM 的推理速度（token/s）、显存占用与延迟。
 
-站点：https://tps.bunai.com/
+站点：https://tps.bunai.cc/
 源码：https://github.com/adiudiuu/tps
 其他语言：[繁體中文](/llms.zh-TW.txt) / [English](/llms.txt) / [Русский](/llms.ru.txt) / [Español](/llms.es.txt) / [한국어](/llms.ko.txt) / [日本語](/llms.ja.txt)
 界面：简体中文默认（不加 lang）；`?lang=zh-TW`（繁體中文）/ `?lang=en` / `?lang=ru` / `?lang=es` / `?lang=ko` / `?lang=ja`
@@ -52,11 +52,11 @@
 
 ## 页面
 
-- [估算](https://tps.bunai.com/)
-- [速度排行](https://tps.bunai.com/ranking)
-- [资源库](https://tps.bunai.com/library)
-- [配置推荐](https://tps.bunai.com/solver)
-- [说明](https://tps.bunai.com/about)
+- [估算](https://tps.bunai.cc/)
+- [速度排行](https://tps.bunai.cc/ranking)
+- [资源库](https://tps.bunai.cc/library)
+- [配置推荐](https://tps.bunai.cc/solver)
+- [说明](https://tps.bunai.cc/about)
 
 ## 框架 / 量化
 

@@ -1,0 +1,31 @@
+/og-cover.png
+  Access-Control-Allow-Origin: *
+  Cache-Control: public, max-age=14400, must-revalidate
+
+/og-cover.zh.png
+  Access-Control-Allow-Origin: *
+  Cache-Control: public, max-age=14400, must-revalidate
+
+/og-cover.zh-TW.png
+  Access-Control-Allow-Origin: *
+  Cache-Control: public, max-age=14400, must-revalidate
+
+/og-cover.en.png
+  Access-Control-Allow-Origin: *
+  Cache-Control: public, max-age=14400, must-revalidate
+
+/og-cover.es.png
+  Access-Control-Allow-Origin: *
+  Cache-Control: public, max-age=14400, must-revalidate
+
+/og-cover.ja.png
+  Access-Control-Allow-Origin: *
+  Cache-Control: public, max-age=14400, must-revalidate
+
+/og-cover.ko.png
+  Access-Control-Allow-Origin: *
+  Cache-Control: public, max-age=14400, must-revalidate
+
+/og-cover.ru.png
+  Access-Control-Allow-Origin: *
+  Cache-Control: public, max-age=14400, must-revalidate

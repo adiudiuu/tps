@@ -2,10 +2,11 @@
 // Canvas 分享图（成绩单）：1200×630，纯浏览器原生 API，无外链字体/图片依赖。
 // 复用 SpeedCard 的 S/A/B/C/F 分级阈值与配色、exportMd 的数据口径。
 import { buildShareStats } from './shareText.js'
+import { SITE_HOST } from '../data/site.js'
 
 const WIDTH = 1200
 const HEIGHT = 630
-const CARD_SITE = 'tps.bunai.com'
+const CARD_SITE = SITE_HOST
 
 // 系统字体栈：避免加载外链字体导致画布 taint，同时覆盖 CJK
 const FONT_STACK = 'system-ui, -apple-system, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", "Hiragino Sans", "Noto Sans CJK SC", sans-serif'

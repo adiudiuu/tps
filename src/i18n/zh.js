@@ -73,6 +73,16 @@ export default {
         description: '本站不加广告。模型与显卡参数来自公开资料，可能滞后或有误。TPS 与显存是理论估算，不是实测跑分。觉得有用可去 GitHub 点星。',
       },
     },
+    ogCover: {
+      kicker: 'GPU / LLM 推理估算器',
+      headlineBefore: '一键估算 ',
+      headlineMid: ' 与 ',
+      headlineAfter: '',
+      sub: '选卡 · 选模型 · 看显存够不够、能跑多少 token/s',
+      statModels: '模型',
+      statGpus: 'GPU',
+      statLangs: '语言',
+    },
   },
   nav: {
     title: 'GPU/LLM 推理估算',

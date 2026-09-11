@@ -52,4 +52,4 @@ Allow: /
 User-agent: PetalBot
 Allow: /
 
-Sitemap: https://tps.bunai.com/sitemap.xml
+Sitemap: https://tps.bunai.cc/sitemap.xml

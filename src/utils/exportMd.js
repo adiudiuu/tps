@@ -4,6 +4,7 @@ import { fmtToks, fmtToksRange, fmtGB, fmtMs, fmtPct, fmtParams, fmtCtx } from '
 import { calcAll, getWarnings } from './calc.js'
 import { QUANT_MAP } from '../data/constants.js'
 import { PCIE_BW_OPTIONS } from '../data/runtime.js'
+import { SITE_HOST } from '../data/site.js'
 
 const LOCALE_TAGS = {
   zh: 'zh-CN',
@@ -34,7 +35,7 @@ export function generateMarkdown({
   })
 
   const lines = []
-  const site = 'tps.bunai.com'
+  const site = SITE_HOST
   const onOff = (v) => v ? t('run.enabled') : t('run.disabled')
 
   lines.push(`# ${t('md.title')}`)

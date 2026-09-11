@@ -2,7 +2,7 @@
 
 > Estimate LLM inference speed (tokens/sec), VRAM use, and latency for a given GPU, model, quantization, and framework.
 
-Site: https://tps.bunai.com/
+Site: https://tps.bunai.cc/
 Source: https://github.com/adiudiuu/tps
 Languages: English (this file) / [简体中文](/llms.zh.txt) / [繁體中文](/llms.zh-TW.txt) / [Русский](/llms.ru.txt) / [Español](/llms.es.txt) / [한국어](/llms.ko.txt) / [日本語](/llms.ja.txt). UI: Simplified Chinese default (no query); `?lang=zh-TW` / `?lang=en` / `?lang=ru` / `?lang=es` / `?lang=ko` / `?lang=ja`.
 
@@ -51,11 +51,11 @@ Roofline + public GPU specs × framework efficiency. Theoretical upper bounds, n
 
 ## Pages
 
-- [Estimator](https://tps.bunai.com/?lang=en)
-- [Ranking](https://tps.bunai.com/ranking?lang=en)
-- [Library](https://tps.bunai.com/library?lang=en)
-- [Solver](https://tps.bunai.com/solver?lang=en)
-- [Notes](https://tps.bunai.com/about?lang=en)
+- [Estimator](https://tps.bunai.cc/?lang=en)
+- [Ranking](https://tps.bunai.cc/ranking?lang=en)
+- [Library](https://tps.bunai.cc/library?lang=en)
+- [Solver](https://tps.bunai.cc/solver?lang=en)
+- [Notes](https://tps.bunai.cc/about?lang=en)
 
 ## Frameworks / quants
 

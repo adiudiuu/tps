@@ -2,7 +2,7 @@
 
 > Оценка скорости инференса LLM (token/s), VRAM и задержки по GPU, модели, квантизации и фреймворку.
 
-Сайт: https://tps.bunai.com/
+Сайт: https://tps.bunai.cc/
 Исходный код: https://github.com/adiudiuu/tps
 Другие языки: [简体中文](/llms.zh.txt) / [繁體中文](/llms.zh-TW.txt) / [English](/llms.txt) / [Español](/llms.es.txt) / [한국어](/llms.ko.txt) / [日本語](/llms.ja.txt)
 Интерфейс: упрощённый китайский по умолчанию (без query); `?lang=zh-TW` / `?lang=en` / `?lang=ru` / `?lang=es` / `?lang=ko` / `?lang=ja`
@@ -52,11 +52,11 @@ Roofline + открытые спецификации GPU × эффективно
 
 ## Страницы
 
-- [Оценка](https://tps.bunai.com/?lang=ru)
-- [Рейтинг скорости](https://tps.bunai.com/ranking?lang=ru)
-- [Библиотека](https://tps.bunai.com/library?lang=ru)
-- [Подбор конфигурации](https://tps.bunai.com/solver?lang=ru)
-- [О проекте](https://tps.bunai.com/about?lang=ru)
+- [Оценка](https://tps.bunai.cc/?lang=ru)
+- [Рейтинг скорости](https://tps.bunai.cc/ranking?lang=ru)
+- [Библиотека](https://tps.bunai.cc/library?lang=ru)
+- [Подбор конфигурации](https://tps.bunai.cc/solver?lang=ru)
+- [О проекте](https://tps.bunai.cc/about?lang=ru)
 
 ## Фреймворки / квантизация
 
