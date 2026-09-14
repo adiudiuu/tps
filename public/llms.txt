@@ -6,12 +6,14 @@ Site: https://tps.bunai.cc/
 Source: https://github.com/adiudiuu/tps
 Languages: English (this file) / [简体中文](/llms.zh.txt) / [繁體中文](/llms.zh-TW.txt) / [Русский](/llms.ru.txt) / [Español](/llms.es.txt) / [한국어](/llms.ko.txt) / [日本語](/llms.ja.txt). UI: Simplified Chinese default (no query); `?lang=zh-TW` / `?lang=en` / `?lang=ru` / `?lang=es` / `?lang=ko` / `?lang=ja`.
 
-Catalog (live counts in-app Library): **405 models**, **251 GPUs**. Data updated **2026-09-11** (`UPDATED_AT_BEIJING`).
+Catalog (live counts in-app Library): **410 models**, **251 GPUs**. Data updated **2026-09-14** (`UPDATED_AT_BEIJING`).
 
 ## Popular models you can estimate (in catalog)
 
 | Model | Why listed |
 |-------|------------|
+| **Intern-S2-397B** | Shanghai AI Lab open-weight scientific VLM MoE 397B-A17B (HF / ModelScope, 2026-09-13) |
+| **DeepSeek V4.1 Flash** | Open-weight 552B-A16B native VLM, 1M ctx (HF MIT, 2026-09-10) |
 | **Qwen3.8-Max** | Open-weight 2.4T-A95B (HF / ModelScope, 2026-08-12) |
 | **Qwen3.8-Flash-Next** | Open-weight 125B-A6B VLM + n-gram (HF / ModelScope, 2026-08) |
 | **Qwen3.8-27B** | Open-weight dense VLM (HF / ModelScope, 2026-08-14) |
@@ -20,8 +22,7 @@ Catalog (live counts in-app Library): **405 models**, **251 GPUs**. Data updated
 | **GLM-5.3** | Latest GLM-5 MoE flagship (753B-A40B, post-train upgrade, 2026-08) |
 | **Muse Glimmer 30B** | Meta dense VLM for local agentic tasks (Apache 2.0, 2026-08) |
 | **GLM-5.3-Flash** | Latest GLM-5 multimodal MoE (320B-A18B, 2026-08) |
-| **DeepSeek V4 Flash Vision Exp** | Experimental VLM on V4-Flash-0731 base (305B / 13B active, HF MIT, 2026-08-31) |
-| **DeepSeek V4** (Pro / Flash) | Current DeepSeek generation (2026-04) |
+| **DeepSeek V4** (Pro / Flash) | Previous DeepSeek V4 generation (2026-04 / 08) |
 | **MiniMax M3** | 2026-06 release |
 | **Gemma 4** | Google Gemma 4 family (2026-06) |
 | **Llama 4** (Maverick / Scout) | Meta Llama 4 MoE |
