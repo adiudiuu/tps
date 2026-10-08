@@ -7,12 +7,13 @@
 其他语言：[繁體中文](/llms.zh-TW.txt) / [English](/llms.txt) / [Русский](/llms.ru.txt) / [Español](/llms.es.txt) / [한국어](/llms.ko.txt) / [日本語](/llms.ja.txt)
 界面：简体中文默认（不加 lang）；`?lang=zh-TW`（繁體中文）/ `?lang=en` / `?lang=ru` / `?lang=es` / `?lang=ko` / `?lang=ja`
 
-站内实时数量：**410 个模型**、**251 个 GPU**。数据更新至 **2026-09-18**（`UPDATED_AT_BEIJING`）。
+站内实时数量：**412 个模型**、**251 个 GPU**。数据更新至 **2026-10-08**（`UPDATED_AT_BEIJING`）。
 
 ## 可估算的热门模型（均已入库）
 
 | 模型 | 选取原因 |
 |------|----------|
+| **MiMo-V2.6**（Pro / Flash） | 小米开源全模态 MoE，Pro 1.02T-A42B / Flash 309B-A15B，1M 上下文（HF MIT，2026-09-21） |
 | **Intern-S2-397B** | 上海 AI Lab 开源科学多模态 MoE 397B-A17B（HF / ModelScope，2026-09-13） |
 | **DeepSeek V4.1 Flash** | 开源权重 552B-A16B 原生 VLM，1M 上下文（HF MIT，2026-09-10） |
 | **Qwen3.8-Max** | 开源权重 2.4T-A95B（HF / ModelScope，2026-08-12） |

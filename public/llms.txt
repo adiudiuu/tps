@@ -6,12 +6,13 @@ Site: https://tps.bunai.cc/
 Source: https://github.com/adiudiuu/tps
 Languages: English (this file) / [简体中文](/llms.zh.txt) / [繁體中文](/llms.zh-TW.txt) / [Русский](/llms.ru.txt) / [Español](/llms.es.txt) / [한국어](/llms.ko.txt) / [日本語](/llms.ja.txt). UI: Simplified Chinese default (no query); `?lang=zh-TW` / `?lang=en` / `?lang=ru` / `?lang=es` / `?lang=ko` / `?lang=ja`.
 
-Catalog (live counts in-app Library): **410 models**, **251 GPUs**. Data updated **2026-09-18** (`UPDATED_AT_BEIJING`).
+Catalog (live counts in-app Library): **412 models**, **251 GPUs**. Data updated **2026-10-08** (`UPDATED_AT_BEIJING`).
 
 ## Popular models you can estimate (in catalog)
 
 | Model | Why listed |
 |-------|------------|
+| **MiMo-V2.6** (Pro / Flash) | Xiaomi open-weight omnimodal MoE, Pro 1.02T-A42B / Flash 309B-A15B, 1M ctx (HF MIT, 2026-09-21) |
 | **Intern-S2-397B** | Shanghai AI Lab open-weight scientific VLM MoE 397B-A17B (HF / ModelScope, 2026-09-13) |
 | **DeepSeek V4.1 Flash** | Open-weight 552B-A16B native VLM, 1M ctx (HF MIT, 2026-09-10) |
 | **Qwen3.8-Max** | Open-weight 2.4T-A95B (HF / ModelScope, 2026-08-12) |
