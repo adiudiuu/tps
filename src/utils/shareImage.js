@@ -3,6 +3,8 @@
 // 复用 SpeedCard 的 S/A/B/C/F 分级阈值与配色、exportMd 的数据口径。
 import { buildShareStats } from './shareText.js'
 import { SITE_HOST } from '../data/site.js'
+import { ALL_MODELS } from '../data/models/index.js'
+import { GPU_LIST } from '../data/gpus/index.js'
 
 const WIDTH = 1200
 const HEIGHT = 630
@@ -182,7 +184,7 @@ export function drawShareCard(canvas, { result, model, gpu, quant, t, scale = 2 
     ctx.fillText('GPU/LLM TPS & VRAM', P, 300)
     ctx.fillStyle = '#6b7280'
     ctx.font = font(30, '500')
-    ctx.fillText('405 models · 251 GPUs', P, 360)
+    ctx.fillText(`${ALL_MODELS.length} models · ${GPU_LIST.length} GPUs`, P, 360)
     return canvas
   }
 
