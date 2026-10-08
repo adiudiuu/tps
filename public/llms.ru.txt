@@ -7,12 +7,13 @@
 Другие языки: [简体中文](/llms.zh.txt) / [繁體中文](/llms.zh-TW.txt) / [English](/llms.txt) / [Español](/llms.es.txt) / [한국어](/llms.ko.txt) / [日本語](/llms.ja.txt)
 Интерфейс: упрощённый китайский по умолчанию (без query); `?lang=zh-TW` / `?lang=en` / `?lang=ru` / `?lang=es` / `?lang=ko` / `?lang=ja`
 
-Каталог (живые счётчики в Library): **410 модели**, **251 GPU**. Данные обновлены **2026-09-18** (`UPDATED_AT_BEIJING`).
+Каталог (живые счётчики в Library): **412 моделей**, **251 GPU**. Данные обновлены **2026-10-09** (`UPDATED_AT_BEIJING`).
 
 ## Популярные модели в каталоге
 
 | Модель | Почему в списке |
 |--------|-----------------|
+| **MiMo-V2.6** (Pro / Flash) | Открытый омнимодальный MoE Xiaomi, Pro 1.02T-A42B / Flash 309B-A15B, контекст 1M (HF MIT, 2026-09-21) |
 | **Intern-S2-397B** | Открытая научная VLM MoE Shanghai AI Lab 397B-A17B (HF / ModelScope, 2026-09-13) |
 | **DeepSeek V4.1 Flash** | Открытые веса 552B-A16B нативный VLM, контекст 1M (HF MIT, 2026-09-10) |
 | **Qwen3.8-Max** | Открытые веса 2.4T-A95B (HF / ModelScope, 2026-08-12) |
