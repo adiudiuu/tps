@@ -1,6 +1,7 @@
 // src/data/models/index.js
 // Models sorted by release date, newest first
 
+import ling3_1_flash from './ling3_1_flash/index.js'
 import mimo_v2_6_pro from './mimo_v2_6_pro/index.js'
 import mimo_v2_6_flash from './mimo_v2_6_flash/index.js'
 import intern_s2_397b from './intern_s2_397b/index.js'
@@ -415,7 +416,7 @@ import llama_pro_8b from './llama_pro_8b/index.js'
 import llama2_chinese_13b from './llama2_chinese_13b/index.js'
 import linly_7b from './linly_7b/index.js'
 
-// Registered model counts: 412 unique (Dense 312 + MoE 100 by type)
+// Registered model counts: 413 unique (Dense 312 + MoE 101 by type)
 export const DENSE_MODELS = [
   // 2026
   muse_glimmer_30b,
@@ -734,6 +735,7 @@ export const DENSE_MODELS = [
 
 export const MOE_MODELS = [
   // 2026
+  ling3_1_flash,
   mimo_v2_6_pro,
   mimo_v2_6_flash,
   intern_s2_397b,
