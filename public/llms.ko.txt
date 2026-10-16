@@ -7,12 +7,14 @@
 다른 언어: [简体中文](/llms.zh.txt) / [繁體中文](/llms.zh-TW.txt) / [English](/llms.txt) / [Русский](/llms.ru.txt) / [Español](/llms.es.txt) / [日本語](/llms.ja.txt)
 UI: 간체 중국어 기본(쿼리 없음); `?lang=zh-TW` / `?lang=en` / `?lang=ru` / `?lang=es` / `?lang=ko` / `?lang=ja`
 
-카탈로그(라이브러리 실시간 집계): **모델 414개**, **GPU 251개**. 데이터 갱신 **2026-10-16** (`UPDATED_AT_BEIJING`).
+카탈로그(라이브러리 실시간 집계): **모델 416개**, **GPU 251개**. 데이터 갱신 **2026-10-17** (`UPDATED_AT_BEIJING`).
 
 ## 카탈로그의 인기 모델
 
 | 모델 | 선정 이유 |
 |------|-----------|
+| **Muse Spark Open** | Meta 오픈웨이트 희소 MoE VLM, 816B-A42B, GQA + 슬라이딩 윈도, 네이티브 1M 컨텍스트 (HF / ModelScope, 2026-10-15) |
+| **Nemotron 3.5 Super VL** | NVIDIA 오픈웨이트 하이브리드 MoE VLM, 120B-A12B, Mamba-2 + C-RADIO, 네이티브 1M 컨텍스트 (HF / ModelScope, 2026-10-15) |
 | **Step-5-Preview** | StepFun 오픈웨이트 희소 MoE VLM, 600B-A27B, GQA + 슬라이딩 윈도, 네이티브 1M 컨텍스트 (HF / ModelScope, 2026-10-15) |
 | **Ling-3.1-flash** | inclusionAI 오픈웨이트 하이브리드 선형 MoE, 560B-A25B, KDA + Gated MLA, 네이티브 262K 컨텍스트 (카드는 1M 표기) (HF / ModelScope, MIT, 2026-10-13) |
 | **MiMo-V2.6** (Pro / Flash) | 샤오미 오픈웨이트 전방위 모달 MoE, Pro 1.02T-A42B / Flash 309B-A15B, 1M 컨텍스트 (HF MIT, 2026-09-21) |

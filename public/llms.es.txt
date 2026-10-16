@@ -7,12 +7,14 @@ Código: https://github.com/adiudiuu/tps
 Otros idiomas: [简体中文](/llms.zh.txt) / [繁體中文](/llms.zh-TW.txt) / [English](/llms.txt) / [Русский](/llms.ru.txt) / [한국어](/llms.ko.txt) / [日本語](/llms.ja.txt)
 Interfaz: chino simplificado por defecto (sin query); `?lang=zh-TW` / `?lang=en` / `?lang=ru` / `?lang=es` / `?lang=ko` / `?lang=ja`
 
-Catálogo (conteos en vivo en Library): **414 modelos**, **251 GPUs**. Datos actualizados el **2026-10-16** (`UPDATED_AT_BEIJING`).
+Catálogo (conteos en vivo en Library): **416 modelos**, **251 GPUs**. Datos actualizados el **2026-10-17** (`UPDATED_AT_BEIJING`).
 
 ## Modelos populares en el catálogo
 
 | Modelo | Por qué está |
 |--------|--------------|
+| **Muse Spark Open** | MoE VLM disperso de pesos abiertos de Meta, 816B-A42B, GQA + ventana deslizante, ctx nativo 1M (HF / ModelScope, 2026-10-15) |
+| **Nemotron 3.5 Super VL** | MoE VLM híbrido de pesos abiertos de NVIDIA, 120B-A12B, Mamba-2 + C-RADIO, ctx nativo 1M (HF / ModelScope, 2026-10-15) |
 | **Step-5-Preview** | MoE VLM disperso de pesos abiertos de StepFun, 600B-A27B, GQA + ventana deslizante, ctx nativo 1M (HF / ModelScope, 2026-10-15) |
 | **Ling-3.1-flash** | MoE híbrido lineal de pesos abiertos de inclusionAI, 560B-A25B, KDA + Gated MLA, ctx nativo 262K (la ficha declara 1M) (HF / ModelScope, MIT, 2026-10-13) |
 | **MiMo-V2.6** (Pro / Flash) | MoE omnimodal de pesos abiertos de Xiaomi, Pro 1.02T-A42B / Flash 309B-A15B, ctx 1M (HF MIT, 2026-09-21) |
