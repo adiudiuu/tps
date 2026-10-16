@@ -20,7 +20,8 @@ export default {
     experts_per_token: 22,
     moe_execution: 'shared_routed',
     layers: 88,
-    // 8 attention blocks among 88 interleaved Mamba-2 / MoE / attention blocks
+    // 8 attention blocks among 88 interleaved Mamba-2 / MoE / attention（同 nemotron_3_super）
+    // mamba_ratio 同时缩放 KV 与 prefill softmax FLOPs / FA 层占比；不把 80 个 Mamba/MoE 块标成 linear_attention_layers
     mamba_ratio: 8 / 88,
     kv_heads: 2,
     head_dim: 128,
