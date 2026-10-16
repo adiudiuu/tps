@@ -317,6 +317,10 @@ export function calcAll({
   // 次级推导：local_layers + sliding_window===0 约定为线性 attention（Qwen3.6 系列 hack）
   const linearAttnLayers = model.linear_attention_layers
     ?? (model.local_layers != null && model.sliding_window === 0 ? model.local_layers : null)
+  // linear_attention_layers：那些层仍做 attention-like 计算但不走 FA，按占比缩减 boost
+  // mamba_ratio 不能再乘进来：Mamba/SSM 块不是 attention，softmax FLOPs 已在
+  // getPrefillAttentionFactor 按 mamba_ratio 缩放；FA 加速仍完整作用在剩余 attention 层。
+  // 若把 boost 再按 mamba_ratio 摊薄，去掉 attention 层反而会让短 prompt / Jamba 的 prefill 变慢。
   const faLayerRatio = linearAttnLayers != null
     ? (model.layers - linearAttnLayers) / model.layers
     : 1
@@ -441,7 +445,7 @@ export function calcAll({
     ? (model.active_params ?? model.params)
     : model.params
 
-  // 动态注意力 FLOPs 因子：综合考虑 seq_len、GQA/MQA、线性 attention 层
+  // 动态注意力 FLOPs 因子：综合考虑 seq_len、GQA/MQA、线性 attention 层、mamba_ratio
   // factor > 1 表示 attention 增加了额外 FLOPs，需要在 computeBaseLimit 中除以它
   const visionEncoderParams = model.vision_encoder_params ?? 0
   // params 已含 ViT 时，文本 prefill 始终扣掉 encoder；有图再把 ViT FLOPs 加回来，避免「加图反而更快」
@@ -462,6 +466,7 @@ export function calcAll({
     linearAttnLayers,
     slidingLayers: kvParts.slidingLayers,
     slidingWindow: kvParts.slidingWindow,
+    mambaRatio: model.mamba_ratio,
   })
 
   const computeBaseLimit = (tflops * 1e12) / (2 * tokenActiveParams * 1e9)
@@ -812,8 +817,9 @@ function getVisionWeightParams(model) {
  * @param {number} [params.linearAttnLayers] - 线性注意力层数（从总层数中排除，不计入 softmax attention）
  * @param {number} [params.slidingLayers]   - 滑动窗口层数（effective_seq 封顶到 slidingWindow）
  * @param {number} [params.slidingWindow]   - 滑动窗口大小（tokens）
+ * @param {number} [params.mambaRatio]     - hybrid Mamba 的 attention 层占比（与 KV 的 mamba_ratio 同一口径）
  */
-function getPrefillAttentionFactor({ totalHeads, kvHeads, headDim, layers, promptLen, activeParams, linearAttnLayers, slidingLayers, slidingWindow }) {
+function getPrefillAttentionFactor({ totalHeads, kvHeads, headDim, layers, promptLen, activeParams, linearAttnLayers, slidingLayers, slidingWindow, mambaRatio }) {
   // softmax attention 层数（排除线性 attention 层）
   const linLayers = linearAttnLayers ?? 0
   // 滑动窗口层单算 effective_seq；窗口缺失时并入全注意力层（保守）
@@ -828,7 +834,12 @@ function getPrefillAttentionFactor({ totalHeads, kvHeads, headDim, layers, promp
   // softmax attention 额外 FLOPs/token（O(n²)，不在 activeParams 里）：
   //   QK^T + AV = 4 × query_heads × head_dim × effective_seq × softmax_layers
   const swSeq = Math.min(seqLen, slidingWindow ?? seqLen)
-  const softmaxAttnFlops = 4 * qHeads * hDim * (fullLayers * seqLen + swLayers * swSeq)
+  let softmaxAttnFlops = 4 * qHeads * hDim * (fullLayers * seqLen + swLayers * swSeq)
+  // hybrid Mamba（Nemotron Super / Jamba / Granite-H）：mamba_ratio = attention 块 / 总块。
+  // 只缩 softmax FLOPs；FA 加速仍完整作用在剩余 attention 层，不按 mamba_ratio 摊薄。
+  if (Number.isFinite(mambaRatio)) {
+    softmaxAttnFlops *= Math.max(0, mambaRatio)
+  }
 
   // FFN FLOPs/token（O(n)，已被 activeParams 覆盖，作为分母基准）
   const ffnFlopsPerToken = 2 * (activeParams ?? 1) * 1e9
