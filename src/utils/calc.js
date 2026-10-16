@@ -317,11 +317,9 @@ export function calcAll({
   // 次级推导：local_layers + sliding_window===0 约定为线性 attention（Qwen3.6 系列 hack）
   const linearAttnLayers = model.linear_attention_layers
     ?? (model.local_layers != null && model.sliding_window === 0 ? model.local_layers : null)
-  // linear_attention_layers：FA 只打在剩余 softmax 层上（Qwen3.5 / KDA 等）
-  // mamba_ratio：attention 块占比（Nemotron Super / Jamba / Granite-H），与 KV 缩放同一口径
   const faLayerRatio = linearAttnLayers != null
     ? (model.layers - linearAttnLayers) / model.layers
-    : (Number.isFinite(model.mamba_ratio) ? model.mamba_ratio : 1)
+    : 1
   const scaledFlashRange = {
     min: 1 + (flashRange.min - 1) * faLayerRatio,
     mid: 1 + (flashRange.mid - 1) * faLayerRatio,
@@ -464,7 +462,6 @@ export function calcAll({
     linearAttnLayers,
     slidingLayers: kvParts.slidingLayers,
     slidingWindow: kvParts.slidingWindow,
-    mambaRatio: model.mamba_ratio,
   })
 
   const computeBaseLimit = (tflops * 1e12) / (2 * tokenActiveParams * 1e9)
@@ -815,20 +812,13 @@ function getVisionWeightParams(model) {
  * @param {number} [params.linearAttnLayers] - 线性注意力层数（从总层数中排除，不计入 softmax attention）
  * @param {number} [params.slidingLayers]   - 滑动窗口层数（effective_seq 封顶到 slidingWindow）
  * @param {number} [params.slidingWindow]   - 滑动窗口大小（tokens）
- * @param {number} [params.mambaRatio]     - hybrid Mamba 的 attention 层占比（与 KV 的 mamba_ratio 同一口径）
  */
-function getPrefillAttentionFactor({ totalHeads, kvHeads, headDim, layers, promptLen, activeParams, linearAttnLayers, slidingLayers, slidingWindow, mambaRatio }) {
+function getPrefillAttentionFactor({ totalHeads, kvHeads, headDim, layers, promptLen, activeParams, linearAttnLayers, slidingLayers, slidingWindow }) {
   // softmax attention 层数（排除线性 attention 层）
   const linLayers = linearAttnLayers ?? 0
   // 滑动窗口层单算 effective_seq；窗口缺失时并入全注意力层（保守）
   const swLayers = (slidingWindow ?? 0) > 0 ? (slidingLayers ?? 0) : 0
-  let fullLayers = Math.max(0, (layers ?? 1) - linLayers - swLayers)
-  // Nemotron Super / Jamba / Granite-H：mamba_ratio = attention 块 / 总块。
-  // 未设 linear_attention_layers / sliding 时，用该比例把 softmax 层从「全部 88 块」收到真正的 attention 块（如 8/88）。
-  // 不把 MoE/Mamba 块标成 linear_attention_layers（详情页会误显示为线性注意力）。
-  if (linLayers === 0 && swLayers === 0 && Number.isFinite(mambaRatio)) {
-    fullLayers = Math.max(0, (layers ?? 1) * mambaRatio)
-  }
+  const fullLayers = Math.max(0, (layers ?? 1) - linLayers - swLayers)
 
   // GQA/MQA：注意力 FLOPs 由 query heads 决定，不能用 kv_heads 低估
   const qHeads = totalHeads ?? kvHeads ?? 1
