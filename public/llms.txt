@@ -6,12 +6,14 @@ Site: https://tps.bunai.cc/
 Source: https://github.com/adiudiuu/tps
 Languages: English (this file) / [简体中文](/llms.zh.txt) / [繁體中文](/llms.zh-TW.txt) / [Русский](/llms.ru.txt) / [Español](/llms.es.txt) / [한국어](/llms.ko.txt) / [日本語](/llms.ja.txt). UI: Simplified Chinese default (no query); `?lang=zh-TW` / `?lang=en` / `?lang=ru` / `?lang=es` / `?lang=ko` / `?lang=ja`.
 
-Catalog (live counts in-app Library): **416 models**, **251 GPUs**. Data updated **2026-10-20** (`UPDATED_AT_BEIJING`).
+Catalog (live counts in-app Library): **418 models**, **251 GPUs**. Data updated **2026-10-24** (`UPDATED_AT_BEIJING`).
 
 ## Popular models you can estimate (in catalog)
 
 | Model | Why listed |
 |-------|------------|
+| **MiniMax M3.1 Flash** | MiniMax open-weight native multimodal MoE, 428B-A23B, GQA + sparse attention throughout, native 1M ctx (HF / ModelScope, 2026-10-23) |
+| **Nemotron 3.5 Bolt E4B** | NVIDIA open-weight Gemma-4-E4B post-train dense SLM, 8B (4B effective), sliding+global attention, native 64K ctx (HF BF16, 2026-10-23) |
 | **Muse Spark Open** | Meta open-weight sparse MoE VLM, 816B-A42B, GQA + sliding window, native 1M ctx (HF / ModelScope, 2026-10-15) |
 | **Nemotron 3.5 Super VL** | NVIDIA open-weight hybrid MoE VLM, 120B-A12B, Mamba-2 + C-RADIO, native 1M ctx (HF / ModelScope, 2026-10-15) |
 | **Step-5-Preview** | StepFun open-weight sparse MoE VLM, 600B-A27B, GQA + sliding window, native 1M ctx (HF / ModelScope, 2026-10-15) |

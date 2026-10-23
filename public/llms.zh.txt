@@ -7,12 +7,14 @@
 其他语言：[繁體中文](/llms.zh-TW.txt) / [English](/llms.txt) / [Русский](/llms.ru.txt) / [Español](/llms.es.txt) / [한국어](/llms.ko.txt) / [日本語](/llms.ja.txt)
 界面：简体中文默认（不加 lang）；`?lang=zh-TW`（繁體中文）/ `?lang=en` / `?lang=ru` / `?lang=es` / `?lang=ko` / `?lang=ja`
 
-站内实时数量：**416 个模型**、**251 个 GPU**。数据更新至 **2026-10-20**（`UPDATED_AT_BEIJING`）。
+站内实时数量：**418 个模型**、**251 个 GPU**。数据更新至 **2026-10-24**（`UPDATED_AT_BEIJING`）。
 
 ## 可估算的热门模型（均已入库）
 
 | 模型 | 选取原因 |
 |------|----------|
+| **MiniMax M3.1 Flash** | MiniMax 开源原生多模态 MoE，428B-A23B，GQA + 全程稀疏注意力，原生 1M 上下文（HF / ModelScope，2026-10-23） |
+| **Nemotron 3.5 Bolt E4B** | NVIDIA 开源 Gemma-4-E4B 后训练稠密 SLM，8B（4B effective），滑动+全局注意力，原生 64K 上下文（HF BF16，2026-10-23） |
 | **Muse Spark Open** | Meta 开源稀疏 MoE VLM，816B-A42B，GQA + 滑动窗，原生 1M 上下文（HF / ModelScope，2026-10-15） |
 | **Nemotron 3.5 Super VL** | NVIDIA 开源混合 MoE VLM，120B-A12B，Mamba-2 + C-RADIO，原生 1M 上下文（HF / ModelScope，2026-10-15） |
 | **Step-5-Preview** | 阶跃星辰开源稀疏 MoE VLM，600B-A27B，GQA + 滑动窗，原生 1M 上下文（HF / ModelScope，2026-10-15） |

@@ -7,12 +7,14 @@
 他言語: [简体中文](/llms.zh.txt) / [繁體中文](/llms.zh-TW.txt) / [English](/llms.txt) / [Русский](/llms.ru.txt) / [Español](/llms.es.txt) / [한국어](/llms.ko.txt)
 UI: 簡体中国語がデフォルト（クエリなし）；`?lang=zh-TW` / `?lang=en` / `?lang=ru` / `?lang=es` / `?lang=ko` / `?lang=ja`
 
-カタログ（Libraryのライブ件数）: **モデル416**、**GPU251**。データ更新 **2026-10-20**（`UPDATED_AT_BEIJING`）。
+カタログ（Libraryのライブ件数）: **モデル418**、**GPU251**。データ更新 **2026-10-24**（`UPDATED_AT_BEIJING`）。
 
 ## カタログの主要モデル
 
 | モデル | 掲載理由 |
 |--------|----------|
+| **MiniMax M3.1 Flash** | MiniMaxオープンウェイトネイティブマルチモーダルMoE、428B-A23B、GQA + 全層スパースアテンション、ネイティブ1Mコンテキスト（HF / ModelScope、2026-10-23） |
+| **Nemotron 3.5 Bolt E4B** | NVIDIAオープンウェイト、Gemma-4-E4B後学習の密なSLM、8B（4B effective）、スライディング+グローバル注意、ネイティブ64Kコンテキスト（HF BF16、2026-10-23） |
 | **Muse Spark Open** | MetaオープンウェイトスパースMoE VLM、816B-A42B、GQA + スライディングウィンドウ、ネイティブ1Mコンテキスト（HF / ModelScope、2026-10-15） |
 | **Nemotron 3.5 Super VL** | NVIDIAオープンウェイトハイブリッドMoE VLM、120B-A12B、Mamba-2 + C-RADIO、ネイティブ1Mコンテキスト（HF / ModelScope、2026-10-15） |
 | **Step-5-Preview** | StepFunオープンウェイトスパースMoE VLM、600B-A27B、GQA + スライディングウィンドウ、ネイティブ1Mコンテキスト（HF / ModelScope、2026-10-15） |

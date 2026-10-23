@@ -7,12 +7,14 @@
 Другие языки: [简体中文](/llms.zh.txt) / [繁體中文](/llms.zh-TW.txt) / [English](/llms.txt) / [Español](/llms.es.txt) / [한국어](/llms.ko.txt) / [日本語](/llms.ja.txt)
 Интерфейс: упрощённый китайский по умолчанию (без query); `?lang=zh-TW` / `?lang=en` / `?lang=ru` / `?lang=es` / `?lang=ko` / `?lang=ja`
 
-Каталог (живые счётчики в Library): **416 моделей**, **251 GPU**. Данные обновлены **2026-10-20** (`UPDATED_AT_BEIJING`).
+Каталог (живые счётчики в Library): **418 моделей**, **251 GPU**. Данные обновлены **2026-10-24** (`UPDATED_AT_BEIJING`).
 
 ## Популярные модели в каталоге
 
 | Модель | Почему в списке |
 |--------|-----------------|
+| **MiniMax M3.1 Flash** | Открытый нативный мультимодальный MoE MiniMax, 428B-A23B, GQA + разреженное внимание во всех слоях, нативный контекст 1M (HF / ModelScope, 2026-10-23) |
+| **Nemotron 3.5 Bolt E4B** | Открытый плотный SLM NVIDIA, дообученный от Gemma-4-E4B, 8B (4B effective), внимание sliding+global, нативный контекст 64K (HF BF16, 2026-10-23) |
 | **Muse Spark Open** | Открытый разреженный MoE VLM Meta, 816B-A42B, GQA + скользящее окно, нативный контекст 1M (HF / ModelScope, 2026-10-15) |
 | **Nemotron 3.5 Super VL** | Открытый гибридный MoE VLM NVIDIA, 120B-A12B, Mamba-2 + C-RADIO, нативный контекст 1M (HF / ModelScope, 2026-10-15) |
 | **Step-5-Preview** | Открытый разреженный MoE VLM StepFun, 600B-A27B, GQA + скользящее окно, нативный контекст 1M (HF / ModelScope, 2026-10-15) |
