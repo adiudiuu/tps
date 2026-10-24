@@ -14,6 +14,9 @@
 // Vision (vision_config): CLIP-style 32×1280 / intermediate 5120 / patch=14 / image_size=672
 //         spatial_merge_size=2 → image_seq_length=576（与 config 字段一致）
 //         428B 为官方 native multimodal 总参（同 MiniMax M3 口径），视觉不另加
+//         官方卡 / 技术报告未直接给出编码器规模；vision_encoder_params ≈ 0.63B
+//         derived from the official config（CLIP ViT，不含 projector）：
+//         https://huggingface.co/MiniMaxAI/MiniMax-M3.1-Flash/blob/main/config.json
 export default {
     id: 'minimax_m3_1_flash',
     name: 'MiniMax M3.1 Flash',
@@ -30,6 +33,9 @@ export default {
     hidden_size: 6144,
     max_ctx: 1048576,
     vision_seq_tokens: 576,
+    // ≈0.63B derived from the official config（CLIP 32×1280 / intermediate 5120，不含 projector）
+    vision_encoder_params: 0.63,
+    vision_encoder_in_params: true, // 428B 已含视觉编码器
     tags: ['chat', 'coding', 'agentic', 'vision', 'multimodal'],
     released: '2026-10',
     links: {
