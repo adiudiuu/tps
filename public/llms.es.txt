@@ -7,12 +7,13 @@ Código: https://github.com/adiudiuu/tps
 Otros idiomas: [简体中文](/llms.zh.txt) / [繁體中文](/llms.zh-TW.txt) / [English](/llms.txt) / [Русский](/llms.ru.txt) / [한국어](/llms.ko.txt) / [日本語](/llms.ja.txt)
 Interfaz: chino simplificado por defecto (sin query); `?lang=zh-TW` / `?lang=en` / `?lang=ru` / `?lang=es` / `?lang=ko` / `?lang=ja`
 
-Catálogo (conteos en vivo en Library): **418 modelos**, **251 GPUs**. Datos actualizados el **2026-10-29** (`UPDATED_AT_BEIJING`).
+Catálogo (conteos en vivo en Library): **419 modelos**, **251 GPUs**. Datos actualizados el **2026-10-30** (`UPDATED_AT_BEIJING`).
 
 ## Modelos populares en el catálogo
 
 | Modelo | Por qué está |
 |--------|--------------|
+| **Mistral Large 4** | MoE multimodal nativo de pesos abiertos de Mistral, 1.05T-A52B, MLA + DSA, 128 routed top-4 + 1 shared, ctx nativo 1M (HF, 2026-10-29) |
 | **MiniMax M3.1 Flash** | MoE multimodal nativo de pesos abiertos de MiniMax, 428B-A23B, GQA + atención dispersa en todas las capas, ctx nativo 1M (HF / ModelScope, 2026-10-23) |
 | **Nemotron 3.5 Bolt E4B** | SLM denso NVIDIA post-entrenado desde Gemma-4-E4B, 8B (4B effective), atención sliding+global, ctx nativo 64K (HF BF16, 2026-10-23) |
 | **Muse Spark Open** | MoE VLM disperso de pesos abiertos de Meta, 816B-A42B, GQA + ventana deslizante, ctx nativo 1M (HF / ModelScope, 2026-10-15) |
