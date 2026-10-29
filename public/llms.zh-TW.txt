@@ -7,12 +7,13 @@
 其他語言：[簡體中文](/llms.zh.txt) / [English](/llms.txt) / [Русский](/llms.ru.txt) / [Español](/llms.es.txt) / [한국어](/llms.ko.txt) / [日本語](/llms.ja.txt)
 界面：簡體中文預設（不加 lang）；`?lang=zh-TW`（繁體中文）/ `?lang=en` / `?lang=ru` / `?lang=es` / `?lang=ko` / `?lang=ja`
 
-站內即時數量：**418 個模型**、**251 個 GPU**。資料更新至 **2026-10-29**（`UPDATED_AT_BEIJING`）。
+站內即時數量：**419 個模型**、**251 個 GPU**。資料更新至 **2026-10-30**（`UPDATED_AT_BEIJING`）。
 
 ## 可估計的熱門模型（均已入庫）
 
 | 模型 | 選取原因 |
 |------|----------|
+| **Mistral Large 4** | Mistral 開源原生多模態 MoE，1.05T-A52B，MLA + DSA，128 routed top-4 + 1 shared，原生 1M 上下文（HF，2026-10-29） |
 | **MiniMax M3.1 Flash** | MiniMax 開源原生多模態 MoE，428B-A23B，GQA + 全程稀疏注意力，原生 1M 上下文（HF / ModelScope，2026-10-23） |
 | **Nemotron 3.5 Bolt E4B** | NVIDIA 開源 Gemma-4-E4B 後訓練稠密 SLM，8B（4B effective），滑動+全局注意力，原生 64K 上下文（HF BF16，2026-10-23） |
 | **Muse Spark Open** | Meta 開源稀疏 MoE VLM，816B-A42B，GQA + 滑動窗，原生 1M 上下文（HF / ModelScope，2026-10-15） |
