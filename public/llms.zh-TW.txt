@@ -7,12 +7,13 @@
 其他語言：[簡體中文](/llms.zh.txt) / [English](/llms.txt) / [Русский](/llms.ru.txt) / [Español](/llms.es.txt) / [한국어](/llms.ko.txt) / [日本語](/llms.ja.txt)
 界面：簡體中文預設（不加 lang）；`?lang=zh-TW`（繁體中文）/ `?lang=en` / `?lang=ru` / `?lang=es` / `?lang=ko` / `?lang=ja`
 
-站內即時數量：**420 個模型**、**251 個 GPU**。資料更新至 **2026-11-04**（`UPDATED_AT_BEIJING`）。
+站內即時數量：**421 個模型**、**251 個 GPU**。資料更新至 **2026-11-05**（`UPDATED_AT_BEIJING`）。
 
 ## 可估計的熱門模型（均已入庫）
 
 | 模型 | 選取原因 |
 |------|----------|
+| **Kimi K3.1 Pro** | Moonshot 開源原生多模態 MoE，2.8T-A104B，69 KDA + 24 Gated DSA，原生 1M 上下文（HF / ModelScope，權重 2026-11-04） |
 | **SenseNova-Loop 9B Preview** | 商湯 SenseNova 開源循環多模態稠密 VLM，9B unique / 展開約 14.6B，線性+全注意力 hybrid + mHC，原生 256K 上下文（HF / ModelScope，2026-10-30；本窗口 config 轉公開） |
 | **Mistral Large 4** | Mistral 開源原生多模態 MoE，1.05T-A52B，MLA + DSA，128 routed top-4 + 1 shared，原生 1M 上下文（HF，2026-10-29） |
 | **MiniMax M3.1 Flash** | MiniMax 開源原生多模態 MoE，428B-A23B，GQA + 全程稀疏注意力，原生 1M 上下文（HF / ModelScope，2026-10-23） |
