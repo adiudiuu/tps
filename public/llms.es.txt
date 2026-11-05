@@ -7,12 +7,13 @@ Código: https://github.com/adiudiuu/tps
 Otros idiomas: [简体中文](/llms.zh.txt) / [繁體中文](/llms.zh-TW.txt) / [English](/llms.txt) / [Русский](/llms.ru.txt) / [한국어](/llms.ko.txt) / [日本語](/llms.ja.txt)
 Interfaz: chino simplificado por defecto (sin query); `?lang=zh-TW` / `?lang=en` / `?lang=ru` / `?lang=es` / `?lang=ko` / `?lang=ja`
 
-Catálogo (conteos en vivo en Library): **421 modelos**, **251 GPUs**. Datos actualizados el **2026-11-05** (`UPDATED_AT_BEIJING`).
+Catálogo (conteos en vivo en Library): **422 modelos**, **251 GPUs**. Datos actualizados el **2026-11-06** (`UPDATED_AT_BEIJING`).
 
 ## Modelos populares en el catálogo
 
 | Modelo | Por qué está |
 |--------|--------------|
+| **ERNIE 5.5 Flash Base** | Base MoE de texto de pesos abiertos de Baidu, 280B-A14B, 37 HCA + 6 MLA-DSA, ctx nativo 1M (HF / ModelScope, pesos 2026-11-05) |
 | **Kimi K3.1 Pro** | MoE multimodal nativo de pesos abiertos de Moonshot, 2.8T-A104B, 69 KDA + 24 Gated DSA, ctx nativo 1M (HF / ModelScope, pesos 2026-11-04) |
 | **SenseNova-Loop 9B Preview** | VLM densa multimodal con decoder en bucle de SenseTime SenseNova, 9B unique / ~14.6B desplegado, hybrid lineal+full + mHC, ctx nativo 256K (HF / ModelScope, 2026-10-30; config público en esta ventana) |
 | **Mistral Large 4** | MoE multimodal nativo de pesos abiertos de Mistral, 1.05T-A52B, MLA + DSA, 128 routed top-4 + 1 shared, ctx nativo 1M (HF, 2026-10-29) |

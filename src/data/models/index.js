@@ -1,6 +1,7 @@
 // src/data/models/index.js
 // Models sorted by release date, newest first
 
+import ernie55_flash_base from './ernie55_flash_base/index.js'
 import kimi_k3_1_pro from './kimi_k3_1_pro/index.js'
 import mistral_large_4 from './mistral_large_4/index.js'
 import sensenova_loop_9b from './sensenova_loop_9b/index.js'
@@ -424,7 +425,7 @@ import llama_pro_8b from './llama_pro_8b/index.js'
 import llama2_chinese_13b from './llama2_chinese_13b/index.js'
 import linly_7b from './linly_7b/index.js'
 
-// Registered model counts: 421 unique (Dense 314 + MoE 107 by type)
+// Registered model counts: 422 unique (Dense 314 + MoE 108 by type)
 export const DENSE_MODELS = [
   // 2026
   sensenova_loop_9b,
@@ -745,6 +746,7 @@ export const DENSE_MODELS = [
 
 export const MOE_MODELS = [
   // 2026
+  ernie55_flash_base,
   kimi_k3_1_pro,
   mistral_large_4,
   minimax_m3_1_flash,
