@@ -7,12 +7,13 @@
 他言語: [简体中文](/llms.zh.txt) / [繁體中文](/llms.zh-TW.txt) / [English](/llms.txt) / [Русский](/llms.ru.txt) / [Español](/llms.es.txt) / [한국어](/llms.ko.txt)
 UI: 簡体中国語がデフォルト（クエリなし）；`?lang=zh-TW` / `?lang=en` / `?lang=ru` / `?lang=es` / `?lang=ko` / `?lang=ja`
 
-カタログ（Libraryのライブ件数）: **モデル421**、**GPU251**。データ更新 **2026-11-05**（`UPDATED_AT_BEIJING`）。
+カタログ（Libraryのライブ件数）: **モデル422**、**GPU251**。データ更新 **2026-11-06**（`UPDATED_AT_BEIJING`）。
 
 ## カタログの主要モデル
 
 | モデル | 掲載理由 |
 |--------|----------|
+| **ERNIE 5.5 Flash Base** | BaiduオープンウェイトテキストMoEベース、280B-A14B、37 HCA + 6 MLA-DSA、ネイティブ1Mコンテキスト（HF / ModelScope、重み 2026-11-05） |
 | **Kimi K3.1 Pro** | MoonshotオープンウェイトネイティブマルチモーダルMoE、2.8T-A104B、69 KDA + 24 Gated DSA、ネイティブ1Mコンテキスト（HF / ModelScope、重み 2026-11-04） |
 | **SenseNova-Loop 9B Preview** | SenseTime SenseNovaオープンウェイト循環マルチモーダル密VLM、9B unique / 展開約14.6B、線形+フルhybrid + mHC、ネイティブ256Kコンテキスト（HF / ModelScope、2026-10-30；本ウィンドウでconfig公開） |
 | **Mistral Large 4** | MistralオープンウェイトネイティブマルチモーダルMoE、1.05T-A52B、MLA + DSA、128 routed top-4 + 1 shared、ネイティブ1Mコンテキスト（HF、2026-10-29） |
