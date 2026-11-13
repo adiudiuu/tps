@@ -7,12 +7,14 @@
 Другие языки: [简体中文](/llms.zh.txt) / [繁體中文](/llms.zh-TW.txt) / [English](/llms.txt) / [Español](/llms.es.txt) / [한국어](/llms.ko.txt) / [日本語](/llms.ja.txt)
 Интерфейс: упрощённый китайский по умолчанию (без query); `?lang=zh-TW` / `?lang=en` / `?lang=ru` / `?lang=es` / `?lang=ko` / `?lang=ja`
 
-Каталог (живые счётчики в Library): **422 моделей**, **251 GPU**. Данные обновлены **2026-11-06** (`UPDATED_AT_BEIJING`).
+Каталог (живые счётчики в Library): **424 моделей**, **251 GPU**. Данные обновлены **2026-11-13** (`UPDATED_AT_BEIJING`).
 
 ## Популярные модели в каталоге
 
 | Модель | Почему в списке |
 |--------|-----------------|
+| **Inkling 2 Small** | Открытый нативный мультимодальный MoE Thinking Machines, 594B-A17B, 40 скользящих + 8 глобальных слоёв внимания, нативный контекст 1M (HF NVFP4, веса 2026-11-12) |
+| **LongCat-2.5** | Открытый нативный мультимодальный MoE Meituan LongCat, 1.6T-A48B, MLA + DSA, ScMoE 768 routed top-12, нативный контекст 512K (HF / ModelScope, веса 2026-11-10) |
 | **ERNIE 5.5 Flash Base** | Открытая текстовая MoE-база Baidu, 280B-A14B, 37 HCA + 6 MLA-DSA, нативный контекст 1M (HF / ModelScope, веса 2026-11-05) |
 | **Kimi K3.1 Pro** | Открытый нативный мультимодальный MoE Moonshot, 2.8T-A104B, 69 KDA + 24 Gated DSA, нативный контекст 1M (HF / ModelScope, веса 2026-11-04) |
 | **SenseNova-Loop 9B Preview** | Открытая зацикленная мультимодальная плотная VLM SenseTime SenseNova, 9B unique / ~14.6B развёрнуто, hybrid linear+full + mHC, нативный контекст 256K (HF / ModelScope, 2026-10-30; config открыт в этом окне) |
