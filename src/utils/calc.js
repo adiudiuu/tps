@@ -582,12 +582,12 @@ export function calcAll({
   const decodeComputeLimit = (tflops * 1e12) / (2 * tokenActiveParams * 1e9) / decodeAttentionFactor * flashFactor
   const specVerifyTokens = (speculativeDecoding && draftLen > 0) ? (draftLen + 1) : 1
   const computeTokensPerStep = batch * specVerifyTokens
-  const cpuOnlyDecode = pureCpu || gpuLayerRatio <= 0
-  const gpuComputeLimit = cpuOnlyDecode
-    ? 0
-    : decodeComputeLimit * gpuLayerRatio * ppCount * ppBubbleEff
-  const tpotComputeMs = gpuComputeLimit > 0
-    ? 1000 * computeTokensPerStep / gpuComputeLimit
+  // 纯 CPU / ngl=0：不算 GPU 算力封顶。混合 offload 只计 GPU 常驻层的 FLOPs，
+  // 不能把 gpuLayerRatio 除掉上限（那会把半层当成半算力跑全模型）。
+  const gpuPlacementRatio = (pureCpu || gpuLayerRatio <= 0) ? 0 : gpuLayerRatio
+  const gpuComputeToksPerSec = decodeComputeLimit * ppCount * ppBubbleEff
+  const tpotComputeMs = gpuPlacementRatio > 0 && gpuComputeToksPerSec > 0
+    ? 1000 * computeTokensPerStep * gpuPlacementRatio / gpuComputeToksPerSec
     : 0
 
   const tpotBw = getDecodeTpotBaseMs(decodeFactors.mid)

@@ -1,7 +1,9 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { calc, gpu, model, ic } from './helpers.js'
+import { calc, gpu, model, ic, fw, quant } from './helpers.js'
 import { effectiveEpCount, moeAllowsEp, resolveParallelLayout } from '../src/utils/calc.js'
+import { generateCmd } from '../src/utils/cmdGen.js'
+import { KV_CACHE_MAP } from '../src/data/runtime.js'
 
 describe('TP / PP / EP', () => {
   it('PP 不缩短单请求 TTFT（各 stage 串行）', () => {
@@ -81,6 +83,22 @@ describe('TP / PP / EP', () => {
     })
     assert.equal(layout.epCount, 1)
     assert.equal(layout.tpCount, 8)
+    const cmd = generateCmd(fw('vllm'), {
+      model: model('kimi_k1'),
+      gpuCount: 8,
+      ppCount: 1,
+      epCount: 8,
+      ctx: 8192,
+      batch: 1,
+      quant: quant('bf16'),
+      kvCacheQuant: KV_CACHE_MAP[0],
+      prefixCacheHit: 0,
+      speculativeDecoding: false,
+      draftLen: 4,
+    })
+    assert.match(cmd, /--tensor-parallel-size 8/)
+    assert.equal(cmd.includes('--enable-expert-parallel'), false)
+    assert.equal(/--data-parallel-size/.test(cmd), false)
   })
 
   it('batch>1 时 decode 算力按整步 token 预算，不把 1-token 倒数当 TPOT', () => {
@@ -105,5 +123,28 @@ describe('TP / PP / EP', () => {
     assert.equal(cpuPath.decodeComputeLimited, false)
     assert.ok(Number.isFinite(cpuPath.singleToks))
     assert.ok(gpuPath.decodeComputeLimit > 0)
+  })
+
+  it('ngl=0 与混合 offload 只按 GPU 常驻层计 decode 算力', () => {
+    const qwen = model('qwen3_4b')
+    const weak = { ...gpu('h100_sxm'), bf16: 0.05, int8: 0.05, int4: 0.05, fp8: 0.05 }
+    const hybrid = {
+      gpu: weak,
+      gpuCount: 1,
+      model: qwen,
+      batch: 8,
+      framework: fw('llamacpp'),
+      cpuOffload: true,
+      cpuMemBw: { id: 'ddr5', bw: 90, label: 'DDR5' },
+      skipCalibration: true,
+    }
+    const ngl0 = calc({ ...hybrid, nglCount: 0 })
+    const nglHalf = calc({ ...hybrid, nglCount: Math.floor(qwen.layers / 2) })
+    const nglFull = calc({ ...hybrid, nglCount: qwen.layers })
+    assert.equal(ngl0.decodeComputeLimited, false)
+    assert.ok(Number.isFinite(ngl0.singleToks))
+    assert.equal(nglFull.decodeComputeLimited, true)
+    // 半层 GPU 只承担一半 FLOPs，算力 TPOT 应低于全层，而不是把半算力套到全模型上变慢
+    assert.ok(nglHalf.tpot < nglFull.tpot, `half=${nglHalf.tpot} full=${nglFull.tpot}`)
   })
 })
