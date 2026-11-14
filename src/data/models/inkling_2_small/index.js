@@ -4,7 +4,7 @@
 // 48 层：40 层局部滑动窗（window=1024）+ 8 层全局；384 routed experts top-8，无 shared
 // Official card: 594B total, 17B active；Apache 2.0；宣称上下文 1M（config model_max_length=1048576）
 // 相对注意力 (d_rel) / short-conv 不扩展 calc.js，KV 按现有 GQA + sliding_window 口径
-// ModelScope record not found，不写 404 链接
+// ModelScope 本窗口转公开（API/页面 HTTP 200），补 links.ms
 // Source: https://huggingface.co/thinkingmachines/Inkling-2-Small/blob/main/config.json
 // Config text_config: num_hidden_layers=48, hidden_size=4608, num_attention_heads=48,
 //         num_key_value_heads=8, head_dim=128, n_routed_experts=384, num_experts_per_tok=8,
@@ -37,5 +37,6 @@ export default {
     released: '2026-11',
     links: {
         hf: 'https://huggingface.co/thinkingmachines/Inkling-2-Small',
+        ms: 'https://modelscope.cn/models/thinkingmachines/Inkling-2-Small',
     },
 }
