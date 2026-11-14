@@ -16,11 +16,26 @@ const props = defineProps({ result: Object })
 
 const chartData = computed(() => {
   if (!props.result) return { labels: [], datasets: [] }
-  const { weightGB, kvGB, overheadGB } = props.result
+  const r = props.result
+  const weight = r.pieWeightGB ?? r.weightGB
+  const kv = r.pieKvGB ?? r.kvGB
+  const runtime = r.runtimeOverheadPerCard
+  const act = r.activationPerCard ?? 0
+  if (runtime != null) {
+    return {
+      labels: [t('result.weight'), t('result.kv'), t('result.runtime_overhead'), t('result.activation')],
+      datasets: [{
+        data: [weight, kv, runtime, act].map(v => +Number(v || 0).toFixed(2)),
+        backgroundColor: ['#10b981', '#f59e0b', '#64748b', '#0ea5e9'],
+        borderColor: ['#059669', '#d97706', '#475569', '#0284c7'],
+        borderWidth: 1,
+      }],
+    }
+  }
   return {
     labels: [t('result.weight'), t('result.kv'), t('result.overhead')],
     datasets: [{
-      data: [weightGB, kvGB, overheadGB].map(v => +v.toFixed(2)),
+      data: [weight, kv, r.overheadGB].map(v => +Number(v || 0).toFixed(2)),
       backgroundColor: ['#10b981', '#f59e0b', '#64748b'],
       borderColor: ['#059669', '#d97706', '#475569'],
       borderWidth: 1,

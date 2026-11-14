@@ -1,5 +1,6 @@
-﻿// IBM Granite MoE 3B/800M: 8 experts (2 active), 40 layers, 128K ctx
+﻿// IBM Granite MoE 3B/800M
 // Source: https://huggingface.co/ibm-granite/granite-3.0-3b-a800m-instruct/blob/main/config.json
+// config: hidden=1536, 24Q/8KV, 32 layers, 40 local experts, top-8
 export default {
   id: 'granite_moe_3b',
   released: '2024-10',
@@ -7,13 +8,14 @@ export default {
   type: 'moe',
   params: 3.3,
   active_params: 0.8,
-  experts: 8,
-  experts_per_token: 2,
+  experts: 40,
+  experts_per_token: 8,
   mla_ratio: null,
-  layers: 40,
+  layers: 32,
+  query_heads: 24,
   kv_heads: 8,
   head_dim: 64,
-  hidden_size: 1024,
+  hidden_size: 1536,
   max_ctx: 131072,
   tags: ['chat'],
   links: {

@@ -18,6 +18,7 @@ export default {
   // 5:1 sliding:full — 40 sliding (window=1024) + 8 global
   // local:  kv_heads=8, head_dim=256
   // global: kv_heads=1, head_dim=512（config: num_global_key_value_heads / global_head_dim）
+  query_heads: 16,         // num_attention_heads；HF google/gemma-4-12b-it
   kv_heads: 8,             // local (sliding) attention KV heads
   head_dim: 256,           // sliding attention head_dim
   global_kv_heads: 1,      // global (full) attention KV heads

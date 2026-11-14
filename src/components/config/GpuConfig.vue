@@ -3,6 +3,7 @@ import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { GPU_LIST } from '../../data/gpus/index.js'
 import { INTERCONNECT_MAP } from '../../data/constants.js'
+import { autoInterconnect } from '../../utils/interconnect.js'
 import { isNew } from '../../utils/format.js'
 import { detectLocalGpu } from '../../utils/detectGpu.js'
 
@@ -175,8 +176,8 @@ async function manualDetect() {
   _detectTimer = setTimeout(() => { detectState.value = '' }, 5000)
 }
 
-// ── 选 GPU 时自动匹配互联方式（主卡）──────────────────
-watch(primaryGpu, (g) => {
+// ── 选 GPU / 改卡数时自动匹配互联方式（主卡）──────────────────
+watch([primaryGpu, totalCount], ([g]) => {
   if (!g) return
   if (g.vendor === 'apple') {
     // Apple Silicon 只支持单卡，强制回单卡模式
@@ -197,9 +198,7 @@ watch(primaryGpu, (g) => {
     })
   }
   if (isMixed.value) return  // 混合卡不自动切换互联
-  if (!g.nvlink_bw) return
-  const matched = INTERCONNECT_MAP.find(ic => ic.bw === g.nvlink_bw)
-  if (matched) interconnect.value = matched
+  interconnect.value = autoInterconnect(g, totalCount.value)
 })
 
 // 混合卡时自动切换到 PCIe

@@ -6,6 +6,7 @@ import { FRAMEWORK_MAP } from '../../data/constants.js'
 import TipIcon from '../ui/TipIcon.vue'
 import { generateCmd, getFrameworkDocsUrl } from '../../utils/cmdGen.js'
 import { roofDecodeToks } from '../../utils/calibrate.js'
+import { speedRatingFromResult } from '../../utils/speedRating.js'
 
 const { t } = useI18n()
 const props = defineProps({
@@ -34,13 +35,8 @@ const framework = defineModel('framework', { required: true })
 const isRunnable = computed(() => props.result?.runnable ?? props.result?.vramOk ?? true)
 
 const speedRating = computed(() => {
-  const toks = props.result?.singleToksMax
-  if (toks == null) return null
-  if (toks >= 100) return { grade: 'S', c1: '#22c55e', c2: '#15803d', label: t('result.speed_rating_blazing'), desc: t('result.speed_rating_s_desc') }
-  if (toks >= 60)  return { grade: 'A', c1: '#60a5fa', c2: '#2563eb', label: t('result.speed_rating_blazing'), desc: t('result.speed_rating_blazing_desc') }
-  if (toks >= 30)  return { grade: 'B', c1: '#fbbf24', c2: '#d97706', label: t('result.speed_rating_smooth'),  desc: t('result.speed_rating_smooth_desc') }
-  if (toks >= 15)  return { grade: 'C', c1: '#a78bfa', c2: '#7c3aed', label: t('result.speed_rating_usable'),  desc: t('result.speed_rating_usable_desc') }
-  return                  { grade: 'F', c1: '#f87171', c2: '#dc2626', label: t('result.speed_rating_slow'),    desc: t('result.speed_rating_slow_desc') }
+  if (props.result?.singleToks == null) return null
+  return speedRatingFromResult(props.result, t)
 })
 
 // 根据当前 GPU vendor 过滤可用框架
@@ -322,7 +318,7 @@ async function copyCmd() {
               {{ t('result.actual') }}
               <TipIcon :text="t('result.actual_tip')" />
             </div>
-            <div class="text-base font-bold text-emerald-700">{{ fmtToksRange(result.decodeToksMin, result.decodeToksMax) }}</div>
+            <div class="text-base font-bold text-emerald-700">{{ fmtToksRange(result.effectiveToksMin, result.effectiveToksMax) }}</div>
           </div>
           <div class="bg-gray-50 rounded-lg px-3 py-2">
             <div class="text-[10px] text-gray-500 mb-0.5 flex items-center gap-1">

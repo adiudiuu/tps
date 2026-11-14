@@ -8,11 +8,23 @@ import { GPU_LIST } from '../data/gpus/index.js'
 import { ALL_MODELS } from '../data/models/index.js'
 import { QUANT_MAP, FRAMEWORK_MAP, INTERCONNECT_MAP } from '../data/constants.js'
 import { calcAll, aggregateGpuSlots } from '../utils/calc.js'
+import { autoInterconnect } from '../utils/interconnect.js'
 import { fmtParams, fmtGB, fmtToks, fmtMs, fmtCtx, isNew } from '../utils/format.js'
 import { currentLangParam } from '../utils/lang.js'
 import { PCIE_BW_OPTIONS } from '../data/runtime.js'
 
 const defaultPcieBw = PCIE_BW_OPTIONS[1] // PCIe 4.0
+
+/** 与 Estimator 条/饼图同一套每卡口径；totalNeeded 是集群合计，不能拿来跟单卡余量混算 */
+function rankingVramNeeded(r) {
+  return r.displayNeeded ?? r.perCardNeeded ?? r.totalNeeded
+}
+function rankingVramCap(r) {
+  return r.displayVram ?? r.perCardVram ?? r.totalVram
+}
+function rankingVramFree(r) {
+  return rankingVramCap(r) - rankingVramNeeded(r)
+}
 
 const { t } = useI18n()
 const router = useRouter()
@@ -34,8 +46,9 @@ function parseGpuSlots(query) {
 }
 
 // ── GPU 配置 ─────────────────────────────────────────
-const gpuSlots    = ref(parseGpuSlots(_p) ?? [{ gpu: GPU_LIST.find(g => g.id === 'h100_sxm') ?? GPU_LIST[0], count: 1 }])
-const interconnect = ref(INTERCONNECT_MAP.find(i => i.id === _p.ic) ?? INTERCONNECT_MAP[0])
+const _initSlots = parseGpuSlots(_p) ?? [{ gpu: GPU_LIST.find(g => g.id === 'h100_sxm') ?? GPU_LIST[0], count: 1 }]
+const gpuSlots    = ref(_initSlots)
+const interconnect = ref(INTERCONNECT_MAP.find(i => i.id === _p.ic) ?? autoInterconnect(_initSlots[0]?.gpu, _initSlots.reduce((s, g) => s + g.count, 0)))
 const ctx         = ref(_p.ctx ? Math.max(512, Number(_p.ctx)) : 16384)
 const batch       = ref(_p.b ? Math.max(1, Number(_p.b)) : 1)
 // 与 Estimator 一致：NVIDIA→vllm，Apple→mlx；URL 指定 fw 时优先
@@ -256,11 +269,11 @@ function _buildRawResults() {
     } else if (sortBy.value === 'vram') {
       if (!a.result) return 1
       if (!b.result) return -1
-      return a.result.totalNeeded - b.result.totalNeeded
+      return rankingVramNeeded(a.result) - rankingVramNeeded(b.result)
     } else if (sortBy.value === 'vram_free') {
       if (!a.result) return 1
       if (!b.result) return -1
-      return (b.result.totalVram - b.result.totalNeeded) - (a.result.totalVram - a.result.totalNeeded)
+      return rankingVramFree(b.result) - rankingVramFree(a.result)
     } else if (sortBy.value === 'efficiency') {
       if (!a.result) return 1
       if (!b.result) return -1
@@ -572,11 +585,11 @@ function useThisModel(modelData) {
                   <span v-else class="text-sm text-gray-400">—</span>
                 </td>
                 <td class="px-4 py-3 text-right">
-                  <span v-if="item.result" class="text-sm text-gray-900">{{ fmtGB(item.result.totalNeeded) }}</span>
+                  <span v-if="item.result" class="text-sm text-gray-900">{{ fmtGB(rankingVramNeeded(item.result)) }}</span>
                   <span v-else class="text-sm text-gray-400">—</span>
                 </td>
                 <td class="px-4 py-3 text-right">
-                  <span v-if="item.result" class="text-sm text-gray-700">{{ fmtGB(item.result.totalVram - item.result.totalNeeded) }}</span>
+                  <span v-if="item.result" class="text-sm text-gray-700">{{ fmtGB(rankingVramFree(item.result)) }}</span>
                   <span v-else class="text-sm text-gray-400">—</span>
                 </td>
                 <td class="px-4 py-3 text-right">
@@ -695,7 +708,7 @@ function useThisModel(modelData) {
               <div class="bg-gray-50 rounded-lg p-2 text-center">
                 <div class="text-[10px] text-gray-400 mb-0.5">{{ t('ranking.table_vram') }}</div>
                 <div class="text-xs font-semibold text-gray-800">
-                  {{ item.result ? fmtGB(item.result.totalNeeded) : '—' }}
+                  {{ item.result ? fmtGB(rankingVramNeeded(item.result)) : '—' }}
                 </div>
               </div>
               <div class="bg-gray-50 rounded-lg p-2 text-center">

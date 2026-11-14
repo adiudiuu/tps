@@ -1,6 +1,7 @@
 ﻿// Kimi K1: first generation model
 // Released: March 2024
 // Source: https://platform.moonshot.cn/docs/intro
+// 无公开 config.json；experts/active 无法核验。calc 在 NE 公式为负时关闭 EP 分片节省。
 export default {
   id: 'kimi_k1',
   released: '2024-03',

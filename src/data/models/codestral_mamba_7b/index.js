@@ -7,7 +7,8 @@ export default {
   type: 'dense',
   params: 7.3,
   layers: 56,
-  kv_heads: 0, // Mamba uses SSM, not traditional attention
+  mamba_ratio: 1, // 纯 Mamba2 SSM，无标准 attention KV
+  kv_heads: 0,
   head_dim: 0,
   hidden_size: 4096,
   max_ctx: 262144,

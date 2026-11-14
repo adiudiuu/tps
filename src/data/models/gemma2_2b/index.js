@@ -8,6 +8,7 @@ export default {
   type: 'dense',
   params: 2.6,
   layers: 26,
+  query_heads: 8, // num_attention_heads；unsloth/gemma-2-2b-it 镜像官方 config
   kv_heads: 4,
   head_dim: 256,
   local_layers: 13,

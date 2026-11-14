@@ -2,6 +2,7 @@
 // Canvas 分享图（成绩单）：1200×630，纯浏览器原生 API，无外链字体/图片依赖。
 // 复用 SpeedCard 的 S/A/B/C/F 分级阈值与配色、exportMd 的数据口径。
 import { buildShareStats } from './shareText.js'
+import { speedRating } from './speedRating.js'
 import { SITE_HOST } from '../data/site.js'
 import { ALL_MODELS } from '../data/models/index.js'
 import { GPU_LIST } from '../data/gpus/index.js'
@@ -12,18 +13,6 @@ const CARD_SITE = SITE_HOST
 
 // 系统字体栈：避免加载外链字体导致画布 taint，同时覆盖 CJK
 const FONT_STACK = 'system-ui, -apple-system, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", "Hiragino Sans", "Noto Sans CJK SC", sans-serif'
-
-/**
- * 速度评级：阈值与配色与 SpeedCard.vue 保持一致
- */
-function speedRating(toks) {
-  if (toks == null || !isFinite(toks)) return { grade: '—', c1: '#94a3b8', c2: '#475569' }
-  if (toks >= 100) return { grade: 'S', c1: '#22c55e', c2: '#15803d' }
-  if (toks >= 60)  return { grade: 'A', c1: '#60a5fa', c2: '#2563eb' }
-  if (toks >= 30)  return { grade: 'B', c1: '#fbbf24', c2: '#d97706' }
-  if (toks >= 15)  return { grade: 'C', c1: '#a78bfa', c2: '#7c3aed' }
-  return                  { grade: 'F', c1: '#f87171', c2: '#dc2626' }
-}
 
 function font(size, weight = '400') {
   return `${weight} ${size}px ${FONT_STACK}`
@@ -199,7 +188,7 @@ export function drawShareCard(canvas, { result, model, gpu, quant, t, scale = 2 
   ctx.fillText(truncate(ctx, sub, WIDTH - 2 * P), P, 232)
 
   // ── 速度评级徽章 + 单请求 tok/s ──
-  const rating = speedRating(stats.singleToksMax)
+  const rating = speedRating(stats.singleToksMid)
   const badgeCx = P + 92
   const badgeCy = 356
   drawBadge(ctx, badgeCx, badgeCy, 84, rating)
@@ -208,8 +197,8 @@ export function drawShareCard(canvas, { result, model, gpu, quant, t, scale = 2 
   ctx.textAlign = 'left'
   ctx.fillStyle = rating.c1
   ctx.font = font(92, '900')
-  const bigToks = (stats.singleToksMax != null && isFinite(stats.singleToksMax))
-    ? stats.singleToksMax.toFixed(1) : '—'
+  const bigToks = (stats.singleToksMid != null && isFinite(stats.singleToksMid))
+    ? stats.singleToksMid.toFixed(1) : '—'
   ctx.fillText(bigToks, numX, 372)
   const bigW = ctx.measureText(bigToks).width
   ctx.fillStyle = rating.c2

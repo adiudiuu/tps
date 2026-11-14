@@ -11,6 +11,7 @@ export default {
   experts_per_token: 6,
   moe_execution: 'shared_routed',
   layers: 60,
+  query_heads: 128, // num_attention_heads；HF deepseek-ai/DeepSeek-Coder-V2-Instruct
   kv_heads: 128,
   head_dim: 128,
   hidden_size: 5120,

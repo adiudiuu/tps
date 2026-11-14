@@ -13,6 +13,7 @@ export default {
   // kv_heads × head_dim 已按 MLA latent（1 × 512）填写，ratio 补 rope 分量（同 K2 / K2 Thinking）
   mla_ratio: 0.5625,  // (512 + 64) / (2 × 1 × 512)
   layers: 61,
+  query_heads: 64, // text_config.num_attention_heads；HF moonshotai/Kimi-K2.6
   kv_heads: 1,
   head_dim: 512,
   hidden_size: 7168,

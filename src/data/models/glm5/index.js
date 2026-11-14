@@ -13,6 +13,7 @@ export default {
   moe_execution: 'shared_routed',
   mla_ratio: 0.0703,  // MLA latent (512 + 64) / (2 × 64 × 64)
   layers: 78,
+  query_heads: 64, // num_attention_heads；HF zai-org/GLM-5
   kv_heads: 64,
   head_dim: 64,
   hidden_size: 6144,

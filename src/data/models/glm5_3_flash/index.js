@@ -18,6 +18,7 @@ export default {
   sliding_window: 0,
   // 11 层 sparse MLA：kv_lora_rank(512) + qk_rope_head_dim(0)；基线 2 × 64 × 256
   mla_ratio: 0.015625,  // 512 / 32768
+  query_heads: 64, // num_attention_heads；HF zai-org/GLM-5.3-Flash
   kv_heads: 64,
   head_dim: 256,
   hidden_size: 4096,
