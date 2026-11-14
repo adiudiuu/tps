@@ -1,20 +1,17 @@
-﻿// Yuan 2.0 51B: IEIT's large MoE model
-// Released: February 2024
-// Source: https://huggingface.co/IEITYuan/Yuan2-51B-hf
+﻿// Yuan 2.0 51B: dense transformer（HF config 无 experts 字段，不是 MoE）
+// Source: https://huggingface.co/IEITYuan/Yuan2-51B-hf/blob/main/config.json
+// config: hidden=8192, 64 heads (MHA), 42 layers, intermediate=32768
 export default {
   id: 'yuan2_51b',
   released: '2024-02',
   name: 'Yuan 2.0 51B',
-  type: 'moe',
+  type: 'dense',
   params: 51.0,
-  active_params: 3.7,
-  experts: 16,
-  experts_per_token: 2,
-  mla_ratio: null,
   layers: 42,
-  kv_heads: 8,
+  query_heads: 64,
+  kv_heads: 64,
   head_dim: 128,
-  hidden_size: 2048,
+  hidden_size: 8192,
   max_ctx: 16384,
   tags: ['chat', 'multilingual'],
   links: {

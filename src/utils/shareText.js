@@ -28,6 +28,7 @@ export function buildShareStats(result, model, gpu, quant) {
     runnable,
     singleToks: fmtToksRange(result.singleToksMin, result.singleToksMax),
     singleToksMax: result.singleToksMax,
+    singleToksMid: result.singleToks,
     vramNeeded: fmtGB(needed),
     vramTotal: fmtGB(vram),
     vramText: `${fmtGB(needed)} / ${fmtGB(vram)}`,

@@ -11,6 +11,7 @@ export default {
   // MLA latent = kv_lora_rank(512) + qk_rope_head_dim(64) = 576，基线 2 × 128 × 128 = 32768
   mla_ratio: 0.0176,
   layers: 61,
+  query_heads: 128, // num_attention_heads；HF deepseek-ai/DeepSeek-V3
   kv_heads: 128,
   head_dim: 128,
   hidden_size: 7168,

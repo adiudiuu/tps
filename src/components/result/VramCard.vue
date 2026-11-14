@@ -37,12 +37,22 @@ const vramRating = computed(() => {
 
 const pieData = computed(() => {
   if (!props.result) return []
-  const { weightGB, kvGB, overheadGB } = props.result
-  return [
-    { label: t('result.weight'), value: weightGB, color: 'bg-emerald-500' },
-    { label: t('result.kv'),     value: kvGB,     color: 'bg-amber-500' },
-    { label: t('result.overhead'), value: overheadGB, color: 'bg-slate-500' },
+  const r = props.result
+  const weight = r.pieWeightGB ?? r.weightGB
+  const kv = r.pieKvGB ?? r.kvGB
+  const runtime = r.runtimeOverheadPerCard
+  const act = r.activationPerCard ?? r.activationGB
+  const items = [
+    { label: t('result.weight'), value: weight, color: 'bg-emerald-500' },
+    { label: t('result.kv'),     value: kv,     color: 'bg-amber-500' },
   ]
+  if (runtime != null) {
+    items.push({ label: t('result.runtime_overhead'), value: runtime, color: 'bg-slate-500' })
+    items.push({ label: t('result.activation'), value: act, color: 'bg-sky-500' })
+  } else {
+    items.push({ label: t('result.overhead'), value: r.overheadGB, color: 'bg-slate-500' })
+  }
+  return items
 })
 </script>
 
@@ -140,7 +150,7 @@ const pieData = computed(() => {
             <span v-else :class="row.quant.id === currentQuantId ? 'text-red-200' : 'text-red-500'">✗ OOM</span>
           </span>
           <span class="text-right" :class="row.quant.id === currentQuantId ? 'text-white' : 'text-gray-500'">
-            {{ row.vramOk ? row.decodeToks.toFixed(1) + ' tok/s' : '—' }}
+            {{ row.vramOk ? (row.singleToks ?? row.effectiveToks).toFixed(1) + ' tok/s' : '—' }}
           </span>
           <span class="text-right" :class="row.quant.id === currentQuantId ? 'text-emerald-100' : 'text-gray-400'">
             {{ row.quant.ppl_loss != null ? (row.quant.ppl_loss === 0 ? '—' : '+' + row.quant.ppl_loss.toFixed(2)) : '?' }}

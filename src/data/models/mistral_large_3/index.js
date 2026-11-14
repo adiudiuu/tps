@@ -1,5 +1,7 @@
 ﻿// Mistral Large 3: 675B MoE with 41B active parameters
 // Source: https://mistral.ai/news/mistral-3/
+// HF mistralai/Mistral-Large-3 无公开 config.json（404）；experts=8/k=2 无法核验。
+// calc 在 NE 公式为负时关闭 EP 分片节省，不猜专家数。
 export default {
   id: 'mistral_large_3',
   released: '2025-12',

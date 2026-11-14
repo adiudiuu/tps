@@ -8,8 +8,11 @@ export default {
   type: 'dense',
   params: 9.0,
   layers: 42,
-  kv_heads: 4,
+  query_heads: 16, // 与 Gemma 2 9B 同构；unsloth/gemma-2-9b-it num_attention_heads=16
+  kv_heads: 8,
   head_dim: 256,
+  local_layers: 21,
+  sliding_window: 4096,
   hidden_size: 3584,
   max_ctx: 8192,
   tags: ['chat'],

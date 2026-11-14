@@ -10,10 +10,12 @@ export default {
   experts: 64,
   experts_per_token: 6,
   moe_execution: 'shared_routed',
-  // MLA latent = kv_lora_rank(512) + qk_rope_head_dim(64) = 576，基线 2 × 64 × 128 = 16384
-  mla_ratio: 0.0352,
+  // MLA latent = kv_lora_rank(512) + qk_rope_head_dim(64) = 576
+  // 官方 num_key_value_heads=16、qk_nope_head_dim=128 → 基线 2 × 16 × 128 = 4096
+  mla_ratio: 0.140625,
   layers: 27,
-  kv_heads: 64,
+  query_heads: 16, // num_attention_heads；HF deepseek-ai/DeepSeek-V2-Lite
+  kv_heads: 16,
   head_dim: 128,
   hidden_size: 2048,
   max_ctx: 32768,

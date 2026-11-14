@@ -11,6 +11,7 @@ export default {
   experts: 32,
   experts_per_token: 4,
   layers: 24,
+  query_heads: 64, // num_attention_heads；HF openai/gpt-oss-20b
   kv_heads: 8,
   head_dim: 64,
   hidden_size: 2880,

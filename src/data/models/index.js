@@ -529,6 +529,7 @@ export const DENSE_MODELS = [
   mistral_large_2,
   command_r_plus_104b,
   llama3_1_70b,
+  yuan2_51b,
   nemotron_70b,
   qwen25_math_72b,
   qwen1_5_72b,
@@ -868,7 +869,6 @@ export const MOE_MODELS = [
   openmoe_34b,
   nous_hermes2_mixtral,
   dolphin_mixtral,
-  yuan2_51b,
   // 2023
   openmoe_8b,
   mixtral_8x7b,

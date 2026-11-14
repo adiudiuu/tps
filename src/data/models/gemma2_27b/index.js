@@ -8,6 +8,7 @@ export default {
   type: 'dense',
   params: 27,
   layers: 46,
+  query_heads: 32, // num_attention_heads；unsloth/gemma-2-27b-it 镜像官方 config
   kv_heads: 16,
   head_dim: 128,
   local_layers: 23,      // sliding window layer count

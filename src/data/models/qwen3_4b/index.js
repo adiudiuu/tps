@@ -7,6 +7,7 @@ export default {
   type: 'dense',
   params: 4.0,
   layers: 36,
+  query_heads: 32, // num_attention_heads；HF Qwen/Qwen3-4B
   kv_heads: 8,
   head_dim: 128,
   hidden_size: 2560,

@@ -3,8 +3,9 @@
 // 给定模型，枚举 GPU × TP × PP × EP × quant × framework
 
 import { GPU_LIST } from '../data/gpus/index.js'
-import { QUANT_MAP, FRAMEWORK_MAP, INTERCONNECT_MAP } from '../data/constants.js'
-import { calcAll, getQuantBytes } from './calc.js'
+import { QUANT_MAP, FRAMEWORK_MAP } from '../data/constants.js'
+import { calcAll, getQuantBytes, getMoeNonExpertParams, moeAllowsEp } from './calc.js'
+import { autoInterconnect } from './interconnect.js'
 
 // Solver 使用的量化列表（跳过 fp32，保留 bf16/fp8/int8/int6/int5/int4）
 export const SOLVER_QUANTS = QUANT_MAP.filter(q => q.id !== 'fp32' && q.id !== 'int3' && q.id !== 'int2')
@@ -22,17 +23,13 @@ const QUALITY_ORDER = { bad: 0, poor: 1, ok: 2, good: 3, great: 4, best: 5 }
 
 const SOLVER_GPU_COUNTS = [1, 2, 4, 8]
 
-function getDefaultPcieInterconnect(gpu) {
-  return INTERCONNECT_MAP.find(i => i.id === (gpu.pcie_gen === 5 ? 'pcie5' : 'pcie4'))
-}
-
 function getPpOptions(model, totalGpuCount) {
   if (totalGpuCount < 2 || (model?.params ?? 0) < 30) return [1]
   return SOLVER_GPU_COUNTS.filter(n => n <= totalGpuCount && totalGpuCount % n === 0)
 }
 
 function getEpOptions(model, stageGpus) {
-  if (model?.type !== 'moe' || model?.experts == null || stageGpus < 2) return [1]
+  if (!moeAllowsEp(model) || stageGpus < 2) return [1]
   const maxEp = Math.min(model.experts, stageGpus)
   const options = [1]
   for (const n of SOLVER_GPU_COUNTS) {
@@ -79,23 +76,11 @@ function isCancelled(shouldCancel) {
  */
 function calcNonExpertParams(model) {
   if (model.type !== 'moe' || !model.experts || !model.active_params) return null
-  const denom = (model.experts_per_token ?? 1) - model.experts
-  if (denom === 0) return model.active_params
-  const ne = (model.params * (model.experts_per_token ?? 1) - model.experts * model.active_params) / denom
-  return Math.max(0, ne)
+  if (model.experts_per_token === model.experts) return model.active_params
+  return getMoeNonExpertParams(model)
 }
 
-/**
- * 根据 gpuCount 和 GPU 的 nvlink_bw 自动选择互联方式
- */
-export function autoInterconnect(gpu, gpuCount) {
-  if (gpuCount === 1) return getDefaultPcieInterconnect(gpu)
-  const bw = gpu.nvlink_bw ?? 0
-  if (bw >= 1800) return INTERCONNECT_MAP.find(i => i.id === 'nvlink5')
-  if (bw >= 900)  return INTERCONNECT_MAP.find(i => i.id === 'nvlink4')
-  if (bw >= 600)  return INTERCONNECT_MAP.find(i => i.id === 'nvlink3')
-  return getDefaultPcieInterconnect(gpu)
-}
+export { autoInterconnect }
 
 /**
  * 判断框架是否支持该 GPU 厂商
@@ -243,8 +228,8 @@ export async function solveForModel(opts) {
         const row = {
           gpu: task.gpu,
           gpuCount: task.gpuCount,
-          ppCount: task.ppCount,
-          epCount: task.epCount,
+          ppCount: r.ppCount ?? task.ppCount,
+          epCount: r.epCount ?? task.epCount,
           totalGpuCount: task.gpuCount,
           interconnect: task.interconnect,
           quant: task.quant,

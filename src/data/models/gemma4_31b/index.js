@@ -10,6 +10,7 @@ export default {
   type: 'dense',
   params: 30.7,
   layers: 60,
+  query_heads: 32,       // num_attention_heads；HF google/gemma-4-31b-it
   kv_heads: 16,          // local (sliding) attention KV heads
   head_dim: 256,
   global_kv_heads: 4,    // global (full) attention KV heads

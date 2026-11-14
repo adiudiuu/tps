@@ -8,6 +8,7 @@ export default {
   type: 'dense',
   params: 1.0,
   layers: 26,
+  query_heads: 4, // num_attention_heads；ModelScope LLM-Research/gemma-3-1b-it
   kv_heads: 1,
   head_dim: 256,
   local_layers: 22,

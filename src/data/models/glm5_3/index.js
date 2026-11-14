@@ -15,6 +15,7 @@ export default {
   // 而 calc.js 的基线按 2 × kv_heads(64) × head_dim(192) = 24576 计算
   mla_ratio: 0.0234,  // 576 / 24576
   layers: 78,
+  query_heads: 64, // num_attention_heads；HF zai-org/GLM-5.3
   kv_heads: 64,
   head_dim: 192,
   hidden_size: 6144,

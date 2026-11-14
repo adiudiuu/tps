@@ -21,6 +21,7 @@ export default {
   // 24 Gated MLA layers：压缩 KV（与 Kimi K2 / DeepSeek HCA 同形）
   // kv_heads × head_dim 已按 MLA latent（1 × 512）填写，ratio 补 rope 分量
   mla_ratio: 0.5625,  // (512 + 64) / (2 × 1 × 512)
+  query_heads: 96, // text_config.num_attention_heads；HF moonshotai/Kimi-K3
   kv_heads: 1,
   head_dim: 512,
   hidden_size: 7168,

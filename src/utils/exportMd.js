@@ -102,7 +102,7 @@ export function generateMarkdown({
     lines.push(`| MoE CPU Offload | ${t('run.enabled')} (${result.pcieBwLabel ?? ''}) |`)
   }
   if (result.speculativeDecoding) {
-    lines.push(`| ${t('md.speculative')} | ${t('run.enabled')} · draft ${result.draftLen} tok · ${t('md.acceptance')} ${(result.acceptanceRate * 100).toFixed(0)}% · ×${(1 + result.acceptanceRate * result.draftLen).toFixed(1)} ${t('md.speedup')} |`)
+    lines.push(`| ${t('md.speculative')} | ${t('run.enabled')} · draft ${result.draftLen} tok · ${t('md.acceptance')} ${(result.acceptanceRate * 100).toFixed(0)}% · ×${(result.speculativeSpeedup ?? 1).toFixed(1)} ${t('md.speedup')} |`)
   }
   lines.push('')
 
@@ -128,12 +128,23 @@ export function generateMarkdown({
   const vramDenom = avail || result.totalVram || 1
   lines.push(`| ${t('md.item')} | ${t('md.memory')} | ${t('md.ratio')} |`)
   lines.push('|---|---|---|')
-  lines.push(`| ${t('md.weights')} | ${fmtGB(result.weightGB)} | ${fmtPct(result.weightGB / vramDenom * 100)} |`)
-  lines.push(`| KV Cache | ${fmtGB(result.kvGB)} | ${fmtPct(result.kvGB / vramDenom * 100)} |`)
-  if (result.activationGB > 0) {
-    lines.push(`| ${t('md.activation')} | ${fmtGB(result.activationGB)} | ${fmtPct(result.activationGB / vramDenom * 100)} |`)
+  const pieW = result.pieWeightGB ?? result.weightGB
+  const pieK = result.pieKvGB ?? result.kvGB
+  const pieR = result.runtimeOverheadPerCard
+  const pieA = result.activationPerCard ?? result.activationGB
+  lines.push(`| ${t('md.weights')} | ${fmtGB(pieW)} | ${fmtPct(pieW / vramDenom * 100)} |`)
+  lines.push(`| KV Cache | ${fmtGB(pieK)} | ${fmtPct(pieK / vramDenom * 100)} |`)
+  if (pieR != null) {
+    lines.push(`| ${t('md.overhead')} | ${fmtGB(pieR)} | ${fmtPct(pieR / vramDenom * 100)} |`)
+    if (pieA > 0) {
+      lines.push(`| ${t('md.activation')} | ${fmtGB(pieA)} | ${fmtPct(pieA / vramDenom * 100)} |`)
+    }
+  } else {
+    if (result.activationGB > 0) {
+      lines.push(`| ${t('md.activation')} | ${fmtGB(result.activationGB)} | ${fmtPct(result.activationGB / vramDenom * 100)} |`)
+    }
+    lines.push(`| ${t('md.overhead')} | ${fmtGB(result.overheadGB)} | ${fmtPct(result.overheadGB / vramDenom * 100)} |`)
   }
-  lines.push(`| ${t('md.overhead')} | ${fmtGB(result.overheadGB)} | ${fmtPct(result.overheadGB / vramDenom * 100)} |`)
   lines.push(`| **${result.vramScope === 'per_card' ? t('md.per_gpu_needed') : t('md.total_needed')}** | **${fmtGB(needed)}** | **${fmtPct(result.vramPct)}** |`)
   lines.push(`| ${result.vramScope === 'per_card' ? t('md.per_gpu_available') : t('md.available')} | ${fmtGB(avail)} | — |`)
   if (result.vramScope === 'per_card' && result.clusterNeeded != null) {
@@ -186,7 +197,7 @@ export function generateMarkdown({
       } else {
         status = `❌ OOM`
       }
-      const speed = r.vramOk ? `${r.decodeToks.toFixed(1)} tok/s` : '—'
+      const speed = r.vramOk ? `${(r.singleToks ?? r.effectiveToks).toFixed(1)} tok/s` : '—'
       lines.push(`| ${label} | ${vram} | ${status} | ${speed} |`)
     } catch { /* skip */ }
   }
@@ -199,7 +210,7 @@ export function generateMarkdown({
     lines.push(`> ${t('md.oom_speed_note')}`)
     lines.push('')
   }
-  const toks = result.singleToksMax
+  const toks = result.singleToks
   let speedRatingStr
   if (!result.vramOk)  speedRatingStr = t('md.speed_rating_oom')
   else if (toks >= 60) speedRatingStr = t('md.speed_rating_blazing')
@@ -215,7 +226,7 @@ export function generateMarkdown({
   lines.push(`| ${t('md.metric')} | ${t('md.value')} |`)
   lines.push('|---|---|')
   lines.push(`| ${t('md.bw_limit')} | ${fmtToks(result.bwLimit)} |`)
-  lines.push(`| ${t('md.actual_throughput_total')} | ${fmtToksRange(result.decodeToksMin, result.decodeToksMax)} |`)
+  lines.push(`| ${t('md.actual_throughput_total')} | ${fmtToksRange(result.effectiveToksMin, result.effectiveToksMax)} |`)
   lines.push(`| ${t('md.single_request')} | ${fmtToksRange(result.singleToksMin, result.singleToksMax)} |`)
   lines.push(`| ${t('md.kv_read')} | ${fmtGB(result.kvReadGB)}/step |`)
   if (result.tpEfficiency < 1) {

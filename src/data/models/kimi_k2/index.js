@@ -15,6 +15,7 @@ export default {
   // ratio 只需补上 rope 分量：(512 + 64) / (2 × 1 × 512)
   mla_ratio: 0.5625,
   layers: 61,
+  query_heads: 64, // num_attention_heads；HF moonshotai/Kimi-K2-Instruct
   kv_heads: 1,
   head_dim: 512,
   hidden_size: 7168,
