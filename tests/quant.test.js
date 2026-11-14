@@ -1,7 +1,7 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import { calc, gpu, model, quant, fw, almostEqual } from './helpers.js'
-import { gpuHasNativeInt4, getPrefillTflops, isInt4WeightOnlyPrefill } from '../src/utils/calc.js'
+import { gpuHasNativeInt4, getPrefillTflops, isInt4WeightOnlyPrefill, aggregateGpuSlots } from '../src/utils/calc.js'
 
 describe('量化 prefill TFLOPS', () => {
   it('Hopper 无原生 INT4：vLLM INT4 prefill 走 BF16，不套 sparse INT8 峰值', () => {
@@ -28,6 +28,23 @@ describe('量化 prefill TFLOPS', () => {
     const int4 = getPrefillTflops(a100, quant('int4'), fw('vllm'), model('llama3_1_70b'))
     const bf16 = getPrefillTflops(a100, quant('bf16'), fw('vllm'), model('llama3_1_70b'))
     assert.ok(int4 > bf16)
+  })
+
+  it('Ada rtx3500_ada 无原生 INT4，Ampere rtx_a6000 有，混合 Ampere 聚合保留', () => {
+    assert.equal(gpuHasNativeInt4(gpu('rtx3500_ada')), false)
+    assert.equal(gpuHasNativeInt4(gpu('rtx_a6000')), true)
+    const mixedAmpere = aggregateGpuSlots([
+      { gpu: gpu('rtx_a6000'), count: 1 },
+      { gpu: gpu('rtx_a5000'), count: 1 },
+    ])
+    assert.equal(mixedAmpere.id, 'mixed')
+    assert.equal(gpuHasNativeInt4(mixedAmpere), true)
+    const adaTflops = getPrefillTflops(gpu('rtx3500_ada'), quant('int4'), fw('vllm'), model('qwen3_4b'))
+    const adaBf16 = getPrefillTflops(gpu('rtx3500_ada'), quant('bf16'), fw('vllm'), model('qwen3_4b'))
+    assert.ok(almostEqual(adaTflops, adaBf16, 1e-9))
+    const a6000Int4 = getPrefillTflops(gpu('rtx_a6000'), quant('int4'), fw('vllm'), model('qwen3_4b'))
+    const a6000Bf16 = getPrefillTflops(gpu('rtx_a6000'), quant('bf16'), fw('vllm'), model('qwen3_4b'))
+    assert.ok(a6000Int4 > a6000Bf16)
   })
 
   it('H100 vLLM INT4 TTFT 不再是 BF16 的 1/4', () => {

@@ -18,3 +18,14 @@ export function autoInterconnect(gpu, gpuCount = 1) {
   if (bw >= 600)  return INTERCONNECT_MAP.find(i => i.id === 'nvlink3')
   return defaultPcieInterconnect(gpu)
 }
+
+/**
+ * 按已还原的 GPU 槽选默认互联：同型号用该卡 NVLink/PCIe，混合卡走 PCIe。
+ */
+export function autoInterconnectForSlots(slots) {
+  if (!slots?.length) return defaultPcieInterconnect(null)
+  const total = slots.reduce((s, g) => s + (Number(g.count) || 1), 0)
+  const ids = new Set(slots.map(s => s.gpu?.id).filter(Boolean))
+  if (ids.size !== 1) return defaultPcieInterconnect(slots[0]?.gpu)
+  return autoInterconnect(slots[0].gpu, total)
+}

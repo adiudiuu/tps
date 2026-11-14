@@ -8,7 +8,7 @@ import { GPU_LIST } from '../data/gpus/index.js'
 import { ALL_MODELS } from '../data/models/index.js'
 import { QUANT_MAP, FRAMEWORK_MAP, INTERCONNECT_MAP } from '../data/constants.js'
 import { calcAll, aggregateGpuSlots } from '../utils/calc.js'
-import { autoInterconnect } from '../utils/interconnect.js'
+import { autoInterconnectForSlots } from '../utils/interconnect.js'
 import { fmtParams, fmtGB, fmtToks, fmtMs, fmtCtx, isNew } from '../utils/format.js'
 import { currentLangParam } from '../utils/lang.js'
 import { PCIE_BW_OPTIONS } from '../data/runtime.js'
@@ -48,7 +48,7 @@ function parseGpuSlots(query) {
 // ── GPU 配置 ─────────────────────────────────────────
 const _initSlots = parseGpuSlots(_p) ?? [{ gpu: GPU_LIST.find(g => g.id === 'h100_sxm') ?? GPU_LIST[0], count: 1 }]
 const gpuSlots    = ref(_initSlots)
-const interconnect = ref(INTERCONNECT_MAP.find(i => i.id === _p.ic) ?? autoInterconnect(_initSlots[0]?.gpu, _initSlots.reduce((s, g) => s + g.count, 0)))
+const interconnect = ref(INTERCONNECT_MAP.find(i => i.id === _p.ic) ?? autoInterconnectForSlots(_initSlots))
 const ctx         = ref(_p.ctx ? Math.max(512, Number(_p.ctx)) : 16384)
 const batch       = ref(_p.b ? Math.max(1, Number(_p.b)) : 1)
 // 与 Estimator 一致：NVIDIA→vllm，Apple→mlx；URL 指定 fw 时优先

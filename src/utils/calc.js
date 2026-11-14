@@ -49,20 +49,20 @@ export function calcAll({
   imageCount = 0,
   skipCalibration = false,
 }) {
-  // 非法输入防呆：缺核心对象时给出明确错误；数值夹紧到正整数，避免 NaN/Inf 静默传播
+  // 非法输入防呆：缺核心对象时给出明确错误；数值夹紧到有限正整数，避免 NaN/Inf 进布局循环
   if (!gpu || !model || !quant || !framework) {
     throw new Error('calcAll: gpu / model / quant / framework are required')
   }
-  gpuCount = Math.max(1, Math.round(Number(gpuCount) || 1))
-  batch = Math.max(1, Math.round(Number(batch) || 1))
-  ctx = Math.max(1, Math.round(Number(ctx) || 1))
-  promptLen = Math.max(1, Math.round(Number(promptLen) || 1))
-  outputLen = Math.max(1, Math.round(Number(outputLen) || 1))
-  ppCount = Math.max(1, Math.round(Number(ppCount) || 1))
-  epCount = Math.max(1, Math.round(Number(epCount) || 1))
-  dpCount = Math.max(1, Math.round(Number(dpCount) || 1))
-  imageCount = Math.max(0, Math.round(Number(imageCount) || 0))
-  prefixCacheHit = Math.min(99, Math.max(0, Number(prefixCacheHit) || 0))
+  gpuCount = clampPositiveInt(gpuCount, 1)
+  batch = clampPositiveInt(batch, 1)
+  ctx = clampPositiveInt(ctx, 1)
+  promptLen = clampPositiveInt(promptLen, 1)
+  outputLen = clampPositiveInt(outputLen, 1)
+  ppCount = clampPositiveInt(ppCount, 1)
+  epCount = clampPositiveInt(epCount, 1)
+  dpCount = clampPositiveInt(dpCount, 1)
+  imageCount = clampPositiveInt(imageCount, 0, 0)
+  prefixCacheHit = Math.min(99, clampPositiveInt(prefixCacheHit, 0, 0))
 
   // MoE non-expert：公式为负说明 params/active/experts 自相矛盾，不钳到 0 去假装 EP 可分片
   const moeNonExpertRaw = getMoeNonExpertParams(model)
@@ -577,9 +577,18 @@ export function calcAll({
     mambaRatio: model.mamba_ratio,
   })
   // decode 算力上限：2N matmul + O(seq) attention，无额外经验系数。
-  // 大模型几乎总是带宽更紧；小模型/超高 TFLOPS 时才可能封顶。
+  // tflops 已按 TP×EP；PP 填满后吞吐再 ×pp×气泡。每 step 要算 batch 路，
+  // 推测解码还要验证 draftLen+1 个 token，不能把 1-token 倒数直接当 TPOT。
   const decodeComputeLimit = (tflops * 1e12) / (2 * tokenActiveParams * 1e9) / decodeAttentionFactor * flashFactor
-  const tpotComputeMs = 1000 / Math.max(decodeComputeLimit, 1e-12)
+  const specVerifyTokens = (speculativeDecoding && draftLen > 0) ? (draftLen + 1) : 1
+  const computeTokensPerStep = batch * specVerifyTokens
+  const cpuOnlyDecode = pureCpu || gpuLayerRatio <= 0
+  const gpuComputeLimit = cpuOnlyDecode
+    ? 0
+    : decodeComputeLimit * gpuLayerRatio * ppCount * ppBubbleEff
+  const tpotComputeMs = gpuComputeLimit > 0
+    ? 1000 * computeTokensPerStep / gpuComputeLimit
+    : 0
 
   const tpotBw = getDecodeTpotBaseMs(decodeFactors.mid)
   const tpotBwMin = getDecodeTpotBaseMs(decodeFactorMin)
@@ -950,14 +959,27 @@ function getActBytes(quant) {
   return quant?.act_bytes ?? 2.0
 }
 
+function clampPositiveInt(n, fallback = 1, min = 1) {
+  const x = Number(n)
+  if (!Number.isFinite(x)) return fallback
+  const r = Math.round(x)
+  if (!Number.isFinite(r) || r < min) return fallback
+  return r
+}
+
+/** MoE 只有 NE 可计算时才允许 EP；否则估算与命令都应落到 TP。 */
+export function moeAllowsEp(model) {
+  if (model?.type !== 'moe' || model?.experts == null) return false
+  if (model.experts_per_token === model.experts) return false
+  return getMoeNonExpertParams(model) != null
+}
+
 /**
- * EP 仅对带 experts 的 MoE 有效。dense / 无 experts 强制 1，与 RunConfig.epSupported 一致。
+ * EP 仅对带 experts 且 NE 有效的 MoE 有效。dense / 无效 NE 强制 1，与 RunConfig.epSupported 一致。
  */
 export function effectiveEpCount(model, epCount = 1) {
-  if (model?.type === 'moe' && model?.experts != null) {
-    return Math.max(1, Math.round(Number(epCount) || 1))
-  }
-  return 1
+  if (!moeAllowsEp(model)) return 1
+  return clampPositiveInt(epCount, 1)
 }
 
 /**
@@ -965,10 +987,10 @@ export function effectiveEpCount(model, epCount = 1) {
  * 默认 ep=1, dp=1, pp=1 → tp = gpuCount。无法整除时回退 ep/dp，避免 TP=8 再叠 EP=8。
  */
 export function resolveParallelLayout({ gpuCount = 1, ppCount = 1, epCount = 1, dpCount = 1 } = {}) {
-  const totalGpus = Math.max(1, Math.round(Number(gpuCount) || 1))
-  let pp = Math.max(1, Math.round(Number(ppCount) || 1))
-  let ep = Math.max(1, Math.round(Number(epCount) || 1))
-  let dp = Math.max(1, Math.round(Number(dpCount) || 1))
+  const totalGpus = clampPositiveInt(gpuCount, 1)
+  let pp = clampPositiveInt(ppCount, 1)
+  let ep = clampPositiveInt(epCount, 1)
+  let dp = clampPositiveInt(dpCount, 1)
   if (totalGpus % pp !== 0) pp = 1
   const perStage = totalGpus / pp
   if (perStage % (ep * dp) !== 0) {
@@ -1065,9 +1087,16 @@ function isNvidiaHbm(gpu) {
  * 不得套用规格书里误标成 INT4 的稀疏 INT8 峰值（H100 int4:3958 = sparse INT8）。
  */
 export function gpuHasNativeInt4(gpu) {
+  if (gpu?.nativeInt4 === true) return true
+  if (gpu?.nativeInt4 === false) return false
   if (gpu?.vendor !== 'nvidia') return false
-  const id = gpu.id ?? ''
+  const id = (gpu.id ?? '').toLowerCase()
+  // Ada / Hopper / Blackwell：无原生 INT4 MMA（rtx3500_ada 会误匹配 rtx3xxx）
+  if (id.includes('ada')) return false
+  if (/^(h100|h200|h800|b200|b300|gb200|gb300|l4|l40)/.test(id)) return false
+  if (id.startsWith('rtx4') || id.startsWith('rtx5') || id.startsWith('rtx_pro')) return false
   if (/^(a100|a800|a40|a30|a10|t4)/.test(id)) return true
+  if (id.startsWith('rtx_a')) return true
   if (/^rtx30/.test(id) || /^rtx3[0-9]{3}/.test(id)) return true
   return false
 }
@@ -1532,6 +1561,8 @@ export function aggregateGpuSlots(slots) {
     usableRatio:   1.0,
     // 混合卡不保证 NVLink
     nvlink_bw: null,
+    // 全员 Ampere 才保留 INT4 TC；id=mixed 时靠 nativeInt4 而不是启发式
+    nativeInt4: slots.every(s => gpuHasNativeInt4(s.gpu)),
     // 展示字段取主卡
     vendor: slots[0].gpu.vendor,
     tier:   slots[0].gpu.tier,

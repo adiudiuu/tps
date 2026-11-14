@@ -12,7 +12,7 @@ import ResultPanel from '../components/result/ResultPanel.vue'
 import { GPU_LIST } from '../data/gpus/index.js'
 import { ALL_MODELS } from '../data/models/index.js'
 import { QUANT_MAP, INTERCONNECT_MAP, FRAMEWORK_MAP } from '../data/constants.js'
-import { autoInterconnect } from '../utils/interconnect.js'
+import { autoInterconnectForSlots } from '../utils/interconnect.js'
 import { KV_CACHE_MAP, PCIE_BW_OPTIONS, CPU_MEM_BW_OPTIONS, PCIE_WIDTH_OPTIONS } from '../data/runtime.js'
 import { calcAll, calcBatchSweep, aggregateGpuSlots, getQuantBytes } from '../utils/calc.js'
 import { readUrlState, resolveUrlState, watchUrlState } from '../utils/useUrlState.js'
@@ -47,7 +47,7 @@ function preferredCtx(maxCtx) {
 
 const gpuSlots       = ref(_url.gpuSlots     ?? [{ gpu: defaultGpu, count: 1 }])
 const gpuCount       = computed(() => gpuSlots.value.reduce((s, g) => s + g.count, 0))
-const interconnect   = ref(_url.interconnect ?? autoInterconnect(defaultGpu, gpuSlots.value?.[0]?.count ?? 1))
+const interconnect   = ref(_url.interconnect ?? autoInterconnectForSlots(gpuSlots.value))
 const model          = ref(_url.model        ?? defaultModel)
 const quant          = ref(_url.quant        ?? QUANT_MAP.find(q => q.id === 'bf16'))
 const ctx            = ref(_url.ctx          ?? preferredCtx(model.value?.max_ctx))

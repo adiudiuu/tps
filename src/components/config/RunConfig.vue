@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { QUANT_MAP } from '../../data/constants.js'
 import { KV_CACHE_MAP, PREFIX_CACHE_OPTIONS, PCIE_BW_OPTIONS, PCIE_WIDTH_OPTIONS, CPU_MEM_BW_OPTIONS, RAM_CAPACITY_OPTIONS } from '../../data/runtime.js'
 import { fmtCtx } from '../../utils/format.js'
-import { resolveParallelLayout } from '../../utils/calc.js'
+import { resolveParallelLayout, moeAllowsEp } from '../../utils/calc.js'
 import TipIcon from '../ui/TipIcon.vue'
 
 const { t } = useI18n()
@@ -45,8 +45,7 @@ watch(ppSupported, (v) => { if (!v) ppCount.value = 1 })
 
 // EP 显示条件：MoE 模型且有 experts 字段，至少 2 张卡
 const epSupported = computed(() =>
-  props.model?.type === 'moe' &&
-  props.model?.experts != null &&
+  moeAllowsEp(props.model) &&
   props.gpuCount >= 2
 )
 const stageGpus = computed(() => {

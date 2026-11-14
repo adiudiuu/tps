@@ -5,7 +5,7 @@
 import { GPU_LIST } from '../data/gpus/index.js'
 import { QUANT_MAP, FRAMEWORK_MAP } from '../data/constants.js'
 import { calcAll, getQuantBytes, getMoeNonExpertParams } from './calc.js'
-import { autoInterconnect as pickAutoInterconnect } from './interconnect.js'
+import { autoInterconnect } from './interconnect.js'
 
 // Solver 使用的量化列表（跳过 fp32，保留 bf16/fp8/int8/int6/int5/int4）
 export const SOLVER_QUANTS = QUANT_MAP.filter(q => q.id !== 'fp32' && q.id !== 'int3' && q.id !== 'int2')
@@ -30,6 +30,7 @@ function getPpOptions(model, totalGpuCount) {
 
 function getEpOptions(model, stageGpus) {
   if (model?.type !== 'moe' || model?.experts == null || stageGpus < 2) return [1]
+  if (getMoeNonExpertParams(model) == null && model.experts_per_token !== model.experts) return [1]
   const maxEp = Math.min(model.experts, stageGpus)
   const options = [1]
   for (const n of SOLVER_GPU_COUNTS) {
@@ -80,7 +81,7 @@ function calcNonExpertParams(model) {
   return getMoeNonExpertParams(model)
 }
 
-export { pickAutoInterconnect as autoInterconnect }
+export { autoInterconnect }
 
 /**
  * 判断框架是否支持该 GPU 厂商
@@ -228,8 +229,8 @@ export async function solveForModel(opts) {
         const row = {
           gpu: task.gpu,
           gpuCount: task.gpuCount,
-          ppCount: task.ppCount,
-          epCount: task.epCount,
+          ppCount: r.ppCount ?? task.ppCount,
+          epCount: r.epCount ?? task.epCount,
           totalGpuCount: task.gpuCount,
           interconnect: task.interconnect,
           quant: task.quant,

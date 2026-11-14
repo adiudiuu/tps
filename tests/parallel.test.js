@@ -1,6 +1,7 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { calc, gpu, model, ic, almostEqual } from './helpers.js'
+import { calc, gpu, model, ic } from './helpers.js'
+import { effectiveEpCount, moeAllowsEp, resolveParallelLayout } from '../src/utils/calc.js'
 
 describe('TP / PP / EP', () => {
   it('PP 不缩短单请求 TTFT（各 stage 串行）', () => {
@@ -71,5 +72,38 @@ describe('TP / PP / EP', () => {
     assert.equal(r.moeNonExpertInvalid, true)
     assert.equal(r.epCount, 1)
     assert.equal(r.isEP, false)
+    assert.equal(moeAllowsEp(model('kimi_k1')), false)
+    assert.equal(effectiveEpCount(model('kimi_k1'), 8), 1)
+    const layout = resolveParallelLayout({
+      gpuCount: 8,
+      ppCount: 1,
+      epCount: effectiveEpCount(model('kimi_k1'), 8),
+    })
+    assert.equal(layout.epCount, 1)
+    assert.equal(layout.tpCount, 8)
+  })
+
+  it('batch>1 时 decode 算力按整步 token 预算，不把 1-token 倒数当 TPOT', () => {
+    const b1 = calc({ gpu: gpu('h100_sxm'), gpuCount: 1, model: model('qwen3_4b'), batch: 1 })
+    const b8 = calc({ gpu: gpu('h100_sxm'), gpuCount: 1, model: model('qwen3_4b'), batch: 8 })
+    if (b8.decodeComputeLimited) {
+      assert.ok(b8.effectiveToks <= b8.decodeComputeLimit * 1.05)
+      assert.ok(b8.tpot > b1.tpot * 4)
+    }
+  })
+
+  it('纯 CPU 路径不受 GPU decode 算力上限约束', () => {
+    const gpuPath = calc({ gpu: gpu('h100_sxm'), gpuCount: 1, model: model('qwen3_4b'), batch: 8 })
+    const cpuPath = calc({
+      gpu: gpu('h100_sxm'),
+      gpuCount: 1,
+      model: model('qwen3_4b'),
+      batch: 8,
+      pureCpu: true,
+      cpuMemBw: { id: 'ddr5', bw: 90, label: 'DDR5' },
+    })
+    assert.equal(cpuPath.decodeComputeLimited, false)
+    assert.ok(Number.isFinite(cpuPath.singleToks))
+    assert.ok(gpuPath.decodeComputeLimit > 0)
   })
 })
