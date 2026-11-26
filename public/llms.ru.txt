@@ -7,12 +7,18 @@
 Другие языки: [简体中文](/llms.zh.txt) / [繁體中文](/llms.zh-TW.txt) / [English](/llms.txt) / [Español](/llms.es.txt) / [한국어](/llms.ko.txt) / [日本語](/llms.ja.txt)
 Интерфейс: упрощённый китайский по умолчанию (без query); `?lang=zh-TW` / `?lang=en` / `?lang=ru` / `?lang=es` / `?lang=ko` / `?lang=ja`
 
-Каталог (живые счётчики в Library): **424 модели**, **251 GPU**. Данные обновлены **2026-11-15** (`UPDATED_AT_BEIJING`).
+Каталог (живые счётчики в Library): **430 моделей**, **251 GPU**. Данные обновлены **2026-11-26** (`UPDATED_AT_BEIJING`).
 
 ## Популярные модели в каталоге
 
 | Модель | Почему в списке |
 |--------|-----------------|
+| **ERNIE 5.5 Flash Preview** | Открытая текстовая MoE Baidu после post-train, 280B-A14B, та же геометрия что Flash Base + DSpark, нативный контекст 1M (HF / ModelScope, Apache 2.0, веса 2026-11-23) |
+| **Ling-3.2-air** | Открытый гибридный линейный мультимодальный MoE inclusionAI, 124B-A5.5B, 35 KDA + 7 Gated MLA, нативный контекст 262K (HF / ModelScope, MIT, 2026-11-23) |
+| **Inkling 2 Mini** | Открытый зацикленный мультимодальный MoE Thinking Machines, 26.4B-A3.4B, 20 скользящих + 4 глобальных, нативный контекст 1M (HF NVFP4, Apache 2.0, 2026-11-20) |
+| **Hy4** | Открытый нативный мультимодальный MoE-флагман Tencent Hy, 770B-A49B + 1.23B ViT, Gated DSA, нативный контекст 1M (HF / ModelScope, веса 2026-11-20) |
+| **Hy4 flash** | Открытый нативный мультимодальный MoE Tencent Hy, 220B-A12B (включая 64B Engram), 12 DSA + 30 SWA, нативный контекст 1M (HF / ModelScope, 2026-11-18) |
+| **SenseNova-Loop 9B** | Открытая зацикленная мультимодальная плотная VLM SenseTime SenseNova, 9B unique / ~14.6B развёрнуто, hybrid linear+full, нативный контекст 512K (HF / ModelScope, 2026-11-17) |
 | **Inkling 2 Small** | Открытый нативный мультимодальный MoE Thinking Machines, 594B-A17B, 40 скользящих + 8 глобальных слоёв внимания, нативный контекст 1M (HF NVFP4, веса 2026-11-12) |
 | **LongCat-2.5** | Открытый нативный мультимодальный MoE Meituan LongCat, 1.6T-A48B, MLA + DSA, ScMoE 768 routed top-12, нативный контекст 512K (HF / ModelScope, веса 2026-11-10) |
 | **ERNIE 5.5 Flash Base** | Открытая текстовая MoE-база Baidu, 280B-A14B, 37 HCA + 6 MLA-DSA, нативный контекст 1M (HF / ModelScope, веса 2026-11-05) |

@@ -7,12 +7,18 @@
 其他語言：[簡體中文](/llms.zh.txt) / [English](/llms.txt) / [Русский](/llms.ru.txt) / [Español](/llms.es.txt) / [한국어](/llms.ko.txt) / [日本語](/llms.ja.txt)
 界面：簡體中文預設（不加 lang）；`?lang=zh-TW`（繁體中文）/ `?lang=en` / `?lang=ru` / `?lang=es` / `?lang=ko` / `?lang=ja`
 
-站內即時數量：**424 個模型**、**251 個 GPU**。資料更新至 **2026-11-15**（`UPDATED_AT_BEIJING`）。
+站內即時數量：**430 個模型**、**251 個 GPU**。資料更新至 **2026-11-26**（`UPDATED_AT_BEIJING`）。
 
 ## 可估計的熱門模型（均已入庫）
 
 | 模型 | 選取原因 |
 |------|----------|
+| **ERNIE 5.5 Flash Preview** | 百度開源文本 MoE post-train 中間權重，280B-A14B，幾何同 Flash Base + DSpark，原生 1M 上下文（HF / ModelScope，Apache 2.0，權重 2026-11-23） |
+| **Ling-3.2-air** | inclusionAI 開源混合線性多模態 MoE，124B-A5.5B，35 KDA + 7 Gated MLA，原生 262K 上下文（HF / ModelScope，MIT，2026-11-23） |
+| **Inkling 2 Mini** | Thinking Machines 開源循環多模態 MoE，26.4B-A3.4B，20 滑動窗 + 4 全局，原生 1M 上下文（HF NVFP4，Apache 2.0，2026-11-20） |
+| **Hy4** | 騰訊 Hy 開源原生多模態 MoE 旗艦，770B-A49B + 1.23B ViT，Gated DSA，原生 1M 上下文（HF / ModelScope，權重 2026-11-20） |
+| **Hy4 flash** | 騰訊 Hy 開源原生多模態 MoE，220B-A12B（含 64B Engram），12 DSA + 30 滑動窗，原生 1M 上下文（HF / ModelScope，2026-11-18） |
+| **SenseNova-Loop 9B** | 商湯 SenseNova 開源循環多模態稠密 VLM，9B unique / 展開約 14.6B，線性+全注意力 hybrid，原生 512K 上下文（HF / ModelScope，2026-11-17） |
 | **Inkling 2 Small** | Thinking Machines 開源原生多模態 MoE，594B-A17B，40 滑動窗 + 8 全局注意力，原生 1M 上下文（HF NVFP4，權重 2026-11-12） |
 | **LongCat-2.5** | 美團 LongCat 開源原生多模態 MoE，1.6T-A48B，MLA + DSA，ScMoE 768 routed top-12，原生 512K 上下文（HF / ModelScope，權重 2026-11-10） |
 | **ERNIE 5.5 Flash Base** | 百度開源文本 MoE 預訓練基座，280B-A14B，37 HCA + 6 MLA-DSA，原生 1M 上下文（HF / ModelScope，權重 2026-11-05） |

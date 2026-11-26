@@ -7,12 +7,18 @@ Código: https://github.com/adiudiuu/tps
 Otros idiomas: [简体中文](/llms.zh.txt) / [繁體中文](/llms.zh-TW.txt) / [English](/llms.txt) / [Русский](/llms.ru.txt) / [한국어](/llms.ko.txt) / [日本語](/llms.ja.txt)
 Interfaz: chino simplificado por defecto (sin query); `?lang=zh-TW` / `?lang=en` / `?lang=ru` / `?lang=es` / `?lang=ko` / `?lang=ja`
 
-Catálogo (conteos en vivo en Library): **424 modelos**, **251 GPUs**. Datos actualizados el **2026-11-15** (`UPDATED_AT_BEIJING`).
+Catálogo (conteos en vivo en Library): **430 modelos**, **251 GPUs**. Datos actualizados el **2026-11-26** (`UPDATED_AT_BEIJING`).
 
 ## Modelos populares en el catálogo
 
 | Modelo | Por qué está |
 |--------|--------------|
+| **ERNIE 5.5 Flash Preview** | MoE de texto post-entrenado de pesos abiertos de Baidu, 280B-A14B, misma geometría que Flash Base + DSpark, ctx nativo 1M (HF / ModelScope, Apache 2.0, pesos 2026-11-23) |
+| **Ling-3.2-air** | MoE multimodal híbrido-lineal de pesos abiertos de inclusionAI, 124B-A5.5B, 35 KDA + 7 Gated MLA, ctx nativo 262K (HF / ModelScope, MIT, 2026-11-23) |
+| **Inkling 2 Mini** | MoE multimodal en bucle de pesos abiertos de Thinking Machines, 26.4B-A3.4B, 20 ventanas deslizantes + 4 globales, ctx nativo 1M (HF NVFP4, Apache 2.0, 2026-11-20) |
+| **Hy4** | MoE multimodal nativo insignia de Tencent Hy, 770B-A49B + 1.23B ViT, Gated DSA, ctx nativo 1M (HF / ModelScope, pesos 2026-11-20) |
+| **Hy4 flash** | MoE multimodal nativo de Tencent Hy, 220B-A12B (incl. 64B Engram), 12 DSA + 30 SWA, ctx nativo 1M (HF / ModelScope, 2026-11-18) |
+| **SenseNova-Loop 9B** | VLM densa multimodal con decoder en bucle de SenseTime SenseNova, 9B unique / ~14.6B desplegado, hybrid lineal+full, ctx nativo 512K (HF / ModelScope, 2026-11-17) |
 | **Inkling 2 Small** | MoE multimodal nativo de pesos abiertos de Thinking Machines, 594B-A17B, 40 ventanas deslizantes + 8 atención global, ctx nativo 1M (HF NVFP4, pesos 2026-11-12) |
 | **LongCat-2.5** | MoE multimodal nativo de pesos abiertos de Meituan LongCat, 1.6T-A48B, MLA + DSA, ScMoE 768 routed top-12, ctx nativo 512K (HF / ModelScope, pesos 2026-11-10) |
 | **ERNIE 5.5 Flash Base** | Base MoE de texto de pesos abiertos de Baidu, 280B-A14B, 37 HCA + 6 MLA-DSA, ctx nativo 1M (HF / ModelScope, pesos 2026-11-05) |
